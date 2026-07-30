@@ -200,6 +200,7 @@ function LehrplanPage() {
         .select("id,name")
         .eq("folder_id", folder.id)
         .is("deleted_at", null)
+        .not("name", "ilike", "desktop.ini")
         .order("name");
       if (docErr) throw docErr;
       if (!folderDocs.length) throw new Error("Dieser Ordner enthält keine Dokumente.");
