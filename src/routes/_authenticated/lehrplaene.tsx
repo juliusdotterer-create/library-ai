@@ -74,6 +74,32 @@ function LehrplanPage() {
       return data;
     },
   });
+  const docs = useQuery({
+    queryKey: ["all-docs"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("documents")
+        .select("id,name,storage_path")
+        .is("deleted_at", null);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const docMap: Record<string, string> = Object.fromEntries(
+    (docs.data ?? []).map((d) => [d.id, d.name]),
+  );
+
+  const openDoc = async (id: string) => {
+    const d = docs.data?.find((x) => x.id === id);
+    if (!d) return;
+    const { data, error } = await supabase.storage
+      .from("documents")
+      .createSignedUrl(d.storage_path, 60);
+    if (error) return toast.error(error.message);
+    window.open(data.signedUrl, "_blank");
+  };
+
 
   const createPlan = useMutation({
     mutationFn: async () => {
