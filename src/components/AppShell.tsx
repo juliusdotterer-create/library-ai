@@ -33,6 +33,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { mode, toggleMode } = useTheme();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const signOut = async () => {
     await queryClient.cancelQueries();
@@ -43,12 +44,23 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen w-full">
+      <LibrarySearch open={searchOpen} onOpenChange={setSearchOpen} />
       <header className="sticky top-0 z-40 px-3 pt-3 sm:px-5">
         <div className="glass mx-auto flex max-w-7xl items-center gap-2 rounded-3xl px-3 py-2">
-          <Link to="/library" className="flex items-center gap-2 pr-2">
-            <Logo className="size-8" />
-            <span className="hidden text-sm font-semibold tracking-tight sm:block">Library</span>
-          </Link>
+          <div className="flex items-center gap-2 pr-2">
+            <Link to="/library" aria-label="Zur Library">
+              <Logo className="size-8" />
+            </Link>
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              title="Library durchsuchen"
+              className="hidden text-sm font-semibold tracking-tight transition-colors hover:text-primary sm:block"
+            >
+              Library
+            </button>
+          </div>
+
 
 
           <nav className="flex flex-1 items-center gap-1 overflow-x-auto">
