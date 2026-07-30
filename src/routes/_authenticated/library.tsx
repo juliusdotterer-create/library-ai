@@ -9,6 +9,7 @@ import {
   FileText,
   Folder,
   FolderPlus,
+  FolderUp,
   Home,
   MoreVertical,
   Pencil,
@@ -53,6 +54,7 @@ function LibraryPage() {
   const [path, setPath] = useState<Crumb[]>([{ id: null, name: "Library" }]);
   const current = path[path.length - 1];
   const fileInput = useRef<HTMLInputElement>(null);
+  const folderInput = useRef<HTMLInputElement>(null);
   const [newFolder, setNewFolder] = useState("");
   const [rename, setRename] = useState<{
     table: "folders" | "documents";
