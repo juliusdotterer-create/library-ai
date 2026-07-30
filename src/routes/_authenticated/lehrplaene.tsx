@@ -27,13 +27,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { StudyTimers } from "@/components/StudyTimer";
 import { DocumentPreview, type PreviewDoc } from "@/components/DocumentPreview";
@@ -69,6 +62,8 @@ function LehrplanPage() {
   const [doc, setDoc] = useState<PickedDocument | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerFolder, setPickerFolder] = useState<string | null>(null);
+  const [folderPickerOpen, setFolderPickerOpen] = useState(false);
+  const [folderNav, setFolderNav] = useState<string | null>(null);
 
 
 
@@ -139,22 +134,8 @@ function LehrplanPage() {
 
   const natural = new Intl.Collator("de", { numeric: true, sensitivity: "base" });
 
-  // Ordner in Baum-Reihenfolge (Eltern → Kinder), Geschwister natürlich sortiert
-  const orderedFolders: { id: string; name: string; depth: number }[] = (() => {
-    const list = folders.data ?? [];
-    const out: { id: string; name: string; depth: number }[] = [];
-    const walk = (parent: string | null, depth: number) => {
-      list
-        .filter((f) => (f.parent_id ?? null) === parent)
-        .sort((a, b) => natural.compare(a.name, b.name))
-        .forEach((f) => {
-          out.push({ id: f.id, name: f.name, depth });
-          walk(f.id, depth + 1);
-        });
-    };
-    walk(null, 0);
-    return out;
-  })();
+
+
 
   const subFolders = (parentId: string | null) =>
     (folders.data ?? [])
@@ -453,34 +434,76 @@ function LehrplanPage() {
                   </PopoverContent>
                 </Popover>
 
-                <Select
-                  value=""
-                  onValueChange={(id) => {
-                    const f = folders.data?.find((x) => x.id === id);
-                    if (f) addFolderTasks.mutate({ id: f.id, name: f.name, path: folderPath(f.id) });
-                  }}
-                >
-                  <SelectTrigger className="h-9 w-52 rounded-2xl">
-                    <SelectValue placeholder="Ganzer Ordner" />
-                  </SelectTrigger>
-                  <SelectContent className="glass max-h-72 rounded-2xl">
-                    {orderedFolders.map((f) => {
-                      const count = docsIn(f.id).length;
-                      return (
-                        <SelectItem
-                          key={f.id}
-                          value={f.id}
-                          style={{ paddingLeft: 32 + f.depth * 12 }}
+                <Popover open={folderPickerOpen} onOpenChange={setFolderPickerOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="h-9 w-52 justify-between rounded-2xl font-normal"
+                    >
+                      <span className="truncate">Ganzer Ordner</span>
+                      <ChevronRight className="size-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="start" className="glass w-72 rounded-2xl p-2">
+                    <div className="mb-2 flex items-center gap-1 px-1 text-xs text-muted-foreground">
+                      {folderNav && (
+                        <button
+                          className="rounded-lg p-1 hover:bg-muted"
+                          onClick={() =>
+                            setFolderNav(
+                              folders.data?.find((f) => f.id === folderNav)?.parent_id ?? null,
+                            )
+                          }
                         >
-                          {f.name}
-                          {count > 0 && (
-                            <span className="ml-2 text-xs text-muted-foreground">{count}</span>
-                          )}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
+                          <ArrowLeft className="size-3.5" />
+                        </button>
+                      )}
+                      <span className="truncate">
+                        {folderNav ? folderPath(folderNav) : "Library"}
+                      </span>
+                    </div>
+                    {folderNav && (
+                      <Button
+                        size="sm"
+                        className="mb-2 w-full rounded-xl"
+                        onClick={() => {
+                          const f = folders.data?.find((x) => x.id === folderNav);
+                          if (f) {
+                            addFolderTasks.mutate({
+                              id: f.id,
+                              name: f.name,
+                              path: folderPath(f.id),
+                            });
+                            setFolderPickerOpen(false);
+                          }
+                        }}
+                      >
+                        Diesen Ordner einplanen ({docsIn(folderNav).length})
+                      </Button>
+                    )}
+                    <div className="max-h-72 space-y-0.5 overflow-y-auto">
+                      {subFolders(folderNav).map((f) => (
+                        <button
+                          key={f.id}
+                          onClick={() => setFolderNav(f.id)}
+                          className="flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left text-sm hover:bg-muted"
+                        >
+                          <Folder className="size-4 shrink-0 opacity-60" />
+                          <span className="flex-1 truncate">{f.name}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {docsIn(f.id).length}
+                          </span>
+                          <ChevronRight className="size-3.5 shrink-0 opacity-50" />
+                        </button>
+                      ))}
+                      {!subFolders(folderNav).length && (
+                        <p className="py-6 text-center text-xs text-muted-foreground">
+                          Keine Unterordner.
+                        </p>
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
 
                 <Button
                   className="h-9 rounded-2xl"
