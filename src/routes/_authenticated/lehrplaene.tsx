@@ -230,27 +230,54 @@ function LehrplanPage() {
               </Button>
             </div>
 
-            <div className="mb-4 flex flex-wrap gap-2">
-              <Input
-                placeholder="Aufgabe, z. B. Klausur 2021 lösen"
-                className="h-9 flex-1 rounded-2xl"
-                value={task.title}
-                onChange={(e) => setTask({ ...task, title: e.target.value })}
-              />
-              <Input
-                type="date"
-                className="h-9 w-40 rounded-2xl"
-                value={task.due}
-                onChange={(e) => setTask({ ...task, due: e.target.value })}
-              />
-              <Button
-                className="rounded-2xl"
-                disabled={!task.title.trim()}
-                onClick={() => addTask.mutate()}
-              >
-                <Plus className="size-4" />
-              </Button>
+            <div className="mb-4 space-y-2">
+              <div className="flex flex-wrap gap-2">
+                <Input
+                  placeholder="Aufgabe, z. B. Klausur 2021 lösen"
+                  className="h-9 flex-1 rounded-2xl"
+                  value={task.title}
+                  onChange={(e) => setTask({ ...task, title: e.target.value })}
+                />
+                <Input
+                  type="date"
+                  className="h-9 w-40 rounded-2xl"
+                  value={task.due}
+                  onChange={(e) => setTask({ ...task, due: e.target.value })}
+                />
+                <DocumentPicker
+                  onPick={(d) => {
+                    setDoc(d);
+                    if (!task.title.trim()) setTask((t) => ({ ...t, title: `${d.name} lernen` }));
+                  }}
+                  trigger={
+                    <Button variant="secondary" className="h-9 rounded-2xl">
+                      <FileText className="size-4" /> Dokument
+                    </Button>
+                  }
+                />
+                <Button
+                  className="h-9 rounded-2xl"
+                  disabled={!task.title.trim()}
+                  onClick={() => addTask.mutate()}
+                >
+                  <Plus className="size-4" />
+                </Button>
+              </div>
+              {doc && (
+                <p className="text-xs text-muted-foreground">
+                  Verknüpft: <span className="font-medium text-foreground">{doc.name}</span>
+                  {doc.path ? ` · ${doc.path}` : ""}
+                  <button className="text-destructive ml-2" onClick={() => setDoc(null)}>
+                    entfernen
+                  </button>
+                </p>
+              )}
             </div>
+
+            <div className="glass-soft mb-4 rounded-2xl p-3">
+              <StudyTimers />
+            </div>
+
 
             <div className="space-y-2">
               {tasks.data?.map((t) => {
