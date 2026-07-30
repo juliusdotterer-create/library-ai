@@ -30,13 +30,18 @@ export function TrashPanel() {
 
   const restore = useMutation({
     mutationFn: async ({ table, id }: { table: "folders" | "documents"; id: string }) => {
-      const { error } = await supabase.from(table).update({ deleted_at: null }).eq("id", id);
+      if (table === "folders") {
+        await restoreFolder(id);
+        return;
+      }
+      const { error } = await supabase.from("documents").update({ deleted_at: null }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       invalidate();
       toast.success("Wiederhergestellt");
     },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const purge = useMutation({
@@ -49,8 +54,12 @@ export function TrashPanel() {
       id: string;
       storagePath?: string | null;
     }) => {
+      if (table === "folders") {
+        await purgeFolder(id);
+        return;
+      }
       if (storagePath) await supabase.storage.from("documents").remove([storagePath]);
-      const { error } = await supabase.from(table).delete().eq("id", id);
+      const { error } = await supabase.from("documents").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -59,6 +68,7 @@ export function TrashPanel() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const purgeAll = useMutation({
     mutationFn: async () => {
