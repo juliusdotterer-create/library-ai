@@ -19,13 +19,13 @@ import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 
 const NAV = [
-  { to: "/archiv", label: "Archiv", icon: FolderTree },
+  { to: "/library", label: "Library", icon: FolderTree },
   { to: "/kalender", label: "Kalender", icon: CalendarDays },
   { to: "/lehrplaene", label: "Lehrpläne", icon: ListChecks },
   { to: "/links", label: "Linktree", icon: LinkIcon },
   { to: "/papierkorb", label: "Papierkorb", icon: Trash2 },
-  { to: "/einstellungen", label: "Design", icon: Settings2 },
 ];
+
 
 export function AppShell({ children }: { children: ReactNode }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
