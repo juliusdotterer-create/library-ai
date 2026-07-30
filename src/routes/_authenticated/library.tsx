@@ -564,6 +564,24 @@ function LibraryPage() {
         </DialogContent>
       </Dialog>
 
+      <ConfirmDelete
+        open={!!confirmDel}
+        onOpenChange={(o) => !o && setConfirmDel(null)}
+        name={confirmDel?.name ?? ""}
+        title={confirmDel?.table === "folders" ? "Ordner löschen" : "Datei löschen"}
+        description={
+          confirmDel?.table === "folders"
+            ? `„${confirmDel?.name}“ wird mit allen Unterordnern und Dateien in den Papierkorb verschoben.`
+            : `„${confirmDel?.name}“ wird in den Papierkorb verschoben.`
+        }
+        confirmLabel="In den Papierkorb"
+        onConfirm={async () => {
+          if (!confirmDel) return;
+          await softDelete.mutateAsync({ table: confirmDel.table, id: confirmDel.id });
+          setConfirmDel(null);
+        }}
+      />
+
       <DocumentPreview doc={preview} onClose={() => setPreview(null)} />
     </div>
   );
