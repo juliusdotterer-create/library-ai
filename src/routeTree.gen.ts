@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedArchivRouteImport } from './routes/_authenticated/archiv'
+import { Route as AuthenticatedKalenderRouteImport } from './routes/_authenticated/kalender'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -33,16 +34,23 @@ const AuthenticatedArchivRoute = AuthenticatedArchivRouteImport.update({
   path: '/archiv',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedKalenderRoute = AuthenticatedKalenderRouteImport.update({
+  id: '/kalender',
+  path: '/kalender',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/archiv': typeof AuthenticatedArchivRoute
+  '/kalender': typeof AuthenticatedKalenderRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/archiv': typeof AuthenticatedArchivRoute
+  '/kalender': typeof AuthenticatedKalenderRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -50,13 +58,20 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/archiv': typeof AuthenticatedArchivRoute
+  '/_authenticated/kalender': typeof AuthenticatedKalenderRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/archiv'
+  fullPaths: '/' | '/auth' | '/archiv' | '/kalender'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/archiv'
-  id: '__root__' | '/' | '/_authenticated' | '/auth' | '/_authenticated/archiv'
+  to: '/' | '/auth' | '/archiv' | '/kalender'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/auth'
+    | '/_authenticated/archiv'
+    | '/_authenticated/kalender'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -95,15 +110,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedArchivRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/kalender': {
+      id: '/_authenticated/kalender'
+      path: '/kalender'
+      fullPath: '/kalender'
+      preLoaderRoute: typeof AuthenticatedKalenderRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedArchivRoute: typeof AuthenticatedArchivRoute
+  AuthenticatedKalenderRoute: typeof AuthenticatedKalenderRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedArchivRoute: AuthenticatedArchivRoute,
+  AuthenticatedKalenderRoute: AuthenticatedKalenderRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
