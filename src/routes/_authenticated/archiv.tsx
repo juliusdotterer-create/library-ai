@@ -1,0 +1,338 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRef, useState } from "react";
+import { toast } from "sonner";
+import {
+  ChevronRight,
+  Download,
+  FilePlus2,
+  FileText,
+  Folder,
+  FolderPlus,
+  Home,
+  MoreVertical,
+  Pencil,
+  Trash2,
+} from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+export const Route = createFileRoute("/_authenticated/archiv")({
+  head: () => ({
+    meta: [
+      { title: "Archiv – Ordner & Dokumente" },
+      {
+        name: "description",
+        content: "Lege Ordner und Unterordner an und speichere PDFs sowie andere Dateien sicher ab.",
+      },
+      { property: "og:title", content: "Archiv – Ordner & Dokumente" },
+      { property: "og:description", content: "Ordner, Unterordner und Dateien an einem Ort." },
+    ],
+  }),
+  component: ArchivPage,
+});
+
+type Crumb = { id: string | null; name: string };
+
+function ArchivPage() {
+  const qc = useQueryClient();
+  const [path, setPath] = useState<Crumb[]>([{ id: null, name: "Archiv" }]);
+  const current = path[path.length - 1];
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [newFolder, setNewFolder] = useState("");
+  const [rename, setRename] = useState<{
+    table: "folders" | "documents";
+    id: string;
+    name: string;
+  } | null>(null);
+
+  const folders = useQuery({
+    queryKey: ["folders", current.id],
+    queryFn: async () => {
+      let q = supabase.from("folders").select("*").is("deleted_at", null).order("name");
+      q = current.id ? q.eq("parent_id", current.id) : q.is("parent_id", null);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const docs = useQuery({
+    queryKey: ["documents", current.id],
+    queryFn: async () => {
+      let q = supabase
+        .from("documents")
+        .select("*")
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false });
+      q = current.id ? q.eq("folder_id", current.id) : q.is("folder_id", null);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const invalidate = () => {
+    void qc.invalidateQueries({ queryKey: ["folders"] });
+    void qc.invalidateQueries({ queryKey: ["documents"] });
+  };
+
+  const createFolder = useMutation({
+    mutationFn: async (name: string) => {
+      const { data: auth } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from("folders")
+        .insert({ name, parent_id: current.id, user_id: auth.user!.id });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setNewFolder("");
+      invalidate();
+      toast.success("Ordner erstellt");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const upload = useMutation({
+    mutationFn: async (files: FileList) => {
+      const { data: auth } = await supabase.auth.getUser();
+      const uid = auth.user!.id;
+      for (const file of Array.from(files)) {
+        const storagePath = `${uid}/${crypto.randomUUID()}-${file.name.replace(/[^\w.\-]/g, "_")}`;
+        const { error: upErr } = await supabase.storage
+          .from("documents")
+          .upload(storagePath, file, { contentType: file.type || undefined });
+        if (upErr) throw upErr;
+        const { error } = await supabase.from("documents").insert({
+          user_id: uid,
+          folder_id: current.id,
+          name: file.name,
+          storage_path: storagePath,
+          mime_type: file.type,
+          size_bytes: file.size,
+        });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      invalidate();
+      toast.success("Dateien hochgeladen");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const softDelete = useMutation({
+    mutationFn: async ({ table, id }: { table: "folders" | "documents"; id: string }) => {
+      const { error } = await supabase
+        .from(table)
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidate();
+      toast.success("In den Papierkorb verschoben");
+    },
+  });
+
+  const doRename = useMutation({
+    mutationFn: async (r: { table: "folders" | "documents"; id: string; name: string }) => {
+      const { error } = await supabase.from(r.table).update({ name: r.name }).eq("id", r.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setRename(null);
+      invalidate();
+      toast.success("Umbenannt");
+    },
+  });
+
+  const open = async (storagePath: string) => {
+    const { data, error } = await supabase.storage
+      .from("documents")
+      .createSignedUrl(storagePath, 60 * 10);
+    if (error || !data) return toast.error("Datei konnte nicht geöffnet werden");
+    window.open(data.signedUrl, "_blank", "noopener");
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="glass flex flex-wrap items-center gap-3 rounded-3xl p-4">
+        <div className="flex flex-1 flex-wrap items-center gap-1 text-sm">
+          {path.map((c, i) => (
+            <span key={`${c.id ?? "root"}-${i}`} className="flex items-center gap-1">
+              {i > 0 && <ChevronRight className="size-3.5 text-muted-foreground" />}
+              <button
+                className={
+                  i === path.length - 1
+                    ? "font-semibold"
+                    : "text-muted-foreground hover:text-foreground"
+                }
+                onClick={() => setPath(path.slice(0, i + 1))}
+              >
+                {i === 0 ? <Home className="size-4" /> : c.name}
+              </button>
+            </span>
+          ))}
+        </div>
+        <div className="flex items-center gap-2">
+          <Input
+            value={newFolder}
+            placeholder="Neuer Ordner"
+            className="h-9 w-44 rounded-2xl"
+            onChange={(e) => setNewFolder(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && newFolder.trim()) createFolder.mutate(newFolder.trim());
+            }}
+          />
+          <Button
+            variant="secondary"
+            className="rounded-2xl"
+            disabled={!newFolder.trim()}
+            onClick={() => createFolder.mutate(newFolder.trim())}
+          >
+            <FolderPlus className="size-4" />
+          </Button>
+          <Button className="rounded-2xl" onClick={() => fileInput.current?.click()}>
+            <FilePlus2 className="size-4" /> Dateien
+          </Button>
+          <input
+            ref={fileInput}
+            type="file"
+            multiple
+            hidden
+            onChange={(e) => {
+              if (e.target.files?.length) upload.mutate(e.target.files);
+              e.target.value = "";
+            }}
+          />
+        </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {folders.data?.map((f) => (
+          <div
+            key={f.id}
+            className="glass group flex items-center gap-3 rounded-3xl p-4 transition-transform hover:-translate-y-0.5"
+          >
+            <button
+              className="flex flex-1 items-center gap-3 text-left"
+              onClick={() => setPath([...path, { id: f.id, name: f.name }])}
+            >
+              <span className="bg-primary-soft flex size-10 items-center justify-center rounded-2xl">
+                <Folder className="size-5 text-primary" />
+              </span>
+              <span className="truncate font-medium">{f.name}</span>
+            </button>
+            <RowMenu
+              onRename={() => setRename({ table: "folders", id: f.id, name: f.name })}
+              onDelete={() => softDelete.mutate({ table: "folders", id: f.id })}
+            />
+          </div>
+        ))}
+
+        {docs.data?.map((d) => (
+          <div
+            key={d.id}
+            className="glass group flex items-center gap-3 rounded-3xl p-4 transition-transform hover:-translate-y-0.5"
+          >
+            <button className="flex flex-1 items-center gap-3 text-left" onClick={() => open(d.storage_path)}>
+              <span className="flex size-10 items-center justify-center rounded-2xl bg-muted">
+                <FileText className="size-5 text-muted-foreground" />
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate font-medium">{d.name}</span>
+                <span className="block text-xs text-muted-foreground">
+                  {d.size_bytes ? `${Math.round(Number(d.size_bytes) / 1024)} KB` : ""}
+                </span>
+              </span>
+            </button>
+            <RowMenu
+              onOpen={() => open(d.storage_path)}
+              onRename={() => setRename({ table: "documents", id: d.id, name: d.name })}
+              onDelete={() => softDelete.mutate({ table: "documents", id: d.id })}
+            />
+          </div>
+        ))}
+
+        {!folders.isLoading &&
+          !docs.isLoading &&
+          !folders.data?.length &&
+          !docs.data?.length && (
+            <p className="col-span-full py-16 text-center text-sm text-muted-foreground">
+              Dieser Ordner ist leer. Lege einen Unterordner an oder lade Dateien hoch.
+            </p>
+          )}
+      </div>
+
+      <Dialog open={!!rename} onOpenChange={(o) => !o && setRename(null)}>
+        <DialogContent className="glass rounded-3xl">
+          <DialogHeader>
+            <DialogTitle>Umbenennen</DialogTitle>
+          </DialogHeader>
+          <Input
+            className="rounded-2xl"
+            value={rename?.name ?? ""}
+            onChange={(e) => setRename((r) => (r ? { ...r, name: e.target.value } : r))}
+          />
+          <DialogFooter>
+            <Button
+              className="rounded-2xl"
+              disabled={!rename?.name.trim()}
+              onClick={() => rename && doRename.mutate(rename)}
+            >
+              Speichern
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function RowMenu({
+  onOpen,
+  onRename,
+  onDelete,
+}: {
+  onOpen?: () => void;
+  onRename: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="rounded-2xl">
+          <MoreVertical className="size-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="glass rounded-2xl">
+        {onOpen && (
+          <DropdownMenuItem onClick={onOpen}>
+            <Download className="size-4" /> Öffnen
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem onClick={onRename}>
+          <Pencil className="size-4" /> Umbenennen
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={onDelete} className="text-destructive">
+          <Trash2 className="size-4" /> In den Papierkorb
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
