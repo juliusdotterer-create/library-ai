@@ -331,9 +331,10 @@ function LibraryPage() {
             webkitdirectory=""
             directory=""
             onChange={(e) => {
-              if (e.target.files?.length) uploadFolder.mutate(e.target.files);
+              if (e.target.files?.length) uploadEntries.mutate(fromFileList(e.target.files));
               e.target.value = "";
             }}
+
           />
 
         </div>
