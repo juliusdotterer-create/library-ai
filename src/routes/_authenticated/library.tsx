@@ -140,8 +140,8 @@ function LibraryPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const uploadFolder = useMutation({
-    mutationFn: async (files: FileList) => {
+  const uploadEntries = useMutation({
+    mutationFn: async (entries: { file: File; segments: string[] }[]) => {
       const { data: auth } = await supabase.auth.getUser();
       const uid = auth.user!.id;
       const cache = new Map<string, string | null>([["", current.id]]);
@@ -161,19 +161,67 @@ function LibraryPage() {
         return data.id;
       };
 
-      for (const file of Array.from(files)) {
-        const rel = (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name;
-        const segments = rel.split("/").slice(0, -1);
+      for (const { file, segments } of entries) {
         const folderId = await ensureFolder(segments);
         await uploadFile(file, uid, folderId);
       }
     },
     onSuccess: () => {
       invalidate();
-      toast.success("Ordner hochgeladen");
+      toast.success("Import abgeschlossen");
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const fromFileList = (files: FileList) =>
+    Array.from(files).map((file) => {
+      const rel = (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name;
+      return { file, segments: rel.split("/").slice(0, -1) };
+    });
+
+  const [dragging, setDragging] = useState(false);
+
+  const readEntry = async (
+    entry: FileSystemEntry,
+    segments: string[],
+    out: { file: File; segments: string[] }[],
+  ): Promise<void> => {
+    if (entry.isFile) {
+      const file = await new Promise<File>((res, rej) =>
+        (entry as FileSystemFileEntry).file(res, rej),
+      );
+      out.push({ file, segments });
+      return;
+    }
+    const reader = (entry as FileSystemDirectoryEntry).createReader();
+    const children: FileSystemEntry[] = [];
+    for (;;) {
+      const batch = await new Promise<FileSystemEntry[]>((res, rej) =>
+        reader.readEntries(res, rej),
+      );
+      if (!batch.length) break;
+      children.push(...batch);
+    }
+    for (const child of children) await readEntry(child, [...segments, entry.name], out);
+  };
+
+  const onDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragging(false);
+    const items = Array.from(e.dataTransfer.items ?? []);
+    const out: { file: File; segments: string[] }[] = [];
+    const entries = items
+      .map((i) => (typeof i.webkitGetAsEntry === "function" ? i.webkitGetAsEntry() : null))
+      .filter(Boolean) as FileSystemEntry[];
+    if (entries.length) {
+      for (const entry of entries) await readEntry(entry, [], out);
+    } else if (e.dataTransfer.files?.length) {
+      out.push(...fromFileList(e.dataTransfer.files));
+    }
+    if (out.length) uploadEntries.mutate(out);
+  };
+
+
 
 
   const softDelete = useMutation({
@@ -211,8 +259,26 @@ function LibraryPage() {
   };
 
   return (
-    <div className="space-y-5">
+    <div
+      className="relative space-y-5"
+      onDragOver={(e) => {
+        e.preventDefault();
+        setDragging(true);
+      }}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragging(false);
+      }}
+      onDrop={(e) => void onDrop(e)}
+    >
+      {dragging && (
+        <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center rounded-3xl border-2 border-dashed border-primary bg-primary/10 backdrop-blur-[2px]">
+          <span className="glass flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-medium">
+            <Upload className="size-4 text-primary" /> Dateien oder Ordner hier ablegen
+          </span>
+        </div>
+      )}
       <div className="glass flex flex-wrap items-center gap-3 rounded-3xl p-4">
+
         <div className="flex flex-1 flex-wrap items-center gap-1 text-sm">
           {path.map((c, i) => (
             <span key={`${c.id ?? "root"}-${i}`} className="flex items-center gap-1">
@@ -283,9 +349,10 @@ function LibraryPage() {
             webkitdirectory=""
             directory=""
             onChange={(e) => {
-              if (e.target.files?.length) uploadFolder.mutate(e.target.files);
+              if (e.target.files?.length) uploadEntries.mutate(fromFileList(e.target.files));
               e.target.value = "";
             }}
+
           />
 
         </div>
