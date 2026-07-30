@@ -216,16 +216,31 @@ function LibraryPage() {
       name: entries[0]?.file.name ?? "",
     });
 
+    const failed: { name: string; reason: string }[] = [];
+
     for (let i = 0; i < entries.length; i++) {
       const { file, segments } = entries[i];
       setProgress((p) => (p ? { ...p, name: file.name } : p));
-      const folderId = await ensureFolder(segments);
-      await uploadFile(file, uid, folderId);
+      // Einzelne Fehler dürfen den restlichen Import nicht abbrechen.
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          const folderId = await ensureFolder(segments);
+          await uploadFile(file, uid, folderId);
+          break;
+        } catch (err) {
+          if (attempt === 3) {
+            failed.push({ name: file.name, reason: (err as Error).message });
+          } else {
+            await new Promise((r) => setTimeout(r, 400 * attempt));
+          }
+        }
+      }
       bytesDone += file.size;
       const doneCount = i + 1;
       setProgress((p) => (p ? { ...p, done: doneCount, bytesDone } : p));
     }
     setProgress(null);
+    return { total: entries.length, failed };
   };
 
   const uploadEntries = useMutation({
