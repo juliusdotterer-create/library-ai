@@ -42,6 +42,8 @@ function LehrplanPage() {
   const [planForm, setPlanForm] = useState({ title: "", description: "" });
   const [planOpen, setPlanOpen] = useState(false);
   const [task, setTask] = useState({ title: "", due: "" });
+  const [doc, setDoc] = useState<PickedDocument | null>(null);
+
 
   const plans = useQuery({
     queryKey: ["study_plans"],
