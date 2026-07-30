@@ -225,7 +225,7 @@ function LibraryPage() {
                 }
                 onClick={() => setPath(path.slice(0, i + 1))}
               >
-                {i === 0 ? <Home className="size-4" /> : c.name}
+                {c.name}
               </button>
             </span>
           ))}
@@ -248,16 +248,22 @@ function LibraryPage() {
           >
             <FolderPlus className="size-4" />
           </Button>
-          <Button className="rounded-2xl" onClick={() => fileInput.current?.click()}>
-            <FilePlus2 className="size-4" /> Dateien
-          </Button>
-          <Button
-            variant="secondary"
-            className="rounded-2xl"
-            onClick={() => folderInput.current?.click()}
-          >
-            <FolderUp className="size-4" /> Ordner
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="rounded-2xl">
+                <Upload className="size-4" /> Importieren
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="glass rounded-2xl">
+              <DropdownMenuItem onClick={() => fileInput.current?.click()}>
+                <FilePlus2 className="size-4" /> Dateien
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => folderInput.current?.click()}>
+                <FolderUp className="size-4" /> Ordner
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <input
             ref={fileInput}
             type="file"
