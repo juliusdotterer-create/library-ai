@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { FileText, Folder, RotateCcw, Trash2 } from "lucide-react";
-import type { ReactNode } from "react";
+import { FileText, Folder, Loader2, RotateCcw, Trash2 } from "lucide-react";
+import { useRef, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { purgeDocuments, purgeFolder, restoreFolder } from "@/lib/tree";
+import { purgeDocuments, purgeFolder, restoreFolder, type PurgeProgress } from "@/lib/tree";
 
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { ConfirmDelete } from "@/components/ConfirmDelete";
 
 export function TrashPanel() {
@@ -46,6 +47,15 @@ export function TrashPanel() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const [progress, setProgress] = useState<PurgeProgress | null>(null);
+  const started = useRef(0);
+
+  const begin = () => {
+    started.current = Date.now();
+    setProgress({ done: 0, total: 1, label: "Löschen wird vorbereitet…" });
+  };
+  const track = (p: PurgeProgress) => setProgress(p);
+
   const purge = useMutation({
     mutationFn: async ({
       table,
@@ -56,30 +66,37 @@ export function TrashPanel() {
       id: string;
       storagePath?: string | null;
     }) => {
+      begin();
       if (table === "folders") {
-        await purgeFolder(id);
+        await purgeFolder(id, track);
         return;
       }
-      await purgeDocuments([{ id, storage_path: storagePath }]);
+      await purgeDocuments([{ id, storage_path: storagePath }], track);
     },
     onSuccess: () => {
       invalidate();
       toast.success("Endgültig gelöscht");
     },
     onError: (e: Error) => toast.error(e.message),
+    onSettled: () => setProgress(null),
   });
 
 
   const purgeAll = useMutation({
     mutationFn: async () => {
+      begin();
       const docs = trash.data?.documents ?? [];
       const folders = trash.data?.folders ?? [];
-      await purgeDocuments(docs);
+      const total = docs.length + folders.length;
+      await purgeDocuments(docs, track, 0, total);
       // Unterordner zuerst löschen, damit Verweise nicht blockieren
       const byDepth = [...folders].sort((a, b) => depth(b, folders) - depth(a, folders));
+      let done = docs.length;
       for (const f of byDepth) {
         const { error } = await supabase.from("folders").delete().eq("id", f.id);
         if (error) throw error;
+        done++;
+        track({ done, total, label: `Ordner werden gelöscht (${done}/${total})` });
       }
     },
     onSuccess: () => {
@@ -87,6 +104,7 @@ export function TrashPanel() {
       toast.success("Papierkorb wurde geleert");
     },
     onError: (e: Error) => toast.error(e.message),
+    onSettled: () => setProgress(null),
   });
 
   const deletedFolderIds = new Set((trash.data?.folders ?? []).map((f) => f.id));
@@ -116,6 +134,22 @@ export function TrashPanel() {
           </ConfirmDelete>
         </div>
       )}
+
+      {progress && (
+        <div className="glass space-y-2 rounded-3xl p-4">
+          <div className="flex items-center justify-between gap-3 text-sm">
+            <span className="flex min-w-0 items-center gap-2">
+              <Loader2 className="size-4 shrink-0 animate-spin text-primary" />
+              <span className="truncate font-medium">{progress.label}</span>
+            </span>
+            <span className="shrink-0 text-muted-foreground">
+              {speedLabel(progress, started.current)}
+            </span>
+          </div>
+          <Progress value={(progress.done / Math.max(progress.total, 1)) * 100} />
+        </div>
+      )}
+
       {topFolders.map((f) => (
         <Row
           key={f.id}
@@ -188,4 +222,14 @@ function Row({
       </ConfirmDelete>
     </div>
   );
+}
+
+function speedLabel(p: { done: number; total: number }, started: number) {
+  const elapsed = (Date.now() - started) / 1000;
+  if (!p.done || elapsed < 0.4) return "Geschwindigkeit wird ermittelt…";
+  const rate = p.done / elapsed;
+  const rest = Math.max(0, Math.round((p.total - p.done) / Math.max(rate, 0.01)));
+  const restLabel =
+    rest < 60 ? `noch ca. ${rest}s` : `noch ca. ${Math.floor(rest / 60)}:${String(rest % 60).padStart(2, "0")} min`;
+  return `${rate.toFixed(1)} Objekte/s · ${restLabel}`;
 }
