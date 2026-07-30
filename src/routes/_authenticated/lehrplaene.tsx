@@ -479,11 +479,6 @@ function LehrplanPage() {
                         }}
                       >
                         Diesen Ordner einplanen
-                        <span className="ml-2 rounded-full bg-primary-foreground/20 px-2 py-0.5 text-xs">
-                          {docsIn(folderNav).length > 0
-                            ? `${docsIn(folderNav).length} Dok.`
-                            : "leer"}
-                        </span>
                       </Button>
                     )}
                     <div className="max-h-72 space-y-0.5 overflow-y-auto">
