@@ -74,10 +74,10 @@ export function StudyTimers({ defaultLabel = "" }: { defaultLabel?: string }) {
               className={cn(
                 "glass-soft flex flex-wrap items-center gap-2 rounded-2xl p-3 transition-all",
                 expired &&
-                  "animate-scale-in border-2 border-destructive bg-destructive/10 p-5 shadow-lg",
+                  "animate-scale-in border-2 border-primary bg-primary/10 p-5 shadow-lg",
               )}
             >
-              <TimerIcon className={cn(expired ? "size-7 text-destructive" : "size-4 text-primary")} />
+              <TimerIcon className={cn(expired ? "size-7 text-primary" : "size-4 text-primary")} />
               <span
                 className={cn(
                   "min-w-0 flex-1 truncate font-medium",
@@ -89,7 +89,7 @@ export function StudyTimers({ defaultLabel = "" }: { defaultLabel?: string }) {
               <span
                 className={cn(
                   "tabular-nums font-semibold",
-                  expired ? "text-2xl font-bold text-destructive sm:text-3xl" : "text-sm",
+                  expired ? "text-2xl font-bold text-primary sm:text-3xl" : "text-sm",
                   !t.running && !expired && "opacity-60",
                 )}
               >
