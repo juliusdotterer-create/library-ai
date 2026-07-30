@@ -122,6 +122,7 @@ function LibraryPage() {
         .from("documents")
         .select("*")
         .is("deleted_at", null)
+        .not("name", "ilike", "desktop.ini")
         .order("created_at", { ascending: false });
       q = current.id ? q.eq("folder_id", current.id) : q.is("folder_id", null);
       const { data, error } = await q;
