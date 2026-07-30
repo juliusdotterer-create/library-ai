@@ -36,6 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { StudyTimers } from "@/components/StudyTimer";
 import { DocumentPreview, type PreviewDoc } from "@/components/DocumentPreview";
 
