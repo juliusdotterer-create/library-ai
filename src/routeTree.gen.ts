@@ -12,10 +12,10 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AuthenticatedArchivRouteImport } from './routes/_authenticated/archiv'
 import { Route as AuthenticatedEinstellungenRouteImport } from './routes/_authenticated/einstellungen'
 import { Route as AuthenticatedKalenderRouteImport } from './routes/_authenticated/kalender'
 import { Route as AuthenticatedLehrplaeneRouteImport } from './routes/_authenticated/lehrplaene'
+import { Route as AuthenticatedLibraryRouteImport } from './routes/_authenticated/library'
 import { Route as AuthenticatedLinksRouteImport } from './routes/_authenticated/links'
 import { Route as AuthenticatedPapierkorbRouteImport } from './routes/_authenticated/papierkorb'
 
@@ -33,11 +33,6 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedArchivRoute = AuthenticatedArchivRouteImport.update({
-  id: '/archiv',
-  path: '/archiv',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedEinstellungenRoute =
   AuthenticatedEinstellungenRouteImport.update({
     id: '/einstellungen',
@@ -54,6 +49,11 @@ const AuthenticatedLehrplaeneRoute = AuthenticatedLehrplaeneRouteImport.update({
   path: '/lehrplaene',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedLibraryRoute = AuthenticatedLibraryRouteImport.update({
+  id: '/library',
+  path: '/library',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedLinksRoute = AuthenticatedLinksRouteImport.update({
   id: '/links',
   path: '/links',
@@ -68,20 +68,20 @@ const AuthenticatedPapierkorbRoute = AuthenticatedPapierkorbRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/archiv': typeof AuthenticatedArchivRoute
   '/einstellungen': typeof AuthenticatedEinstellungenRoute
   '/kalender': typeof AuthenticatedKalenderRoute
   '/lehrplaene': typeof AuthenticatedLehrplaeneRoute
+  '/library': typeof AuthenticatedLibraryRoute
   '/links': typeof AuthenticatedLinksRoute
   '/papierkorb': typeof AuthenticatedPapierkorbRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/archiv': typeof AuthenticatedArchivRoute
   '/einstellungen': typeof AuthenticatedEinstellungenRoute
   '/kalender': typeof AuthenticatedKalenderRoute
   '/lehrplaene': typeof AuthenticatedLehrplaeneRoute
+  '/library': typeof AuthenticatedLibraryRoute
   '/links': typeof AuthenticatedLinksRoute
   '/papierkorb': typeof AuthenticatedPapierkorbRoute
 }
@@ -90,10 +90,10 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
-  '/_authenticated/archiv': typeof AuthenticatedArchivRoute
   '/_authenticated/einstellungen': typeof AuthenticatedEinstellungenRoute
   '/_authenticated/kalender': typeof AuthenticatedKalenderRoute
   '/_authenticated/lehrplaene': typeof AuthenticatedLehrplaeneRoute
+  '/_authenticated/library': typeof AuthenticatedLibraryRoute
   '/_authenticated/links': typeof AuthenticatedLinksRoute
   '/_authenticated/papierkorb': typeof AuthenticatedPapierkorbRoute
 }
@@ -102,20 +102,20 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
-    | '/archiv'
     | '/einstellungen'
     | '/kalender'
     | '/lehrplaene'
+    | '/library'
     | '/links'
     | '/papierkorb'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
-    | '/archiv'
     | '/einstellungen'
     | '/kalender'
     | '/lehrplaene'
+    | '/library'
     | '/links'
     | '/papierkorb'
   id:
@@ -123,10 +123,10 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
-    | '/_authenticated/archiv'
     | '/_authenticated/einstellungen'
     | '/_authenticated/kalender'
     | '/_authenticated/lehrplaene'
+    | '/_authenticated/library'
     | '/_authenticated/links'
     | '/_authenticated/papierkorb'
   fileRoutesById: FileRoutesById
@@ -160,13 +160,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/archiv': {
-      id: '/_authenticated/archiv'
-      path: '/archiv'
-      fullPath: '/archiv'
-      preLoaderRoute: typeof AuthenticatedArchivRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/einstellungen': {
       id: '/_authenticated/einstellungen'
       path: '/einstellungen'
@@ -188,6 +181,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLehrplaeneRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/library': {
+      id: '/_authenticated/library'
+      path: '/library'
+      fullPath: '/library'
+      preLoaderRoute: typeof AuthenticatedLibraryRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/links': {
       id: '/_authenticated/links'
       path: '/links'
@@ -206,19 +206,19 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedArchivRoute: typeof AuthenticatedArchivRoute
   AuthenticatedEinstellungenRoute: typeof AuthenticatedEinstellungenRoute
   AuthenticatedKalenderRoute: typeof AuthenticatedKalenderRoute
   AuthenticatedLehrplaeneRoute: typeof AuthenticatedLehrplaeneRoute
+  AuthenticatedLibraryRoute: typeof AuthenticatedLibraryRoute
   AuthenticatedLinksRoute: typeof AuthenticatedLinksRoute
   AuthenticatedPapierkorbRoute: typeof AuthenticatedPapierkorbRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedArchivRoute: AuthenticatedArchivRoute,
   AuthenticatedEinstellungenRoute: AuthenticatedEinstellungenRoute,
   AuthenticatedKalenderRoute: AuthenticatedKalenderRoute,
   AuthenticatedLehrplaeneRoute: AuthenticatedLehrplaeneRoute,
+  AuthenticatedLibraryRoute: AuthenticatedLibraryRoute,
   AuthenticatedLinksRoute: AuthenticatedLinksRoute,
   AuthenticatedPapierkorbRoute: AuthenticatedPapierkorbRoute,
 }
