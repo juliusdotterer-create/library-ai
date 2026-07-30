@@ -17,8 +17,11 @@ import {
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { softDeleteFolder } from "@/lib/tree";
+import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -111,6 +114,15 @@ function LibraryPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const [progress, setProgress] = useState<{
+    done: number;
+    total: number;
+    bytesDone: number;
+    bytesTotal: number;
+    started: number;
+    name: string;
+  } | null>(null);
+
   const uploadFile = async (file: File, uid: string, folderId: string | null) => {
     const storagePath = `${uid}/${crypto.randomUUID()}-${file.name.replace(/[^\w.\-]/g, "_")}`;
     const { error: upErr } = await supabase.storage
@@ -128,51 +140,62 @@ function LibraryPage() {
     if (error) throw error;
   };
 
-  const upload = useMutation({
-    mutationFn: async (files: FileList) => {
-      const { data: auth } = await supabase.auth.getUser();
-      const uid = auth.user!.id;
-      for (const file of Array.from(files)) await uploadFile(file, uid, current.id);
-    },
-    onSuccess: () => {
-      invalidate();
-      toast.success("Dateien hochgeladen");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const runUpload = async (entries: { file: File; segments: string[] }[]) => {
+    const { data: auth } = await supabase.auth.getUser();
+    const uid = auth.user!.id;
+    const cache = new Map<string, string | null>([["", current.id]]);
+
+    const ensureFolder = async (segments: string[]): Promise<string | null> => {
+      const key = segments.join("/");
+      if (cache.has(key)) return cache.get(key)!;
+      const parent = await ensureFolder(segments.slice(0, -1));
+      const name = segments[segments.length - 1];
+      const { data, error } = await supabase
+        .from("folders")
+        .insert({ user_id: uid, parent_id: parent, name })
+        .select("id")
+        .single();
+      if (error) throw error;
+      cache.set(key, data.id);
+      return data.id;
+    };
+
+    const bytesTotal = entries.reduce((s, e) => s + e.file.size, 0);
+    const started = Date.now();
+    let bytesDone = 0;
+    setProgress({
+      done: 0,
+      total: entries.length,
+      bytesDone: 0,
+      bytesTotal,
+      started,
+      name: entries[0]?.file.name ?? "",
+    });
+
+    for (let i = 0; i < entries.length; i++) {
+      const { file, segments } = entries[i];
+      setProgress((p) => (p ? { ...p, name: file.name } : p));
+      const folderId = await ensureFolder(segments);
+      await uploadFile(file, uid, folderId);
+      bytesDone += file.size;
+      const doneCount = i + 1;
+      setProgress((p) => (p ? { ...p, done: doneCount, bytesDone } : p));
+    }
+    setProgress(null);
+  };
 
   const uploadEntries = useMutation({
-    mutationFn: async (entries: { file: File; segments: string[] }[]) => {
-      const { data: auth } = await supabase.auth.getUser();
-      const uid = auth.user!.id;
-      const cache = new Map<string, string | null>([["", current.id]]);
-
-      const ensureFolder = async (segments: string[]): Promise<string | null> => {
-        const key = segments.join("/");
-        if (cache.has(key)) return cache.get(key)!;
-        const parent = await ensureFolder(segments.slice(0, -1));
-        const name = segments[segments.length - 1];
-        const { data, error } = await supabase
-          .from("folders")
-          .insert({ user_id: uid, parent_id: parent, name })
-          .select("id")
-          .single();
-        if (error) throw error;
-        cache.set(key, data.id);
-        return data.id;
-      };
-
-      for (const { file, segments } of entries) {
-        const folderId = await ensureFolder(segments);
-        await uploadFile(file, uid, folderId);
-      }
-    },
+    mutationFn: runUpload,
     onSuccess: () => {
       invalidate();
       toast.success("Import abgeschlossen");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      setProgress(null);
+      toast.error(e.message);
+    },
   });
+
 
   const fromFileList = (files: FileList) =>
     Array.from(files).map((file) => {
@@ -227,12 +250,17 @@ function LibraryPage() {
 
   const softDelete = useMutation({
     mutationFn: async ({ table, id }: { table: "folders" | "documents"; id: string }) => {
+      if (table === "folders") {
+        await softDeleteFolder(id);
+        return;
+      }
       const { error } = await supabase
-        .from(table)
+        .from("documents")
         .update({ deleted_at: new Date().toISOString() })
         .eq("id", id);
       if (error) throw error;
     },
+
     onSuccess: () => {
       invalidate();
       toast.success("In den Papierkorb verschoben");
@@ -333,9 +361,10 @@ function LibraryPage() {
             multiple
             hidden
             onChange={(e) => {
-              if (e.target.files?.length) upload.mutate(e.target.files);
+              if (e.target.files?.length) uploadEntries.mutate(fromFileList(e.target.files));
               e.target.value = "";
             }}
+
           />
           <input
             ref={folderInput}
@@ -354,6 +383,32 @@ function LibraryPage() {
 
         </div>
       </div>
+
+      {progress && (
+        <div className="glass space-y-2 rounded-3xl p-4">
+          <div className="flex items-center justify-between gap-3 text-sm">
+            <span className="flex min-w-0 items-center gap-2">
+              <Upload className="size-4 shrink-0 animate-pulse text-primary" />
+              <span className="truncate font-medium">{progress.name}</span>
+            </span>
+            <span className="shrink-0 text-muted-foreground">
+              {progress.done}/{progress.total} · {remainingLabel(progress)}
+            </span>
+          </div>
+          <Progress
+            value={
+              progress.bytesTotal
+                ? (progress.bytesDone / progress.bytesTotal) * 100
+                : (progress.done / Math.max(progress.total, 1)) * 100
+            }
+          />
+          <p className="text-xs text-muted-foreground">
+            {mb(progress.bytesDone)} von {mb(progress.bytesTotal)} hochgeladen
+          </p>
+        </div>
+      )}
+
+
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {folders.data?.map((f) => (
@@ -469,4 +524,24 @@ function RowMenu({
       </DropdownMenuContent>
     </DropdownMenu>
   );
+}
+
+function mb(bytes: number) {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function remainingLabel(p: {
+  done: number;
+  total: number;
+  bytesDone: number;
+  bytesTotal: number;
+  started: number;
+}) {
+  const elapsed = (Date.now() - p.started) / 1000;
+  const ratio = p.bytesTotal ? p.bytesDone / p.bytesTotal : p.done / Math.max(p.total, 1);
+  if (!ratio || elapsed < 0.5) return "Restzeit wird berechnet…";
+  const rest = Math.max(0, Math.round(elapsed / ratio - elapsed));
+  if (rest < 60) return `noch ca. ${rest}s`;
+  return `noch ca. ${Math.floor(rest / 60)}:${String(rest % 60).padStart(2, "0")} min`;
 }

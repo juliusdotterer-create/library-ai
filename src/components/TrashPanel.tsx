@@ -3,6 +3,8 @@ import { toast } from "sonner";
 import { FileText, Folder, RotateCcw, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { purgeFolder, restoreFolder } from "@/lib/tree";
+
 import { Button } from "@/components/ui/button";
 import { ConfirmDelete } from "@/components/ConfirmDelete";
 
@@ -30,13 +32,18 @@ export function TrashPanel() {
 
   const restore = useMutation({
     mutationFn: async ({ table, id }: { table: "folders" | "documents"; id: string }) => {
-      const { error } = await supabase.from(table).update({ deleted_at: null }).eq("id", id);
+      if (table === "folders") {
+        await restoreFolder(id);
+        return;
+      }
+      const { error } = await supabase.from("documents").update({ deleted_at: null }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       invalidate();
       toast.success("Wiederhergestellt");
     },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const purge = useMutation({
@@ -49,8 +56,12 @@ export function TrashPanel() {
       id: string;
       storagePath?: string | null;
     }) => {
+      if (table === "folders") {
+        await purgeFolder(id);
+        return;
+      }
       if (storagePath) await supabase.storage.from("documents").remove([storagePath]);
-      const { error } = await supabase.from(table).delete().eq("id", id);
+      const { error } = await supabase.from("documents").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -59,6 +70,7 @@ export function TrashPanel() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const purgeAll = useMutation({
     mutationFn: async () => {
@@ -74,9 +86,10 @@ export function TrashPanel() {
         const { error } = await supabase.from("documents").delete().in("id", ids);
         if (error) throw error;
       }
-      if (folders.length) {
-        const ids = folders.map((f) => f.id);
-        const { error } = await supabase.from("folders").delete().in("id", ids);
+      // Unterordner zuerst löschen, damit Verweise nicht blockieren
+      const byDepth = [...folders].sort((a, b) => depth(b, folders) - depth(a, folders));
+      for (const f of byDepth) {
+        const { error } = await supabase.from("folders").delete().eq("id", f.id);
         if (error) throw error;
       }
     },
@@ -86,6 +99,14 @@ export function TrashPanel() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const deletedFolderIds = new Set((trash.data?.folders ?? []).map((f) => f.id));
+  const topFolders = (trash.data?.folders ?? []).filter(
+    (f) => !f.parent_id || !deletedFolderIds.has(f.parent_id),
+  );
+  const looseDocs = (trash.data?.documents ?? []).filter(
+    (d) => !d.folder_id || !deletedFolderIds.has(d.folder_id),
+  );
 
   const empty = !trash.data?.folders.length && !trash.data?.documents.length && !trash.isLoading;
 
@@ -106,16 +127,17 @@ export function TrashPanel() {
           </ConfirmDelete>
         </div>
       )}
-      {trash.data?.folders.map((f) => (
+      {topFolders.map((f) => (
         <Row
           key={f.id}
           icon={<Folder className="size-5 text-primary" />}
           name={f.name}
+          hint="inkl. Inhalt"
           onRestore={() => restore.mutate({ table: "folders", id: f.id })}
           onPurge={() => purge.mutate({ table: "folders", id: f.id })}
         />
       ))}
-      {trash.data?.documents.map((d) => (
+      {looseDocs.map((d) => (
         <Row
           key={d.id}
           icon={<FileText className="size-5 text-muted-foreground" />}
@@ -124,6 +146,7 @@ export function TrashPanel() {
           onPurge={() => purge.mutate({ table: "documents", id: d.id, storagePath: d.storage_path })}
         />
       ))}
+
       {empty && (
         <p className="py-10 text-center text-sm text-muted-foreground">Der Papierkorb ist leer.</p>
       )}
@@ -131,21 +154,41 @@ export function TrashPanel() {
   );
 }
 
+type FolderLike = { id: string; parent_id: string | null };
+
+function depth(f: FolderLike, all: FolderLike[]): number {
+  let d = 0;
+  let cur = f;
+  while (cur.parent_id) {
+    const parent = all.find((x) => x.id === cur.parent_id);
+    if (!parent) break;
+    cur = parent;
+    d++;
+  }
+  return d;
+}
+
 function Row({
   icon,
   name,
+  hint,
   onRestore,
   onPurge,
 }: {
   icon: ReactNode;
   name: string;
+  hint?: string;
   onRestore: () => void;
   onPurge: () => void;
 }) {
   return (
     <div className="glass-soft flex items-center gap-3 rounded-2xl p-3">
       <span className="flex size-10 items-center justify-center rounded-2xl bg-muted">{icon}</span>
-      <span className="min-w-0 flex-1 truncate text-sm font-medium">{name}</span>
+      <span className="min-w-0 flex-1 truncate text-sm font-medium">
+        {name}
+        {hint && <span className="ml-2 text-xs font-normal text-muted-foreground">{hint}</span>}
+      </span>
+
       <Button variant="ghost" size="icon" className="rounded-2xl" onClick={onRestore} title="Wiederherstellen">
         <RotateCcw className="size-4" />
       </Button>
