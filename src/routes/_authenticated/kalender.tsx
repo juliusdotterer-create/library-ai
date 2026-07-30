@@ -108,9 +108,23 @@ function KalenderPage() {
   const dayEvents = (d: Date) =>
     (events.data ?? []).filter((e) => isSameDay(new Date(e.start_at), d));
 
+  if (tab === "stundenplan") {
+    return (
+      <div className="space-y-4">
+        <TabSwitch tab={tab} setTab={setTab} />
+        <div className="glass rounded-3xl p-4">
+          <Timetable />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="grid gap-5 lg:grid-cols-[1fr_20rem]">
+    <div className="space-y-4">
+      <TabSwitch tab={tab} setTab={setTab} />
+      <div className="grid gap-5 lg:grid-cols-[1fr_20rem]">
       <div className="glass rounded-3xl p-4">
+
         <div className="mb-4 flex items-center justify-between">
           <h1 className="text-lg font-semibold capitalize">
             {format(month, "LLLL yyyy", { locale: de })}
