@@ -353,9 +353,10 @@ function LibraryPage() {
             multiple
             hidden
             onChange={(e) => {
-              if (e.target.files?.length) upload.mutate(e.target.files);
+              if (e.target.files?.length) uploadEntries.mutate(fromFileList(e.target.files));
               e.target.value = "";
             }}
+
           />
           <input
             ref={folderInput}
