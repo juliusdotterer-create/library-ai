@@ -60,10 +60,52 @@ export function TrashPanel() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const purgeAll = useMutation({
+    mutationFn: async () => {
+      const docs = trash.data?.documents ?? [];
+      const folders = trash.data?.folders ?? [];
+      const paths = docs.map((d) => d.storage_path).filter(Boolean) as string[];
+      if (paths.length) {
+        const { error } = await supabase.storage.from("documents").remove(paths);
+        if (error) throw error;
+      }
+      if (docs.length) {
+        const ids = docs.map((d) => d.id);
+        const { error } = await supabase.from("documents").delete().in("id", ids);
+        if (error) throw error;
+      }
+      if (folders.length) {
+        const ids = folders.map((f) => f.id);
+        const { error } = await supabase.from("folders").delete().in("id", ids);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      invalidate();
+      toast.success("Papierkorb wurde geleert");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const empty = !trash.data?.folders.length && !trash.data?.documents.length && !trash.isLoading;
 
   return (
     <div className="space-y-2.5">
+      {!empty && (
+        <div className="flex justify-end pb-2">
+          <ConfirmDelete
+            name="BESTÄTIGT"
+            title="Papierkorb komplett leeren"
+            description="Alle Ordner und Dateien im Papierkorb werden endgültig gelöscht. Dieser Schritt kann nicht rückgängig gemacht werden. Tippe zur Bestätigung BESTÄTIGT ein."
+            onConfirm={() => purgeAll.mutateAsync()}
+          >
+            <Button variant="outline" size="sm" className="rounded-2xl text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive">
+              <Trash2 className="size-4 mr-2" />
+              Alles löschen
+            </Button>
+          </ConfirmDelete>
+        </div>
+      )}
       {trash.data?.folders.map((f) => (
         <Row
           key={f.id}
