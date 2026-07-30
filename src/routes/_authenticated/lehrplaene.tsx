@@ -94,6 +94,7 @@ function LehrplanPage() {
         .from("documents")
         .select("id,name,storage_path,folder_id,mime_type")
         .is("deleted_at", null)
+        .not("name", "ilike", "desktop.ini")
         .order("name");
       if (error) throw error;
       return data;
