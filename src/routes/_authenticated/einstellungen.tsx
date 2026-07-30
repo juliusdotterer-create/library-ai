@@ -103,6 +103,17 @@ function SettingsPage() {
           Vorschau der Akzentfarbe
         </div>
       </section>
+
+      <section className="glass space-y-3 rounded-3xl p-5">
+        <div>
+          <h2 className="font-semibold">Papierkorb</h2>
+          <p className="text-sm text-muted-foreground">
+            Wiederherstellen oder endgültig löschen – dafür musst du den Namen exakt eintippen.
+          </p>
+        </div>
+        <TrashPanel />
+      </section>
     </div>
+
   );
 }
