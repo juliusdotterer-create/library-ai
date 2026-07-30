@@ -3,8 +3,10 @@ import { Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { TrashPanel } from "@/components/TrashPanel";
 import { useTheme, ACCENT_PRESETS } from "@/lib/theme";
 import { cn } from "@/lib/utils";
+
 
 export const Route = createFileRoute("/_authenticated/einstellungen")({
   head: () => ({
