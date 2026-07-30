@@ -384,6 +384,32 @@ function LibraryPage() {
         </div>
       </div>
 
+      {progress && (
+        <div className="glass space-y-2 rounded-3xl p-4">
+          <div className="flex items-center justify-between gap-3 text-sm">
+            <span className="flex min-w-0 items-center gap-2">
+              <Upload className="size-4 shrink-0 animate-pulse text-primary" />
+              <span className="truncate font-medium">{progress.name}</span>
+            </span>
+            <span className="shrink-0 text-muted-foreground">
+              {progress.done}/{progress.total} · {remainingLabel(progress)}
+            </span>
+          </div>
+          <Progress
+            value={
+              progress.bytesTotal
+                ? (progress.bytesDone / progress.bytesTotal) * 100
+                : (progress.done / Math.max(progress.total, 1)) * 100
+            }
+          />
+          <p className="text-xs text-muted-foreground">
+            {mb(progress.bytesDone)} von {mb(progress.bytesTotal)} hochgeladen
+          </p>
+        </div>
+      )}
+
+
+
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {folders.data?.map((f) => (
           <div
