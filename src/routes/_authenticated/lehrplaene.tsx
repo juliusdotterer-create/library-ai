@@ -18,7 +18,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { DocumentPicker, type PickedDocument, type PickedFolder } from "@/components/DocumentPicker";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { StudyTimers } from "@/components/StudyTimer";
 import { cn } from "@/lib/utils";
 
@@ -45,7 +51,7 @@ function LehrplanPage() {
   const [planForm, setPlanForm] = useState({ title: "", description: "" });
   const [planOpen, setPlanOpen] = useState(false);
   const [task, setTask] = useState({ title: "", due: "" });
-  const [doc, setDoc] = useState<PickedDocument | null>(null);
+  const [selected, setSelected] = useState<string>("");
 
 
   const plans = useQuery({
@@ -79,12 +85,45 @@ function LehrplanPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("documents")
-        .select("id,name,storage_path")
-        .is("deleted_at", null);
+        .select("id,name,storage_path,folder_id")
+        .is("deleted_at", null)
+        .order("name");
       if (error) throw error;
       return data;
     },
   });
+
+  const allFolders = useQuery({
+    queryKey: ["all-folders"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("folders")
+        .select("id,name,parent_id")
+        .is("deleted_at", null)
+        .order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const folderPath = (id: string | null): string => {
+    if (!id) return "";
+    const f = allFolders.data?.find((x) => x.id === id);
+    if (!f) return "";
+    const parent = folderPath(f.parent_id);
+    return parent ? `${parent} / ${f.name}` : f.name;
+  };
+
+  const options = [
+    ...(allFolders.data ?? []).map((f) => ({
+      value: `folder:${f.id}`,
+      label: `📁 ${folderPath(f.id)} — alle Dateien`,
+    })),
+    ...(docs.data ?? []).map((d) => ({
+      value: `doc:${d.id}`,
+      label: folderPath(d.folder_id) ? `${folderPath(d.folder_id)} / ${d.name}` : d.name,
+    })),
+  ];
 
   const docMap: Record<string, string> = Object.fromEntries(
     (docs.data ?? []).map((d) => [d.id, d.name]),
@@ -139,13 +178,13 @@ function LehrplanPage() {
         plan_id: activeId!,
         title: task.title,
         due_date: task.due || null,
-        document_id: doc?.id ?? null,
+        document_id: selected.startsWith("doc:") ? selected.slice(4) : null,
       });
       if (error) throw error;
     },
     onSuccess: () => {
       setTask({ title: "", due: "" });
-      setDoc(null);
+      setSelected("");
       void qc.invalidateQueries({ queryKey: ["study_tasks"] });
     },
 
@@ -153,12 +192,12 @@ function LehrplanPage() {
   });
 
   const addFolderTasks = useMutation({
-    mutationFn: async (folder: PickedFolder) => {
+    mutationFn: async (folderId: string) => {
       const { data: auth } = await supabase.auth.getUser();
       const { data: folderDocs, error: docErr } = await supabase
         .from("documents")
         .select("id,name")
-        .eq("folder_id", folder.id)
+        .eq("folder_id", folderId)
         .is("deleted_at", null)
         .order("name");
       if (docErr) throw docErr;
@@ -177,7 +216,7 @@ function LehrplanPage() {
     },
     onSuccess: (count) => {
       setTask({ title: "", due: task.due });
-      setDoc(null);
+      setSelected("");
       void qc.invalidateQueries({ queryKey: ["study_tasks"] });
       void qc.invalidateQueries({ queryKey: ["all-docs"] });
       toast.success(`${count} Dokumente eingeplant`);
@@ -305,35 +344,45 @@ function LehrplanPage() {
                   value={task.due}
                   onChange={(e) => setTask({ ...task, due: e.target.value })}
                 />
-                <DocumentPicker
-                  onPickFolder={(f) => addFolderTasks.mutate(f)}
-                  onPick={(d) => {
-                    setDoc(d);
-                    if (!task.title.trim()) setTask((t) => ({ ...t, title: `${d.name} lernen` }));
+                <Select
+                  value={selected}
+                  onValueChange={(v) => {
+                    setSelected(v);
+                    const label = options.find((o) => o.value === v)?.label ?? "";
+                    if (v.startsWith("doc:")) {
+                      const name = label.split(" / ").pop() ?? label;
+                      setTask((t) => ({ ...t, title: `${name} lernen` }));
+                    }
                   }}
-                  trigger={
-                    <Button variant="secondary" className="h-9 rounded-2xl">
-                      <FileText className="size-4" /> Dokument wählen
-                    </Button>
-                  }
-                />
+                >
+                  <SelectTrigger className="h-9 w-64 rounded-2xl">
+                    <SelectValue placeholder="Datei aus der Library" />
+                  </SelectTrigger>
+                  <SelectContent className="glass max-h-72 rounded-2xl">
+                    {options.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                    {!options.length && (
+                      <p className="px-3 py-4 text-sm text-muted-foreground">
+                        Noch keine Dokumente in der Library.
+                      </p>
+                    )}
+                  </SelectContent>
+                </Select>
                 <Button
                   className="h-9 rounded-2xl"
-                  disabled={!task.title.trim()}
-                  onClick={() => addTask.mutate()}
+                  disabled={!task.title.trim() && !selected.startsWith("folder:")}
+                  onClick={() =>
+                    selected.startsWith("folder:")
+                      ? addFolderTasks.mutate(selected.slice(7))
+                      : addTask.mutate()
+                  }
                 >
                   <Plus className="size-4" />
                 </Button>
               </div>
-              {doc && (
-                <p className="text-xs text-muted-foreground">
-                  Verknüpft: <span className="font-medium text-foreground">{doc.name}</span>
-                  {doc.path ? ` · ${doc.path}` : ""}
-                  <button className="text-destructive ml-2" onClick={() => setDoc(null)}>
-                    entfernen
-                  </button>
-                </p>
-              )}
             </div>
 
             <div className="glass-soft mb-4 rounded-2xl p-3">
