@@ -6,11 +6,11 @@ import {
   ChevronRight,
   Download,
   FilePlus2,
+  FolderUp,
   FileText,
   Folder,
   FolderPlus,
-  FolderUp,
-  Home,
+  Upload,
   MoreVertical,
   Pencil,
   Trash2,
@@ -33,6 +33,10 @@ import {
 } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/_authenticated/library")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    folder: typeof search.folder === "string" ? search.folder : undefined,
+    name: typeof search.name === "string" ? search.name : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Library – Ordner & Dokumente" },
@@ -51,7 +55,15 @@ type Crumb = { id: string | null; name: string };
 
 function LibraryPage() {
   const qc = useQueryClient();
-  const [path, setPath] = useState<Crumb[]>([{ id: null, name: "Library" }]);
+  const search = Route.useSearch();
+  const [path, setPath] = useState<Crumb[]>(
+    search.folder
+      ? [
+          { id: null, name: "Library" },
+          { id: search.folder, name: search.name ?? "Ordner" },
+        ]
+      : [{ id: null, name: "Library" }],
+  );
   const current = path[path.length - 1];
   const fileInput = useRef<HTMLInputElement>(null);
   const folderInput = useRef<HTMLInputElement>(null);
@@ -224,7 +236,7 @@ function LibraryPage() {
                 }
                 onClick={() => setPath(path.slice(0, i + 1))}
               >
-                {i === 0 ? <Home className="size-4" /> : c.name}
+                {c.name}
               </button>
             </span>
           ))}
@@ -247,16 +259,21 @@ function LibraryPage() {
           >
             <FolderPlus className="size-4" />
           </Button>
-          <Button className="rounded-2xl" onClick={() => fileInput.current?.click()}>
-            <FilePlus2 className="size-4" /> Dateien
-          </Button>
-          <Button
-            variant="secondary"
-            className="rounded-2xl"
-            onClick={() => folderInput.current?.click()}
-          >
-            <FolderUp className="size-4" /> Ordner
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="rounded-2xl">
+                <Upload className="size-4" /> Importieren
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="glass rounded-2xl">
+              <DropdownMenuItem onClick={() => fileInput.current?.click()}>
+                <FilePlus2 className="size-4" /> Dateien
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => folderInput.current?.click()}>
+                <FolderUp className="size-4" /> Ordner
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <input
             ref={fileInput}
             type="file"
