@@ -12,13 +12,13 @@ import { Logo } from "@/components/Logo";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Anmelden – Archiv Studienarchiv" },
+      { title: "Anmelden – Library Studienarchiv" },
       {
         name: "description",
         content:
           "Melde dich an, um deine Dokumente, Termine, Lehrpläne und Links im persönlichen Archiv zu verwalten.",
       },
-      { property: "og:title", content: "Anmelden – Archiv Studienarchiv" },
+      { property: "og:title", content: "Anmelden – Library Studienarchiv" },
       {
         property: "og:description",
         content: "Dein privater Ort für PDFs, Klausuren, Termine und Lernpläne.",
@@ -80,7 +80,7 @@ function AuthPage() {
         <div className="mb-6 flex items-center gap-3">
           <Logo className="size-11" />
           <div>
-            <h1 className="text-xl font-semibold tracking-tight">Archiv</h1>
+            <h1 className="text-xl font-semibold tracking-tight">Library</h1>
             <p className="text-sm text-muted-foreground">Dokumente, Termine & Lernpläne</p>
           </div>
         </div>
