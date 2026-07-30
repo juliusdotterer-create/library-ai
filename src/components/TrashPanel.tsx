@@ -86,9 +86,10 @@ export function TrashPanel() {
         const { error } = await supabase.from("documents").delete().in("id", ids);
         if (error) throw error;
       }
-      if (folders.length) {
-        const ids = folders.map((f) => f.id);
-        const { error } = await supabase.from("folders").delete().in("id", ids);
+      // Unterordner zuerst löschen, damit Verweise nicht blockieren
+      const byDepth = [...folders].sort((a, b) => depth(b, folders) - depth(a, folders));
+      for (const f of byDepth) {
+        const { error } = await supabase.from("folders").delete().eq("id", f.id);
         if (error) throw error;
       }
     },
@@ -98,6 +99,14 @@ export function TrashPanel() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const deletedFolderIds = new Set((trash.data?.folders ?? []).map((f) => f.id));
+  const topFolders = (trash.data?.folders ?? []).filter(
+    (f) => !f.parent_id || !deletedFolderIds.has(f.parent_id),
+  );
+  const looseDocs = (trash.data?.documents ?? []).filter(
+    (d) => !d.folder_id || !deletedFolderIds.has(d.folder_id),
+  );
 
   const empty = !trash.data?.folders.length && !trash.data?.documents.length && !trash.isLoading;
 
@@ -118,16 +127,17 @@ export function TrashPanel() {
           </ConfirmDelete>
         </div>
       )}
-      {trash.data?.folders.map((f) => (
+      {topFolders.map((f) => (
         <Row
           key={f.id}
           icon={<Folder className="size-5 text-primary" />}
           name={f.name}
+          hint="inkl. Inhalt"
           onRestore={() => restore.mutate({ table: "folders", id: f.id })}
           onPurge={() => purge.mutate({ table: "folders", id: f.id })}
         />
       ))}
-      {trash.data?.documents.map((d) => (
+      {looseDocs.map((d) => (
         <Row
           key={d.id}
           icon={<FileText className="size-5 text-muted-foreground" />}
@@ -136,6 +146,7 @@ export function TrashPanel() {
           onPurge={() => purge.mutate({ table: "documents", id: d.id, storagePath: d.storage_path })}
         />
       ))}
+
       {empty && (
         <p className="py-10 text-center text-sm text-muted-foreground">Der Papierkorb ist leer.</p>
       )}
