@@ -3,6 +3,8 @@ import { toast } from "sonner";
 import { FileText, Folder, RotateCcw, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { purgeFolder, restoreFolder } from "@/lib/tree";
+
 import { Button } from "@/components/ui/button";
 import { ConfirmDelete } from "@/components/ConfirmDelete";
 
