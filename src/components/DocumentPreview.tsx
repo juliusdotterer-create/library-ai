@@ -21,7 +21,7 @@ export function DocumentPreview({
   doc: PreviewDoc | null;
   onClose: () => void;
 }) {
-  const [url, setUrl] = useState<string | null>(null);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     setUrl(null);
