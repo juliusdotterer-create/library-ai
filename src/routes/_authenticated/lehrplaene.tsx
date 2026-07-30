@@ -126,6 +126,30 @@ function LehrplanPage() {
     return parts.join(" / ");
   };
 
+  const natural = new Intl.Collator("de", { numeric: true, sensitivity: "base" });
+
+  // Ordner in Baum-Reihenfolge (Eltern → Kinder), Geschwister natürlich sortiert
+  const orderedFolders: { id: string; name: string; depth: number }[] = (() => {
+    const list = folders.data ?? [];
+    const out: { id: string; name: string; depth: number }[] = [];
+    const walk = (parent: string | null, depth: number) => {
+      list
+        .filter((f) => (f.parent_id ?? null) === parent)
+        .sort((a, b) => natural.compare(a.name, b.name))
+        .forEach((f) => {
+          out.push({ id: f.id, name: f.name, depth });
+          walk(f.id, depth + 1);
+        });
+    };
+    walk(null, 0);
+    return out;
+  })();
+
+  const docsIn = (folderId: string | null) =>
+    (docs.data ?? [])
+      .filter((d) => (d.folder_id ?? null) === folderId)
+      .sort((a, b) => natural.compare(a.name, b.name));
+
   const docMap: Record<string, string> = Object.fromEntries(
     (docs.data ?? []).map((d) => [d.id, d.name]),
   );
@@ -360,32 +384,37 @@ function LehrplanPage() {
                     <SelectValue placeholder="Dokument wählen" />
                   </SelectTrigger>
                   <SelectContent className="glass max-h-72 rounded-2xl">
-                    {(folders.data ?? []).map((f) => {
-                      const items = (docs.data ?? []).filter((d) => d.folder_id === f.id);
+                    {docsIn(null).length > 0 && (
+                      <SelectGroup>
+                        <SelectLabel>Library</SelectLabel>
+                        {docsIn(null).map((d) => (
+                          <SelectItem key={d.id} value={d.id}>
+                            {d.name}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    )}
+                    {orderedFolders.map((f) => {
+                      const items = docsIn(f.id);
                       if (!items.length) return null;
                       return (
                         <SelectGroup key={f.id}>
-                          <SelectLabel>{folderPath(f.id)}</SelectLabel>
+                          <SelectLabel style={{ paddingLeft: 8 + f.depth * 12 }}>
+                            {"› ".repeat(f.depth)}
+                            {f.name}
+                          </SelectLabel>
                           {items.map((d) => (
-                            <SelectItem key={d.id} value={d.id}>
+                            <SelectItem
+                              key={d.id}
+                              value={d.id}
+                              style={{ paddingLeft: 32 + f.depth * 12 }}
+                            >
                               {d.name}
                             </SelectItem>
                           ))}
                         </SelectGroup>
                       );
                     })}
-                    {(docs.data ?? []).some((d) => !d.folder_id) && (
-                      <SelectGroup>
-                        <SelectLabel>Library</SelectLabel>
-                        {(docs.data ?? [])
-                          .filter((d) => !d.folder_id)
-                          .map((d) => (
-                            <SelectItem key={d.id} value={d.id}>
-                              {d.name}
-                            </SelectItem>
-                          ))}
-                      </SelectGroup>
-                    )}
                   </SelectContent>
                 </Select>
                 <Select
@@ -399,11 +428,21 @@ function LehrplanPage() {
                     <SelectValue placeholder="Ganzer Ordner" />
                   </SelectTrigger>
                   <SelectContent className="glass max-h-72 rounded-2xl">
-                    {(folders.data ?? []).map((f) => (
-                      <SelectItem key={f.id} value={f.id}>
-                        {folderPath(f.id)}
-                      </SelectItem>
-                    ))}
+                    {orderedFolders.map((f) => {
+                      const count = docsIn(f.id).length;
+                      return (
+                        <SelectItem
+                          key={f.id}
+                          value={f.id}
+                          style={{ paddingLeft: 32 + f.depth * 12 }}
+                        >
+                          {f.name}
+                          {count > 0 && (
+                            <span className="ml-2 text-xs text-muted-foreground">{count}</span>
+                          )}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
 
