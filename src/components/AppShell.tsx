@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { LibrarySearch } from "@/components/LibrarySearch";
+import { GlobalTimerWatcher, HeaderTimers } from "@/components/GlobalTimer";
 
 
 const NAV = [
@@ -34,6 +35,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchOpen, setSearchOpen] = useState(false);
+  const onLehrplaene = path.startsWith("/lehrplaene");
 
   const signOut = async () => {
     await queryClient.cancelQueries();
@@ -45,11 +47,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen w-full">
       <LibrarySearch open={searchOpen} onOpenChange={setSearchOpen} />
+      <GlobalTimerWatcher />
       <header className="sticky top-0 z-40 px-3 pt-3 sm:px-5">
         <div className="glass mx-auto flex max-w-7xl items-center gap-2 rounded-3xl px-3 py-2">
-          <div className="flex items-center gap-2 pr-2">
+          <div className="flex min-w-0 items-center gap-2 pr-2">
             <Link to="/library" aria-label="Zur Library">
-              <Logo className="size-8" />
+              <Logo className="size-8 shrink-0" />
             </Link>
             <button
               type="button"
@@ -61,9 +64,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </button>
           </div>
 
-
-
-          <nav className="flex flex-1 items-center gap-1 overflow-x-auto">
+          <nav className="hidden flex-1 items-center gap-1 overflow-x-auto md:flex">
             {NAV.map((item) => {
               const active = path.startsWith(item.to);
               return (
@@ -84,6 +85,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             })}
           </nav>
 
+          <div className="flex flex-1 items-center justify-end gap-2 md:flex-none">
+            {!onLehrplaene && <HeaderTimers />}
+          </div>
+
           <Link
             to="/einstellungen"
             title="Design"
@@ -92,7 +97,12 @@ export function AppShell({ children }: { children: ReactNode }) {
           >
             <Settings2 className="size-4" />
           </Link>
-          <Button variant="ghost" size="icon" className="rounded-2xl" onClick={toggleMode}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hidden rounded-2xl md:inline-flex"
+            onClick={toggleMode}
+          >
             {mode === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
           </Button>
           <Button variant="ghost" size="icon" className="rounded-2xl" onClick={signOut}>
@@ -102,7 +112,32 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-7xl px-3 py-6 sm:px-5">{children}</main>
+      <main className="mx-auto w-full max-w-7xl px-3 py-6 pb-24 sm:px-5 md:pb-6">{children}</main>
+
+      {/* Mobile: kompakte Icon-Leiste am unteren Bildschirmrand */}
+      <nav className="fixed inset-x-0 bottom-0 z-40 px-3 pb-3 md:hidden">
+        <div className="glass mx-auto flex max-w-md items-center justify-around rounded-3xl px-2 py-2">
+          {NAV.map((item) => {
+            const active = path.startsWith(item.to);
+            return (
+              <Link
+                key={item.to}
+                to={item.to}
+                aria-label={item.label}
+                title={item.label}
+                className={cn(
+                  "rounded-2xl p-3 transition-all",
+                  active
+                    ? "bg-primary text-primary-foreground glow-primary"
+                    : "text-muted-foreground",
+                )}
+              >
+                <item.icon className="size-5" />
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
 }
