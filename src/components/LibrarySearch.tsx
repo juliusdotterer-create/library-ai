@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { FileText, Folder, Search } from "lucide-react";
-import { toast } from "sonner";
+import { useNavigate } from "@tanstack/react-router";
+import { Eye, FileText, Folder, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { DocumentPreview, type PreviewDoc } from "@/components/DocumentPreview";
@@ -16,6 +16,7 @@ export function LibrarySearch({
 }) {
   const [term, setTerm] = useState("");
   const q = term.trim();
+  const navigate = useNavigate();
 
   const results = useQuery({
     queryKey: ["library-search", q],
@@ -24,7 +25,7 @@ export function LibrarySearch({
       const [docs, folders] = await Promise.all([
         supabase
           .from("documents")
-          .select("id,name,storage_path,mime_type")
+          .select("id,name,storage_path,mime_type,folder_id")
           .is("deleted_at", null)
           .ilike("name", `%${q}%`)
           .limit(25),
@@ -42,6 +43,12 @@ export function LibrarySearch({
   });
 
   const [preview, setPreview] = useState<PreviewDoc | null>(null);
+
+  const goToFolder = (folderId: string | null) => {
+    onOpenChange(false);
+    void navigate({ to: "/library", search: { folder: folderId ?? "root" } });
+  };
+
   const openDoc = (d: { name: string; storage_path: string; mime_type: string | null }) => {
     onOpenChange(false);
     setPreview({ name: d.name, storage_path: d.storage_path, mime_type: d.mime_type });
@@ -49,51 +56,69 @@ export function LibrarySearch({
 
   return (
     <>
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="glass max-h-[80vh] overflow-y-auto rounded-3xl">
-        <DialogHeader>
-          <DialogTitle>Library durchsuchen</DialogTitle>
-        </DialogHeader>
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            autoFocus
-            value={term}
-            onChange={(e) => setTerm(e.target.value)}
-            placeholder="Dokumente und Ordner suchen…"
-            className="rounded-2xl pl-9"
-          />
-        </div>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="glass max-h-[80vh] overflow-y-auto rounded-3xl">
+          <DialogHeader>
+            <DialogTitle>Library durchsuchen</DialogTitle>
+          </DialogHeader>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              autoFocus
+              value={term}
+              onChange={(e) => setTerm(e.target.value)}
+              placeholder="Dokumente und Ordner suchen…"
+              className="rounded-2xl pl-9"
+            />
+          </div>
 
-        <div className="space-y-1.5">
-          {results.data?.folders.map((f) => (
-            <div key={f.id} className="glass-soft flex items-center gap-3 rounded-2xl p-3">
-              <Folder className="size-4 text-primary" />
-              <span className="truncate text-sm font-medium">{f.name}</span>
-            </div>
-          ))}
-          {results.data?.docs.map((d) => (
-            <button
-              key={d.id}
-              onClick={() => openDoc(d)}
-              className="glass-soft hover:bg-primary-soft flex w-full items-center gap-3 rounded-2xl p-3 text-left"
-            >
-              <FileText className="size-4 text-muted-foreground" />
-              <span className="truncate text-sm">{d.name}</span>
-            </button>
-          ))}
-          {q && !results.isLoading && !results.data?.docs.length && !results.data?.folders.length && (
-            <p className="py-8 text-center text-sm text-muted-foreground">Nichts gefunden.</p>
-          )}
-          {!q && (
-            <p className="py-8 text-center text-sm text-muted-foreground">
-              Tippe, um Dokumente und Ordner zu finden.
-            </p>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
-    <DocumentPreview doc={preview} onClose={() => setPreview(null)} />
+          <div className="space-y-1.5">
+            {results.data?.folders.map((f) => (
+              <button
+                key={f.id}
+                onClick={() => goToFolder(f.id)}
+                className="glass-soft hover:bg-primary-soft flex w-full items-center gap-3 rounded-2xl p-3 text-left"
+              >
+                <Folder className="size-4 text-primary" />
+                <span className="truncate text-sm font-medium">{f.name}</span>
+              </button>
+            ))}
+            {results.data?.docs.map((d) => (
+              <div
+                key={d.id}
+                className="glass-soft hover:bg-primary-soft flex items-center gap-2 rounded-2xl p-1.5"
+              >
+                <button
+                  onClick={() => goToFolder(d.folder_id)}
+                  className="flex min-w-0 flex-1 items-center gap-3 rounded-xl p-1.5 text-left"
+                >
+                  <FileText className="size-4 shrink-0 text-muted-foreground" />
+                  <span className="truncate text-sm">{d.name}</span>
+                </button>
+                <button
+                  aria-label="Vorschau"
+                  onClick={() => openDoc(d)}
+                  className="rounded-xl p-2 text-muted-foreground hover:text-foreground"
+                >
+                  <Eye className="size-4" />
+                </button>
+              </div>
+            ))}
+            {q &&
+              !results.isLoading &&
+              !results.data?.docs.length &&
+              !results.data?.folders.length && (
+                <p className="py-8 text-center text-sm text-muted-foreground">Nichts gefunden.</p>
+              )}
+            {!q && (
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                Tippe, um Dokumente und Ordner zu finden.
+              </p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+      <DocumentPreview doc={preview} onClose={() => setPreview(null)} />
     </>
   );
 }
