@@ -47,6 +47,15 @@ export function TrashPanel() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const [progress, setProgress] = useState<PurgeProgress | null>(null);
+  const started = useRef(0);
+
+  const begin = () => {
+    started.current = Date.now();
+    setProgress({ done: 0, total: 1, label: "Löschen wird vorbereitet…" });
+  };
+  const track = (p: PurgeProgress) => setProgress(p);
+
   const purge = useMutation({
     mutationFn: async ({
       table,
@@ -57,30 +66,37 @@ export function TrashPanel() {
       id: string;
       storagePath?: string | null;
     }) => {
+      begin();
       if (table === "folders") {
-        await purgeFolder(id);
+        await purgeFolder(id, track);
         return;
       }
-      await purgeDocuments([{ id, storage_path: storagePath }]);
+      await purgeDocuments([{ id, storage_path: storagePath }], track);
     },
     onSuccess: () => {
       invalidate();
       toast.success("Endgültig gelöscht");
     },
     onError: (e: Error) => toast.error(e.message),
+    onSettled: () => setProgress(null),
   });
 
 
   const purgeAll = useMutation({
     mutationFn: async () => {
+      begin();
       const docs = trash.data?.documents ?? [];
       const folders = trash.data?.folders ?? [];
-      await purgeDocuments(docs);
+      const total = docs.length + folders.length;
+      await purgeDocuments(docs, track, 0, total);
       // Unterordner zuerst löschen, damit Verweise nicht blockieren
       const byDepth = [...folders].sort((a, b) => depth(b, folders) - depth(a, folders));
+      let done = docs.length;
       for (const f of byDepth) {
         const { error } = await supabase.from("folders").delete().eq("id", f.id);
         if (error) throw error;
+        done++;
+        track({ done, total, label: `Ordner werden gelöscht (${done}/${total})` });
       }
     },
     onSuccess: () => {
@@ -88,6 +104,7 @@ export function TrashPanel() {
       toast.success("Papierkorb wurde geleert");
     },
     onError: (e: Error) => toast.error(e.message),
+    onSettled: () => setProgress(null),
   });
 
   const deletedFolderIds = new Set((trash.data?.folders ?? []).map((f) => f.id));
