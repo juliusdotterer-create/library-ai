@@ -45,12 +45,35 @@ export const Route = createFileRoute("/_authenticated/kalender")({
   component: KalenderPage,
 });
 
+type Tab = "monat" | "stundenplan";
+
+function TabSwitch({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
+  return (
+    <div className="glass inline-flex gap-1 rounded-2xl p-1">
+      {(["monat", "stundenplan"] as Tab[]).map((t) => (
+        <button
+          key={t}
+          onClick={() => setTab(t)}
+          className={cn(
+            "rounded-xl px-4 py-1.5 text-sm font-medium capitalize transition-colors",
+            tab === t ? "bg-primary text-primary-foreground" : "text-muted-foreground",
+          )}
+        >
+          {t === "monat" ? "Monat" : "Stundenplan"}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function KalenderPage() {
   const qc = useQueryClient();
+  const [tab, setTab] = useState<Tab>("monat");
   const [month, setMonth] = useState(new Date());
   const [selected, setSelected] = useState(new Date());
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ title: "", notes: "", time: "09:00" });
+
 
   const range = useMemo(() => {
     const start = startOfWeek(startOfMonth(month), { weekStartsOn: 1 });
