@@ -259,8 +259,26 @@ function LibraryPage() {
   };
 
   return (
-    <div className="space-y-5">
+    <div
+      className="relative space-y-5"
+      onDragOver={(e) => {
+        e.preventDefault();
+        setDragging(true);
+      }}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragging(false);
+      }}
+      onDrop={(e) => void onDrop(e)}
+    >
+      {dragging && (
+        <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center rounded-3xl border-2 border-dashed border-primary bg-primary/10 backdrop-blur-[2px]">
+          <span className="glass flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-medium">
+            <Upload className="size-4 text-primary" /> Dateien oder Ordner hier ablegen
+          </span>
+        </div>
+      )}
       <div className="glass flex flex-wrap items-center gap-3 rounded-3xl p-4">
+
         <div className="flex flex-1 flex-wrap items-center gap-1 text-sm">
           {path.map((c, i) => (
             <span key={`${c.id ?? "root"}-${i}`} className="flex items-center gap-1">
