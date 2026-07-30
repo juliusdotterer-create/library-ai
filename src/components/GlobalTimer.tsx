@@ -44,10 +44,10 @@ export function GlobalTimerWatcher() {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-foreground/70 p-4 backdrop-blur-sm">
-      <div className="glass animate-scale-in w-full max-w-md space-y-5 rounded-3xl border-2 border-destructive p-6 text-center">
-        <TimerIcon className="mx-auto size-12 text-destructive" />
+      <div className="glass animate-scale-in w-full max-w-md space-y-5 rounded-3xl border-2 border-primary p-6 text-center">
+        <TimerIcon className="mx-auto size-12 text-primary" />
         <div className="space-y-1">
-          <p className="text-3xl font-bold text-destructive">Zeit abgelaufen!</p>
+          <p className="text-3xl font-bold text-primary">Zeit abgelaufen!</p>
           {expired.map((t) => (
             <p key={t.id} className="text-lg font-medium">
               {t.label}
