@@ -79,16 +79,43 @@ function LehrplanPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("documents")
-        .select("id,name,storage_path")
-        .is("deleted_at", null);
+        .select("id,name,storage_path,folder_id")
+        .is("deleted_at", null)
+        .order("name");
       if (error) throw error;
       return data;
     },
   });
 
+  const folders = useQuery({
+    queryKey: ["all-folders"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("folders")
+        .select("id,name,parent_id")
+        .is("deleted_at", null)
+        .order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const folderPath = (id: string | null): string => {
+    const list = folders.data ?? [];
+    const parts: string[] = [];
+    let cur = list.find((f) => f.id === id);
+    let guard = 0;
+    while (cur && guard++ < 20) {
+      parts.unshift(cur.name);
+      cur = list.find((f) => f.id === cur!.parent_id);
+    }
+    return parts.join(" / ");
+  };
+
   const docMap: Record<string, string> = Object.fromEntries(
     (docs.data ?? []).map((d) => [d.id, d.name]),
   );
+
 
   const openDoc = async (id: string) => {
     const d = docs.data?.find((x) => x.id === id);
