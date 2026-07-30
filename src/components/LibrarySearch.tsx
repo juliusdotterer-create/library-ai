@@ -4,6 +4,7 @@ import { FileText, Folder, Search } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
+import { DocumentPreview, type PreviewDoc } from "@/components/DocumentPreview";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export function LibrarySearch({
@@ -23,7 +24,7 @@ export function LibrarySearch({
       const [docs, folders] = await Promise.all([
         supabase
           .from("documents")
-          .select("id,name,storage_path")
+          .select("id,name,storage_path,mime_type")
           .is("deleted_at", null)
           .ilike("name", `%${q}%`)
           .limit(25),
@@ -40,15 +41,14 @@ export function LibrarySearch({
     },
   });
 
-  const openDoc = async (storagePath: string) => {
-    const { data, error } = await supabase.storage
-      .from("documents")
-      .createSignedUrl(storagePath, 60 * 10);
-    if (error || !data) return toast.error("Datei konnte nicht geöffnet werden");
-    window.open(data.signedUrl, "_blank", "noopener");
+  const [preview, setPreview] = useState<PreviewDoc | null>(null);
+  const openDoc = (d: { name: string; storage_path: string; mime_type: string | null }) => {
+    onOpenChange(false);
+    setPreview({ name: d.name, storage_path: d.storage_path, mime_type: d.mime_type });
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="glass max-h-[80vh] overflow-y-auto rounded-3xl">
         <DialogHeader>
@@ -75,7 +75,7 @@ export function LibrarySearch({
           {results.data?.docs.map((d) => (
             <button
               key={d.id}
-              onClick={() => openDoc(d.storage_path)}
+              onClick={() => openDoc(d)}
               className="glass-soft hover:bg-primary-soft flex w-full items-center gap-3 rounded-2xl p-3 text-left"
             >
               <FileText className="size-4 text-muted-foreground" />
@@ -93,5 +93,7 @@ export function LibrarySearch({
         </div>
       </DialogContent>
     </Dialog>
+    <DocumentPreview doc={preview} onClose={() => setPreview(null)} />
+    </>
   );
 }
