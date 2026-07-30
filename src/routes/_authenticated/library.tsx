@@ -78,6 +78,10 @@ function LibraryPage() {
   // Sprung aus der Suche: Pfad zum verlinkten Ordner aufbauen
   useEffect(() => {
     if (!folderParam) return;
+    if (folderParam === "root") {
+      setPath([{ id: null, name: "Library" }]);
+      return;
+    }
     let cancelled = false;
     (async () => {
       const crumbs: Crumb[] = [];
