@@ -503,7 +503,7 @@ function LibraryPage() {
             </button>
             <RowMenu
               onRename={() => setRename({ table: "folders", id: f.id, name: f.name })}
-              onDelete={() => softDelete.mutate({ table: "folders", id: f.id })}
+              onDelete={() => setConfirmDel({ table: "folders", id: f.id, name: f.name })}
             />
           </div>
         ))}
