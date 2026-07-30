@@ -79,10 +79,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Archiv – Dokumente, Kalender & Lehrpläne" },
+      { title: "Library – Dokumente, Kalender & Lehrpläne" },
       { name: "description", content: "Persönliches Studienarchiv für PDFs, Termine und Lernpläne." },
-      { name: "author", content: "Archiv" },
-      { property: "og:title", content: "Archiv – Dokumente, Kalender & Lehrpläne" },
+      { name: "author", content: "Library" },
+      { property: "og:title", content: "Library – Dokumente, Kalender & Lehrpläne" },
       { property: "og:description", content: "Persönliches Studienarchiv für PDFs, Termine und Lernpläne." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

@@ -19,13 +19,13 @@ import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 
 const NAV = [
-  { to: "/archiv", label: "Archiv", icon: FolderTree },
+  { to: "/library", label: "Library", icon: FolderTree },
   { to: "/kalender", label: "Kalender", icon: CalendarDays },
   { to: "/lehrplaene", label: "Lehrpläne", icon: ListChecks },
   { to: "/links", label: "Linktree", icon: LinkIcon },
   { to: "/papierkorb", label: "Papierkorb", icon: Trash2 },
-  { to: "/einstellungen", label: "Design", icon: Settings2 },
 ];
+
 
 export function AppShell({ children }: { children: ReactNode }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
@@ -44,10 +44,11 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="min-h-screen w-full">
       <header className="sticky top-0 z-40 px-3 pt-3 sm:px-5">
         <div className="glass mx-auto flex max-w-7xl items-center gap-2 rounded-3xl px-3 py-2">
-          <Link to="/archiv" className="flex items-center gap-2 pr-2">
+          <Link to="/library" className="flex items-center gap-2 pr-2">
             <Logo className="size-8" />
-            <span className="hidden text-sm font-semibold tracking-tight sm:block">Archiv</span>
+            <span className="hidden text-sm font-semibold tracking-tight sm:block">Library</span>
           </Link>
+
 
           <nav className="flex flex-1 items-center gap-1 overflow-x-auto">
             {NAV.map((item) => {
@@ -70,12 +71,21 @@ export function AppShell({ children }: { children: ReactNode }) {
             })}
           </nav>
 
+          <Link
+            to="/einstellungen"
+            title="Design"
+            aria-label="Design-Einstellungen"
+            className="rounded-2xl p-2 text-muted-foreground/40 transition-colors hover:text-foreground"
+          >
+            <Settings2 className="size-4" />
+          </Link>
           <Button variant="ghost" size="icon" className="rounded-2xl" onClick={toggleMode}>
             {mode === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
           </Button>
           <Button variant="ghost" size="icon" className="rounded-2xl" onClick={signOut}>
             <LogOut className="size-4" />
           </Button>
+
         </div>
       </header>
 

@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { CheckCircle2, Circle, GraduationCap, Plus, Trash2 } from "lucide-react";
+import { CheckCircle2, Circle, FileText, GraduationCap, Plus, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,7 +18,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { DocumentPicker, type PickedDocument } from "@/components/DocumentPicker";
+import { StudyTimers } from "@/components/StudyTimer";
 import { cn } from "@/lib/utils";
+
 
 export const Route = createFileRoute("/_authenticated/lehrplaene")({
   head: () => ({
@@ -42,6 +45,8 @@ function LehrplanPage() {
   const [planForm, setPlanForm] = useState({ title: "", description: "" });
   const [planOpen, setPlanOpen] = useState(false);
   const [task, setTask] = useState({ title: "", due: "" });
+  const [doc, setDoc] = useState<PickedDocument | null>(null);
+
 
   const plans = useQuery({
     queryKey: ["study_plans"],
@@ -69,6 +74,32 @@ function LehrplanPage() {
       return data;
     },
   });
+  const docs = useQuery({
+    queryKey: ["all-docs"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("documents")
+        .select("id,name,storage_path")
+        .is("deleted_at", null);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const docMap: Record<string, string> = Object.fromEntries(
+    (docs.data ?? []).map((d) => [d.id, d.name]),
+  );
+
+  const openDoc = async (id: string) => {
+    const d = docs.data?.find((x) => x.id === id);
+    if (!d) return;
+    const { data, error } = await supabase.storage
+      .from("documents")
+      .createSignedUrl(d.storage_path, 60);
+    if (error) return toast.error(error.message);
+    window.open(data.signedUrl, "_blank");
+  };
+
 
   const createPlan = useMutation({
     mutationFn: async () => {
@@ -108,13 +139,16 @@ function LehrplanPage() {
         plan_id: activeId!,
         title: task.title,
         due_date: task.due || null,
+        document_id: doc?.id ?? null,
       });
       if (error) throw error;
     },
     onSuccess: () => {
       setTask({ title: "", due: "" });
+      setDoc(null);
       void qc.invalidateQueries({ queryKey: ["study_tasks"] });
     },
+
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -225,27 +259,54 @@ function LehrplanPage() {
               </Button>
             </div>
 
-            <div className="mb-4 flex flex-wrap gap-2">
-              <Input
-                placeholder="Aufgabe, z. B. Klausur 2021 lösen"
-                className="h-9 flex-1 rounded-2xl"
-                value={task.title}
-                onChange={(e) => setTask({ ...task, title: e.target.value })}
-              />
-              <Input
-                type="date"
-                className="h-9 w-40 rounded-2xl"
-                value={task.due}
-                onChange={(e) => setTask({ ...task, due: e.target.value })}
-              />
-              <Button
-                className="rounded-2xl"
-                disabled={!task.title.trim()}
-                onClick={() => addTask.mutate()}
-              >
-                <Plus className="size-4" />
-              </Button>
+            <div className="mb-4 space-y-2">
+              <div className="flex flex-wrap gap-2">
+                <Input
+                  placeholder="Aufgabe, z. B. Klausur 2021 lösen"
+                  className="h-9 flex-1 rounded-2xl"
+                  value={task.title}
+                  onChange={(e) => setTask({ ...task, title: e.target.value })}
+                />
+                <Input
+                  type="date"
+                  className="h-9 w-40 rounded-2xl"
+                  value={task.due}
+                  onChange={(e) => setTask({ ...task, due: e.target.value })}
+                />
+                <DocumentPicker
+                  onPick={(d) => {
+                    setDoc(d);
+                    if (!task.title.trim()) setTask((t) => ({ ...t, title: `${d.name} lernen` }));
+                  }}
+                  trigger={
+                    <Button variant="secondary" className="h-9 rounded-2xl">
+                      <FileText className="size-4" /> Dokument
+                    </Button>
+                  }
+                />
+                <Button
+                  className="h-9 rounded-2xl"
+                  disabled={!task.title.trim()}
+                  onClick={() => addTask.mutate()}
+                >
+                  <Plus className="size-4" />
+                </Button>
+              </div>
+              {doc && (
+                <p className="text-xs text-muted-foreground">
+                  Verknüpft: <span className="font-medium text-foreground">{doc.name}</span>
+                  {doc.path ? ` · ${doc.path}` : ""}
+                  <button className="text-destructive ml-2" onClick={() => setDoc(null)}>
+                    entfernen
+                  </button>
+                </p>
+              )}
             </div>
+
+            <div className="glass-soft mb-4 rounded-2xl p-3">
+              <StudyTimers />
+            </div>
+
 
             <div className="space-y-2">
               {tasks.data?.map((t) => {
@@ -261,7 +322,17 @@ function LehrplanPage() {
                     </button>
                     <span className={cn("flex-1 text-sm", done && "line-through opacity-60")}>
                       {t.title}
+                      {t.document_id && docMap[t.document_id] && (
+                        <button
+                          onClick={() => openDoc(t.document_id!)}
+                          className="bg-primary-soft text-accent-foreground ml-2 inline-flex items-center gap-1 rounded-lg px-2 py-0.5 align-middle text-[11px]"
+                        >
+                          <FileText className="size-3" />
+                          {docMap[t.document_id]}
+                        </button>
+                      )}
                     </span>
+
                     {t.due_date && (
                       <span className="text-xs text-muted-foreground">
                         {format(new Date(t.due_date), "d. MMM", { locale: de })}

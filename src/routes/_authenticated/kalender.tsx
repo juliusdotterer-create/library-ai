@@ -28,7 +28,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Timetable } from "@/components/Timetable";
 import { cn } from "@/lib/utils";
+
 
 export const Route = createFileRoute("/_authenticated/kalender")({
   head: () => ({
@@ -45,12 +47,35 @@ export const Route = createFileRoute("/_authenticated/kalender")({
   component: KalenderPage,
 });
 
+type Tab = "monat" | "stundenplan";
+
+function TabSwitch({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
+  return (
+    <div className="glass inline-flex gap-1 rounded-2xl p-1">
+      {(["monat", "stundenplan"] as Tab[]).map((t) => (
+        <button
+          key={t}
+          onClick={() => setTab(t)}
+          className={cn(
+            "rounded-xl px-4 py-1.5 text-sm font-medium capitalize transition-colors",
+            tab === t ? "bg-primary text-primary-foreground" : "text-muted-foreground",
+          )}
+        >
+          {t === "monat" ? "Monat" : "Stundenplan"}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function KalenderPage() {
   const qc = useQueryClient();
+  const [tab, setTab] = useState<Tab>("monat");
   const [month, setMonth] = useState(new Date());
   const [selected, setSelected] = useState(new Date());
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ title: "", notes: "", time: "09:00" });
+
 
   const range = useMemo(() => {
     const start = startOfWeek(startOfMonth(month), { weekStartsOn: 1 });
@@ -108,9 +133,23 @@ function KalenderPage() {
   const dayEvents = (d: Date) =>
     (events.data ?? []).filter((e) => isSameDay(new Date(e.start_at), d));
 
+  if (tab === "stundenplan") {
+    return (
+      <div className="space-y-4">
+        <TabSwitch tab={tab} setTab={setTab} />
+        <div className="glass rounded-3xl p-4">
+          <Timetable />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="grid gap-5 lg:grid-cols-[1fr_20rem]">
+    <div className="space-y-4">
+      <TabSwitch tab={tab} setTab={setTab} />
+      <div className="grid gap-5 lg:grid-cols-[1fr_20rem]">
       <div className="glass rounded-3xl p-4">
+
         <div className="mb-4 flex items-center justify-between">
           <h1 className="text-lg font-semibold capitalize">
             {format(month, "LLLL yyyy", { locale: de })}
@@ -257,6 +296,8 @@ function KalenderPage() {
           )}
         </div>
       </aside>
+      </div>
     </div>
   );
+
 }

@@ -31,26 +31,26 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-export const Route = createFileRoute("/_authenticated/archiv")({
+export const Route = createFileRoute("/_authenticated/library")({
   head: () => ({
     meta: [
-      { title: "Archiv – Ordner & Dokumente" },
+      { title: "Library – Ordner & Dokumente" },
       {
         name: "description",
         content: "Lege Ordner und Unterordner an und speichere PDFs sowie andere Dateien sicher ab.",
       },
-      { property: "og:title", content: "Archiv – Ordner & Dokumente" },
+      { property: "og:title", content: "Library – Ordner & Dokumente" },
       { property: "og:description", content: "Ordner, Unterordner und Dateien an einem Ort." },
     ],
   }),
-  component: ArchivPage,
+  component: LibraryPage,
 });
 
 type Crumb = { id: string | null; name: string };
 
-function ArchivPage() {
+function LibraryPage() {
   const qc = useQueryClient();
-  const [path, setPath] = useState<Crumb[]>([{ id: null, name: "Archiv" }]);
+  const [path, setPath] = useState<Crumb[]>([{ id: null, name: "Library" }]);
   const current = path[path.length - 1];
   const fileInput = useRef<HTMLInputElement>(null);
   const [newFolder, setNewFolder] = useState("");
