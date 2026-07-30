@@ -27,13 +27,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { StudyTimers } from "@/components/StudyTimer";
 import { DocumentPreview, type PreviewDoc } from "@/components/DocumentPreview";
@@ -141,22 +135,8 @@ function LehrplanPage() {
 
   const natural = new Intl.Collator("de", { numeric: true, sensitivity: "base" });
 
-  // Ordner in Baum-Reihenfolge (Eltern → Kinder), Geschwister natürlich sortiert
-  const orderedFolders: { id: string; name: string; depth: number }[] = (() => {
-    const list = folders.data ?? [];
-    const out: { id: string; name: string; depth: number }[] = [];
-    const walk = (parent: string | null, depth: number) => {
-      list
-        .filter((f) => (f.parent_id ?? null) === parent)
-        .sort((a, b) => natural.compare(a.name, b.name))
-        .forEach((f) => {
-          out.push({ id: f.id, name: f.name, depth });
-          walk(f.id, depth + 1);
-        });
-    };
-    walk(null, 0);
-    return out;
-  })();
+
+
 
   const subFolders = (parentId: string | null) =>
     (folders.data ?? [])
