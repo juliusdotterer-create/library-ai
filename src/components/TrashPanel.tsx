@@ -223,3 +223,13 @@ function Row({
     </div>
   );
 }
+
+function speedLabel(p: { done: number; total: number }, started: number) {
+  const elapsed = (Date.now() - started) / 1000;
+  if (!p.done || elapsed < 0.4) return "Geschwindigkeit wird ermittelt…";
+  const rate = p.done / elapsed;
+  const rest = Math.max(0, Math.round((p.total - p.done) / Math.max(rate, 0.01)));
+  const restLabel =
+    rest < 60 ? `noch ca. ${rest}s` : `noch ca. ${Math.floor(rest / 60)}:${String(rest % 60).padStart(2, "0")} min`;
+  return `${rate.toFixed(1)} Objekte/s · ${restLabel}`;
+}
