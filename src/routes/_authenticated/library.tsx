@@ -248,6 +248,13 @@ function LibraryPage() {
           <Button className="rounded-2xl" onClick={() => fileInput.current?.click()}>
             <FilePlus2 className="size-4" /> Dateien
           </Button>
+          <Button
+            variant="secondary"
+            className="rounded-2xl"
+            onClick={() => folderInput.current?.click()}
+          >
+            <FolderUp className="size-4" /> Ordner
+          </Button>
           <input
             ref={fileInput}
             type="file"
@@ -258,6 +265,20 @@ function LibraryPage() {
               e.target.value = "";
             }}
           />
+          <input
+            ref={folderInput}
+            type="file"
+            multiple
+            hidden
+            // @ts-expect-error nicht-standardisierte Ordner-Auswahl
+            webkitdirectory=""
+            directory=""
+            onChange={(e) => {
+              if (e.target.files?.length) uploadFolder.mutate(e.target.files);
+              e.target.value = "";
+            }}
+          />
+
         </div>
       </div>
 
