@@ -173,10 +173,16 @@ function LibraryPage() {
     if (error) throw error;
   };
 
-  const runUpload = async (entries: { file: File; segments: string[] }[]) => {
+  const runUpload = async (all: { file: File; segments: string[] }[]) => {
+    const entries = all.filter((e) => !isJunk(e.file.name));
+    if (!entries.length) {
+      toast.info("Nur Systemdateien (z. B. desktop.ini) – nichts importiert");
+      return;
+    }
     const { data: auth } = await supabase.auth.getUser();
     const uid = auth.user!.id;
     const cache = new Map<string, string | null>([["", current.id]]);
+
 
     const ensureFolder = async (segments: string[]): Promise<string | null> => {
       const key = segments.join("/");
