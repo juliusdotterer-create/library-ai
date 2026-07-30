@@ -527,7 +527,7 @@ function LibraryPage() {
             <RowMenu
               onOpen={() => open(d)}
               onRename={() => setRename({ table: "documents", id: d.id, name: d.name })}
-              onDelete={() => softDelete.mutate({ table: "documents", id: d.id })}
+              onDelete={() => setConfirmDel({ table: "documents", id: d.id, name: d.name })}
             />
           </div>
         ))}
