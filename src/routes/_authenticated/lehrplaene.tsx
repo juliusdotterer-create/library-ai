@@ -28,7 +28,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { StudyTimers } from "@/components/StudyTimer";
 import { DocumentPreview, type PreviewDoc } from "@/components/DocumentPreview";
 
