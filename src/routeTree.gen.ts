@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedArchivRouteImport } from './routes/_authenticated/archiv'
+import { Route as AuthenticatedEinstellungenRouteImport } from './routes/_authenticated/einstellungen'
 import { Route as AuthenticatedKalenderRouteImport } from './routes/_authenticated/kalender'
 import { Route as AuthenticatedLehrplaeneRouteImport } from './routes/_authenticated/lehrplaene'
 import { Route as AuthenticatedLinksRouteImport } from './routes/_authenticated/links'
@@ -37,6 +38,12 @@ const AuthenticatedArchivRoute = AuthenticatedArchivRouteImport.update({
   path: '/archiv',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedEinstellungenRoute =
+  AuthenticatedEinstellungenRouteImport.update({
+    id: '/einstellungen',
+    path: '/einstellungen',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedKalenderRoute = AuthenticatedKalenderRouteImport.update({
   id: '/kalender',
   path: '/kalender',
@@ -62,6 +69,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/archiv': typeof AuthenticatedArchivRoute
+  '/einstellungen': typeof AuthenticatedEinstellungenRoute
   '/kalender': typeof AuthenticatedKalenderRoute
   '/lehrplaene': typeof AuthenticatedLehrplaeneRoute
   '/links': typeof AuthenticatedLinksRoute
@@ -71,6 +79,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/archiv': typeof AuthenticatedArchivRoute
+  '/einstellungen': typeof AuthenticatedEinstellungenRoute
   '/kalender': typeof AuthenticatedKalenderRoute
   '/lehrplaene': typeof AuthenticatedLehrplaeneRoute
   '/links': typeof AuthenticatedLinksRoute
@@ -82,6 +91,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/archiv': typeof AuthenticatedArchivRoute
+  '/_authenticated/einstellungen': typeof AuthenticatedEinstellungenRoute
   '/_authenticated/kalender': typeof AuthenticatedKalenderRoute
   '/_authenticated/lehrplaene': typeof AuthenticatedLehrplaeneRoute
   '/_authenticated/links': typeof AuthenticatedLinksRoute
@@ -93,6 +103,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/archiv'
+    | '/einstellungen'
     | '/kalender'
     | '/lehrplaene'
     | '/links'
@@ -102,6 +113,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/archiv'
+    | '/einstellungen'
     | '/kalender'
     | '/lehrplaene'
     | '/links'
@@ -112,6 +124,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/archiv'
+    | '/_authenticated/einstellungen'
     | '/_authenticated/kalender'
     | '/_authenticated/lehrplaene'
     | '/_authenticated/links'
@@ -154,6 +167,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedArchivRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/einstellungen': {
+      id: '/_authenticated/einstellungen'
+      path: '/einstellungen'
+      fullPath: '/einstellungen'
+      preLoaderRoute: typeof AuthenticatedEinstellungenRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/kalender': {
       id: '/_authenticated/kalender'
       path: '/kalender'
@@ -187,6 +207,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedArchivRoute: typeof AuthenticatedArchivRoute
+  AuthenticatedEinstellungenRoute: typeof AuthenticatedEinstellungenRoute
   AuthenticatedKalenderRoute: typeof AuthenticatedKalenderRoute
   AuthenticatedLehrplaeneRoute: typeof AuthenticatedLehrplaeneRoute
   AuthenticatedLinksRoute: typeof AuthenticatedLinksRoute
@@ -195,6 +216,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedArchivRoute: AuthenticatedArchivRoute,
+  AuthenticatedEinstellungenRoute: AuthenticatedEinstellungenRoute,
   AuthenticatedKalenderRoute: AuthenticatedKalenderRoute,
   AuthenticatedLehrplaeneRoute: AuthenticatedLehrplaeneRoute,
   AuthenticatedLinksRoute: AuthenticatedLinksRoute,

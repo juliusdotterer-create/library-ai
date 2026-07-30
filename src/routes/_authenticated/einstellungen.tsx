@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Moon, Sun, Monitor } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { useTheme, THEME_PRESETS } from "@/lib/theme";
+import { useTheme, ACCENT_PRESETS } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/einstellungen")({
@@ -12,8 +12,7 @@ export const Route = createFileRoute("/_authenticated/einstellungen")({
       { title: "Einstellungen – Farben & Darkmode" },
       {
         name: "description",
-        content:
-          "Passe Akzentfarbe, Glas-Intensität und Darkmode deines Archivs individuell an.",
+        content: "Passe Akzentfarbe, Farbintensität und Darkmode deines Archivs individuell an.",
       },
       { property: "og:title", content: "Einstellungen – Farben & Darkmode" },
       { property: "og:description", content: "Off-White, Orange und frei wählbare Akzente." },
@@ -23,7 +22,7 @@ export const Route = createFileRoute("/_authenticated/einstellungen")({
 });
 
 function SettingsPage() {
-  const { mode, setMode, hue, chroma, setAccent, glass, setGlass } = useTheme();
+  const { mode, hue, chroma, setTheme } = useTheme();
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
@@ -41,14 +40,13 @@ function SettingsPage() {
             [
               ["light", "Hell", Sun],
               ["dark", "Dunkel", Moon],
-              ["system", "System", Monitor],
             ] as const
           ).map(([v, label, Icon]) => (
             <Button
               key={v}
               variant={mode === v ? "default" : "outline"}
               className="flex-1 rounded-2xl"
-              onClick={() => setMode(v)}
+              onClick={() => setTheme({ mode: v })}
             >
               <Icon className="size-4" /> {label}
             </Button>
@@ -59,10 +57,10 @@ function SettingsPage() {
       <section className="glass space-y-4 rounded-3xl p-5">
         <Label className="text-xs text-muted-foreground">Akzentfarbe</Label>
         <div className="flex flex-wrap gap-2">
-          {THEME_PRESETS.map((p) => (
+          {ACCENT_PRESETS.map((p) => (
             <button
-              key={p.name}
-              onClick={() => setAccent(p.hue, p.chroma)}
+              key={p.id}
+              onClick={() => setTheme({ hue: p.hue, chroma: p.chroma })}
               title={p.label}
               className={cn(
                 "size-10 rounded-2xl border-2 transition-transform hover:scale-105",
@@ -81,7 +79,7 @@ function SettingsPage() {
             min={0}
             max={360}
             step={1}
-            onValueChange={([v]) => setAccent(v, chroma)}
+            onValueChange={([v]) => setTheme({ hue: v })}
           />
         </div>
 
@@ -92,17 +90,16 @@ function SettingsPage() {
             min={20}
             max={220}
             step={2}
-            onValueChange={([v]) => setAccent(hue, v / 1000)}
+            onValueChange={([v]) => setTheme({ chroma: v / 1000 })}
           />
         </div>
-      </section>
 
-      <section className="glass space-y-2 rounded-3xl p-5">
-        <Label className="text-xs text-muted-foreground">Glas-Intensität</Label>
-        <Slider value={[glass]} min={0} max={100} step={1} onValueChange={([v]) => setGlass(v)} />
-        <p className="text-xs text-muted-foreground">
-          Steuert Unschärfe und Transparenz der Oberflächen.
-        </p>
+        <div
+          className="rounded-2xl p-4 text-sm"
+          style={{ background: `oklch(0.68 ${chroma} ${hue})`, color: "oklch(0.99 0 0)" }}
+        >
+          Vorschau der Akzentfarbe
+        </div>
       </section>
     </div>
   );
