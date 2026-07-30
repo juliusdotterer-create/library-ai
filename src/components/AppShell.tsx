@@ -6,7 +6,6 @@ import {
   ListChecks,
   LinkIcon,
   Settings2,
-  Trash2,
   Moon,
   Sun,
   LogOut,
@@ -23,8 +22,8 @@ const NAV = [
   { to: "/kalender", label: "Kalender", icon: CalendarDays },
   { to: "/lehrplaene", label: "Lehrpläne", icon: ListChecks },
   { to: "/links", label: "Linktree", icon: LinkIcon },
-  { to: "/papierkorb", label: "Papierkorb", icon: Trash2 },
 ];
+
 
 
 export function AppShell({ children }: { children: ReactNode }) {
