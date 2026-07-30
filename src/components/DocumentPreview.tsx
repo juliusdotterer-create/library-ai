@@ -4,6 +4,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { HeaderTimers } from "@/components/GlobalTimer";
+import { PdfCanvasViewer } from "@/components/PdfCanvasViewer";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export type PreviewDoc = {
   name: string;
@@ -20,6 +22,8 @@ export function DocumentPreview({
   onClose: () => void;
 }) {
   const [url, setUrl] = useState<string | null>(null);
+  const isMobile = useIsMobile();
+
 
   useEffect(() => {
     setUrl(null);
@@ -78,8 +82,11 @@ export function DocumentPreview({
           <p className="text-sm text-muted-foreground">Wird geladen…</p>
         ) : isImage ? (
           <img src={url} alt={doc.name} className="max-h-full max-w-full object-contain" />
+        ) : isPdf && isMobile ? (
+          <PdfCanvasViewer url={url} />
         ) : embeddable ? (
           <iframe src={url} title={doc.name} className="size-full rounded-3xl bg-background" />
+
         ) : (
           <div className="space-y-3 p-8 text-center">
             <p className="text-sm text-muted-foreground">
