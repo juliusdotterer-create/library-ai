@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { FileText, Folder, RotateCcw, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { purgeFolder, restoreFolder } from "@/lib/tree";
+import { purgeDocuments, purgeFolder, restoreFolder } from "@/lib/tree";
 
 import { Button } from "@/components/ui/button";
 import { ConfirmDelete } from "@/components/ConfirmDelete";
@@ -60,9 +60,7 @@ export function TrashPanel() {
         await purgeFolder(id);
         return;
       }
-      if (storagePath) await supabase.storage.from("documents").remove([storagePath]);
-      const { error } = await supabase.from("documents").delete().eq("id", id);
-      if (error) throw error;
+      await purgeDocuments([{ id, storage_path: storagePath }]);
     },
     onSuccess: () => {
       invalidate();
@@ -76,16 +74,7 @@ export function TrashPanel() {
     mutationFn: async () => {
       const docs = trash.data?.documents ?? [];
       const folders = trash.data?.folders ?? [];
-      const paths = docs.map((d) => d.storage_path).filter(Boolean) as string[];
-      if (paths.length) {
-        const { error } = await supabase.storage.from("documents").remove(paths);
-        if (error) throw error;
-      }
-      if (docs.length) {
-        const ids = docs.map((d) => d.id);
-        const { error } = await supabase.from("documents").delete().in("id", ids);
-        if (error) throw error;
-      }
+      await purgeDocuments(docs);
       // Unterordner zuerst löschen, damit Verweise nicht blockieren
       const byDepth = [...folders].sort((a, b) => depth(b, folders) - depth(a, folders));
       for (const f of byDepth) {
@@ -115,9 +104,9 @@ export function TrashPanel() {
       {!empty && (
         <div className="flex justify-end pb-2">
           <ConfirmDelete
-            name="BESTÄTIGT"
+            name="Papierkorb"
             title="Papierkorb komplett leeren"
-            description="Alle Ordner und Dateien im Papierkorb werden endgültig gelöscht. Dieser Schritt kann nicht rückgängig gemacht werden. Tippe zur Bestätigung BESTÄTIGT ein."
+            description="Alle Ordner und Dateien im Papierkorb werden endgültig gelöscht. Dieser Schritt kann nicht rückgängig gemacht werden."
             onConfirm={() => purgeAll.mutateAsync()}
           >
             <Button variant="outline" size="sm" className="rounded-2xl text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive">

@@ -40,6 +40,25 @@ export async function restoreFolder(rootId: string) {
   if (f1.error) throw f1.error;
 }
 
+/** Dateien endgültig löschen: Speicher leeren, Verweise lösen, Zeilen entfernen. */
+export async function purgeDocuments(docs: { id: string; storage_path?: string | null }[]) {
+  if (!docs.length) return;
+  const paths = docs.map((d) => d.storage_path).filter((p): p is string => !!p);
+  for (let i = 0; i < paths.length; i += 50) {
+    try {
+      await supabase.storage.from("documents").remove(paths.slice(i, i + 50));
+    } catch {
+      // Speicherfehler dürfen das Löschen nicht blockieren
+    }
+  }
+  const ids = docs.map((d) => d.id);
+  for (const table of ["study_tasks", "events"] as const) {
+    await supabase.from(table).update({ document_id: null }).in("document_id", ids);
+  }
+  const del = await supabase.from("documents").delete().in("id", ids);
+  if (del.error) throw del.error;
+}
+
 /** Ordner samt Inhalt endgültig löschen (inkl. Dateien im Speicher). */
 export async function purgeFolder(rootId: string) {
   const ids = await folderTreeIds(rootId);
@@ -48,18 +67,7 @@ export async function purgeFolder(rootId: string) {
     .select("id,storage_path")
     .in("folder_id", ids);
   if (error) throw error;
-  const paths = (docs ?? []).map((d) => d.storage_path).filter(Boolean) as string[];
-  if (paths.length) await supabase.storage.from("documents").remove(paths);
-  if (docs?.length) {
-    const del = await supabase
-      .from("documents")
-      .delete()
-      .in(
-        "id",
-        docs.map((d) => d.id),
-      );
-    if (del.error) throw del.error;
-  }
+  await purgeDocuments(docs ?? []);
   // Kinder zuerst löschen, damit Fremdschlüssel nicht blockieren
   for (const id of [...ids].reverse()) {
     const del = await supabase.from("folders").delete().eq("id", id);
