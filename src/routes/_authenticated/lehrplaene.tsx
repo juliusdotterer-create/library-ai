@@ -483,6 +483,8 @@ function LehrplanPage() {
           </p>
         )}
       </section>
+      <DocumentPreview doc={preview} onClose={() => setPreview(null)} />
     </div>
+
   );
 }
