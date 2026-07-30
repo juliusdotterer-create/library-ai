@@ -4,6 +4,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { HeaderTimers } from "@/components/GlobalTimer";
+import { PdfCanvasViewer } from "@/components/PdfCanvasViewer";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export type PreviewDoc = {
   name: string;
