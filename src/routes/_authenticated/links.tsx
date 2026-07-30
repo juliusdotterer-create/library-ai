@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ExternalLink, Link2, Pencil, Plus, Trash2 } from "lucide-react";
+import { Link2, Pencil, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -159,14 +159,10 @@ function LinksPage() {
               <span className="bg-primary-soft flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl">
                 {host ? (
                   <img
-                    src={`https://icons.duckduckgo.com/ip3/${host}.ico`}
+                    src={`https://www.google.com/s2/favicons?sz=128&domain=${host}`}
                     alt={`${host} Logo`}
                     loading="lazy"
-                    className="size-6 rounded-md"
-                    style={{
-                      filter: "grayscale(1)",
-                      mixBlendMode: "luminosity",
-                    }}
+                    className="size-7 rounded-md"
                     onError={(e) => {
                       e.currentTarget.style.display = "none";
                     }}
@@ -184,11 +180,6 @@ function LinksPage() {
                 <span className="block truncate font-medium">{l.title}</span>
                 <span className="block truncate text-xs text-muted-foreground">{host}</span>
               </a>
-              <Button variant="ghost" size="icon" className="rounded-2xl" asChild>
-                <a href={l.url} target="_blank" rel="noopener noreferrer" aria-label="Öffnen">
-                  <ExternalLink className="size-4" />
-                </a>
-              </Button>
               <Button
                 variant="ghost"
                 size="icon"
