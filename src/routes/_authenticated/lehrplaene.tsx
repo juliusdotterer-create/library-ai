@@ -129,15 +129,14 @@ function LehrplanPage() {
   );
 
 
-  const openDoc = async (id: string) => {
+  const [preview, setPreview] = useState<PreviewDoc | null>(null);
+
+  const openDoc = (id: string) => {
     const d = docs.data?.find((x) => x.id === id);
     if (!d) return;
-    const { data, error } = await supabase.storage
-      .from("documents")
-      .createSignedUrl(d.storage_path, 60);
-    if (error) return toast.error(error.message);
-    window.open(data.signedUrl, "_blank");
+    setPreview({ name: d.name, storage_path: d.storage_path, mime_type: d.mime_type });
   };
+
 
 
   const createPlan = useMutation({
