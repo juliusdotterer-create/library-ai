@@ -15,7 +15,7 @@ export const Route = createFileRoute("/")({
       { property: "og:title", content: "Library – Dokumente, Kalender & Lehrpläne" },
       {
         property: "og:description",
-        content: "Dein privater Ort für PDFs, Klausuren, Termine und Lernpläne.",
+        content: "Persönliches Studienarchiv: PDFs und Dateien in verschachtelten Ordnern, integrierter Kalender, eigene Lehrpläne und ein Linktree – in Off-White, Orange und Darkmode.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

@@ -80,12 +80,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Library – Dokumente, Kalender & Lehrpläne" },
-      { name: "description", content: "Persönliches Studienarchiv für PDFs, Termine und Lernpläne." },
+      { name: "description", content: "Persönliches Studienarchiv: PDFs und Dateien in verschachtelten Ordnern, integrierter Kalender, eigene Lehrpläne und ein Linktree – in Off-White, Orange und Darkmode." },
       { name: "author", content: "Library" },
       { property: "og:title", content: "Library – Dokumente, Kalender & Lehrpläne" },
-      { property: "og:description", content: "Persönliches Studienarchiv für PDFs, Termine und Lernpläne." },
+      { property: "og:description", content: "Persönliches Studienarchiv: PDFs und Dateien in verschachtelten Ordnern, integrierter Kalender, eigene Lehrpläne und ein Linktree – in Off-White, Orange und Darkmode." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Library – Dokumente, Kalender & Lehrpläne" },
+      { name: "twitter:description", content: "Persönliches Studienarchiv: PDFs und Dateien in verschachtelten Ordnern, integrierter Kalender, eigene Lehrpläne und ein Linktree – in Off-White, Orange und Darkmode." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/b170a584-a5ba-4930-a449-7f99521505b2/id-preview-2689fa60--afdc2cd9-f5d3-4c9e-a37c-a5406b761538.lovable.app-1785433603822.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/b170a584-a5ba-4930-a449-7f99521505b2/id-preview-2689fa60--afdc2cd9-f5d3-4c9e-a37c-a5406b761538.lovable.app-1785433603822.png" },
     ],
     links: [
       {
