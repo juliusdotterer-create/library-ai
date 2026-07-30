@@ -14,6 +14,9 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedArchivRouteImport } from './routes/_authenticated/archiv'
 import { Route as AuthenticatedKalenderRouteImport } from './routes/_authenticated/kalender'
+import { Route as AuthenticatedLehrplaeneRouteImport } from './routes/_authenticated/lehrplaene'
+import { Route as AuthenticatedLinksRouteImport } from './routes/_authenticated/links'
+import { Route as AuthenticatedPapierkorbRouteImport } from './routes/_authenticated/papierkorb'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -39,18 +42,39 @@ const AuthenticatedKalenderRoute = AuthenticatedKalenderRouteImport.update({
   path: '/kalender',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedLehrplaeneRoute = AuthenticatedLehrplaeneRouteImport.update({
+  id: '/lehrplaene',
+  path: '/lehrplaene',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedLinksRoute = AuthenticatedLinksRouteImport.update({
+  id: '/links',
+  path: '/links',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPapierkorbRoute = AuthenticatedPapierkorbRouteImport.update({
+  id: '/papierkorb',
+  path: '/papierkorb',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/archiv': typeof AuthenticatedArchivRoute
   '/kalender': typeof AuthenticatedKalenderRoute
+  '/lehrplaene': typeof AuthenticatedLehrplaeneRoute
+  '/links': typeof AuthenticatedLinksRoute
+  '/papierkorb': typeof AuthenticatedPapierkorbRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/archiv': typeof AuthenticatedArchivRoute
   '/kalender': typeof AuthenticatedKalenderRoute
+  '/lehrplaene': typeof AuthenticatedLehrplaeneRoute
+  '/links': typeof AuthenticatedLinksRoute
+  '/papierkorb': typeof AuthenticatedPapierkorbRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -59,12 +83,29 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/archiv': typeof AuthenticatedArchivRoute
   '/_authenticated/kalender': typeof AuthenticatedKalenderRoute
+  '/_authenticated/lehrplaene': typeof AuthenticatedLehrplaeneRoute
+  '/_authenticated/links': typeof AuthenticatedLinksRoute
+  '/_authenticated/papierkorb': typeof AuthenticatedPapierkorbRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/archiv' | '/kalender'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/archiv'
+    | '/kalender'
+    | '/lehrplaene'
+    | '/links'
+    | '/papierkorb'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/archiv' | '/kalender'
+  to:
+    | '/'
+    | '/auth'
+    | '/archiv'
+    | '/kalender'
+    | '/lehrplaene'
+    | '/links'
+    | '/papierkorb'
   id:
     | '__root__'
     | '/'
@@ -72,6 +113,9 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/archiv'
     | '/_authenticated/kalender'
+    | '/_authenticated/lehrplaene'
+    | '/_authenticated/links'
+    | '/_authenticated/papierkorb'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -117,17 +161,44 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedKalenderRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/lehrplaene': {
+      id: '/_authenticated/lehrplaene'
+      path: '/lehrplaene'
+      fullPath: '/lehrplaene'
+      preLoaderRoute: typeof AuthenticatedLehrplaeneRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/links': {
+      id: '/_authenticated/links'
+      path: '/links'
+      fullPath: '/links'
+      preLoaderRoute: typeof AuthenticatedLinksRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/papierkorb': {
+      id: '/_authenticated/papierkorb'
+      path: '/papierkorb'
+      fullPath: '/papierkorb'
+      preLoaderRoute: typeof AuthenticatedPapierkorbRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedArchivRoute: typeof AuthenticatedArchivRoute
   AuthenticatedKalenderRoute: typeof AuthenticatedKalenderRoute
+  AuthenticatedLehrplaeneRoute: typeof AuthenticatedLehrplaeneRoute
+  AuthenticatedLinksRoute: typeof AuthenticatedLinksRoute
+  AuthenticatedPapierkorbRoute: typeof AuthenticatedPapierkorbRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedArchivRoute: AuthenticatedArchivRoute,
   AuthenticatedKalenderRoute: AuthenticatedKalenderRoute,
+  AuthenticatedLehrplaeneRoute: AuthenticatedLehrplaeneRoute,
+  AuthenticatedLinksRoute: AuthenticatedLinksRoute,
+  AuthenticatedPapierkorbRoute: AuthenticatedPapierkorbRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
