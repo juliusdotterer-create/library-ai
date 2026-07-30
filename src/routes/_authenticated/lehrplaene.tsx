@@ -158,6 +158,11 @@ function LehrplanPage() {
     return out;
   })();
 
+  const subFolders = (parentId: string | null) =>
+    (folders.data ?? [])
+      .filter((f) => (f.parent_id ?? null) === parentId)
+      .sort((a, b) => natural.compare(a.name, b.name));
+
   const docsIn = (folderId: string | null) =>
     (docs.data ?? [])
       .filter((d) => (d.folder_id ?? null) === folderId)
