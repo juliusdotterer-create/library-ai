@@ -18,8 +18,20 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { DocumentPicker, type PickedDocument, type PickedFolder } from "@/components/DocumentPicker";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { StudyTimers } from "@/components/StudyTimer";
+
+type PickedDocument = { id: string; name: string; path: string };
+type PickedFolder = { id: string; name: string; path: string };
+
 import { cn } from "@/lib/utils";
 
 
