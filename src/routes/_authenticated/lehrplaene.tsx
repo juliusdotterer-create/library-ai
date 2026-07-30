@@ -18,7 +18,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { DocumentPicker, type PickedDocument } from "@/components/DocumentPicker";
+import { StudyTimers } from "@/components/StudyTimer";
 import { cn } from "@/lib/utils";
+
 
 export const Route = createFileRoute("/_authenticated/lehrplaene")({
   head: () => ({
