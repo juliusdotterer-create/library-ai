@@ -154,21 +154,41 @@ export function TrashPanel() {
   );
 }
 
+type FolderLike = { id: string; parent_id: string | null };
+
+function depth(f: FolderLike, all: FolderLike[]): number {
+  let d = 0;
+  let cur = f;
+  while (cur.parent_id) {
+    const parent = all.find((x) => x.id === cur.parent_id);
+    if (!parent) break;
+    cur = parent;
+    d++;
+  }
+  return d;
+}
+
 function Row({
   icon,
   name,
+  hint,
   onRestore,
   onPurge,
 }: {
   icon: ReactNode;
   name: string;
+  hint?: string;
   onRestore: () => void;
   onPurge: () => void;
 }) {
   return (
     <div className="glass-soft flex items-center gap-3 rounded-2xl p-3">
       <span className="flex size-10 items-center justify-center rounded-2xl bg-muted">{icon}</span>
-      <span className="min-w-0 flex-1 truncate text-sm font-medium">{name}</span>
+      <span className="min-w-0 flex-1 truncate text-sm font-medium">
+        {name}
+        {hint && <span className="ml-2 text-xs font-normal text-muted-foreground">{hint}</span>}
+      </span>
+
       <Button variant="ghost" size="icon" className="rounded-2xl" onClick={onRestore} title="Wiederherstellen">
         <RotateCcw className="size-4" />
       </Button>
