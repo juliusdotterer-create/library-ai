@@ -332,18 +332,67 @@ function LehrplanPage() {
                   value={task.due}
                   onChange={(e) => setTask({ ...task, due: e.target.value })}
                 />
-                <DocumentPicker
-                  onPickFolder={(f) => addFolderTasks.mutate(f)}
-                  onPick={(d) => {
-                    setDoc(d);
+                <Select
+                  value={doc?.id ?? ""}
+                  onValueChange={(id) => {
+                    const d = docs.data?.find((x) => x.id === id);
+                    if (!d) return;
+                    const p = folderPath(d.folder_id);
+                    setDoc({ id: d.id, name: d.name, path: p });
                     if (!task.title.trim()) setTask((t) => ({ ...t, title: `${d.name} lernen` }));
                   }}
-                  trigger={
-                    <Button variant="secondary" className="h-9 rounded-2xl">
-                      <FileText className="size-4" /> Dokument wählen
-                    </Button>
-                  }
-                />
+                >
+                  <SelectTrigger className="h-9 w-56 rounded-2xl">
+                    <SelectValue placeholder="Dokument wählen" />
+                  </SelectTrigger>
+                  <SelectContent className="glass max-h-72 rounded-2xl">
+                    {(folders.data ?? []).map((f) => {
+                      const items = (docs.data ?? []).filter((d) => d.folder_id === f.id);
+                      if (!items.length) return null;
+                      return (
+                        <SelectGroup key={f.id}>
+                          <SelectLabel>{folderPath(f.id)}</SelectLabel>
+                          {items.map((d) => (
+                            <SelectItem key={d.id} value={d.id}>
+                              {d.name}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      );
+                    })}
+                    {(docs.data ?? []).some((d) => !d.folder_id) && (
+                      <SelectGroup>
+                        <SelectLabel>Library</SelectLabel>
+                        {(docs.data ?? [])
+                          .filter((d) => !d.folder_id)
+                          .map((d) => (
+                            <SelectItem key={d.id} value={d.id}>
+                              {d.name}
+                            </SelectItem>
+                          ))}
+                      </SelectGroup>
+                    )}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value=""
+                  onValueChange={(id) => {
+                    const f = folders.data?.find((x) => x.id === id);
+                    if (f) addFolderTasks.mutate({ id: f.id, name: f.name, path: folderPath(f.id) });
+                  }}
+                >
+                  <SelectTrigger className="h-9 w-52 rounded-2xl">
+                    <SelectValue placeholder="Ganzer Ordner" />
+                  </SelectTrigger>
+                  <SelectContent className="glass max-h-72 rounded-2xl">
+                    {(folders.data ?? []).map((f) => (
+                      <SelectItem key={f.id} value={f.id}>
+                        {folderPath(f.id)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
                 <Button
                   className="h-9 rounded-2xl"
                   disabled={!task.title.trim()}
