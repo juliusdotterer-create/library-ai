@@ -14,8 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 /**
- * Erschwertes Löschen: der exakte Name muss eingetippt werden.
- * Wird für endgültiges Löschen im Papierkorb verwendet.
+ * Erschwertes Löschen: zur Bestätigung muss "ja" eingetippt werden.
  */
 export function ConfirmDelete({
   name,
@@ -32,7 +31,7 @@ export function ConfirmDelete({
 }) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
-  const ok = value.trim() === name.trim();
+  const ok = value.trim().toLowerCase() === "ja";
 
   return (
     <AlertDialog
@@ -48,17 +47,17 @@ export function ConfirmDelete({
           <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription>
             {description ??
-              "Dieser Schritt kann nicht rückgängig gemacht werden. Tippe zur Bestätigung den Namen ein."}
+              `„${name}“ wird endgültig gelöscht. Dieser Schritt kann nicht rückgängig gemacht werden.`}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <div className="space-y-2">
           <Label className="text-xs text-muted-foreground">
-            Name eintippen: <span className="font-semibold text-foreground">{name}</span>
+            Zum Bestätigen <span className="font-semibold text-foreground">ja</span> eintippen
           </Label>
           <Input
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            placeholder={name}
+            placeholder="ja"
             className="rounded-2xl"
           />
         </div>
