@@ -10,12 +10,14 @@ import {
   Sun,
   LogOut,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
+import { LibrarySearch } from "@/components/LibrarySearch";
+
 
 const NAV = [
   { to: "/library", label: "Library", icon: FolderTree },
