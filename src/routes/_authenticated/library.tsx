@@ -418,8 +418,9 @@ function LibraryPage() {
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button className="rounded-2xl">
-                <Upload className="size-4" /> Importieren
+              <Button className="rounded-2xl" aria-label="Importieren">
+                <Upload className="size-4" />
+                <span className="hidden sm:inline">Importieren</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="glass rounded-2xl">
