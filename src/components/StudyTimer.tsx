@@ -1,86 +1,25 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useState } from "react";
 import { Bell, Pause, Play, Plus, Timer as TimerIcon, Trash2 } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-
-type StudyTimer = {
-  id: string;
-  label: string;
-  /** epoch ms when the timer ends (only meaningful while running) */
-  endsAt: number;
-  /** remaining ms while paused */
-  remaining: number;
-  running: boolean;
-  done: boolean;
-};
-
-const KEY = "library.timers";
-
-function load(): StudyTimer[] {
-  try {
-    const raw = localStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as StudyTimer[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function fmt(ms: number) {
-  const total = Math.max(0, Math.round(ms / 1000));
-  const h = Math.floor(total / 3600);
-  const m = Math.floor((total % 3600) / 60);
-  const s = total % 60;
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return h ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
-}
+import {
+  addTimer,
+  extendTimer,
+  fmt,
+  remainingOf,
+  removeTimer,
+  toggleTimer,
+  useTick,
+  useTimers,
+} from "@/lib/timers";
 
 export function StudyTimers({ defaultLabel = "" }: { defaultLabel?: string }) {
-  const [timers, setTimers] = useState<StudyTimer[]>([]);
+  const timers = useTimers();
   const [label, setLabel] = useState(defaultLabel);
   const [minutes, setMinutes] = useState(25);
-  const [, force] = useState(0);
-  const notified = useRef<Set<string>>(new Set());
-
-  useEffect(() => setTimers(load()), []);
-
-  useEffect(() => {
-    const i = setInterval(() => force((n) => n + 1), 500);
-    return () => clearInterval(i);
-  }, []);
-
-  const persist = (next: StudyTimer[]) => {
-    setTimers(next);
-    try {
-      localStorage.setItem(KEY, JSON.stringify(next));
-    } catch {
-      /* ignore */
-    }
-  };
-
-  const remainingOf = (t: StudyTimer) => (t.running ? t.endsAt - Date.now() : t.remaining);
-
-  // fire notifications
-  useEffect(() => {
-    for (const t of timers) {
-      if (t.running && t.endsAt - Date.now() <= 0 && !notified.current.has(t.id)) {
-        notified.current.add(t.id);
-        toast.success(`Timer abgelaufen: ${t.label || "Lernzeit"}`, { duration: 10000 });
-        try {
-          if (typeof Notification !== "undefined" && Notification.permission === "granted") {
-            new Notification("Lern-Timer abgelaufen", { body: t.label || "Lernzeit beendet" });
-          }
-        } catch {
-          /* ignore */
-        }
-        persist(
-          timers.map((x) => (x.id === t.id ? { ...x, running: false, remaining: 0, done: true } : x)),
-        );
-      }
-    }
-  });
+  useTick();
 
   const add = () => {
     void (async () => {
@@ -92,57 +31,11 @@ export function StudyTimers({ defaultLabel = "" }: { defaultLabel?: string }) {
         /* ignore */
       }
     })();
-    const ms = Math.max(1, minutes) * 60_000;
-    persist([
-      ...timers,
-      {
-        id: crypto.randomUUID(),
-        label: label.trim() || "Lernzeit",
-        endsAt: Date.now() + ms,
-        remaining: ms,
-        running: true,
-        done: false,
-      },
-    ]);
+    addTimer(label, minutes);
     setLabel(defaultLabel);
   };
 
-  const toggle = (t: StudyTimer) => {
-    notified.current.delete(t.id);
-    persist(
-      timers.map((x) =>
-        x.id !== t.id
-          ? x
-          : x.running
-            ? { ...x, running: false, remaining: Math.max(0, x.endsAt - Date.now()) }
-            : { ...x, running: true, done: false, endsAt: Date.now() + Math.max(1000, x.remaining) },
-      ),
-    );
-  };
-
-  const extend = (t: StudyTimer, min: number) => {
-    notified.current.delete(t.id);
-    persist(
-      timers.map((x) =>
-        x.id !== t.id
-          ? x
-          : x.running
-            ? { ...x, done: false, endsAt: Math.max(Date.now(), x.endsAt) + min * 60_000 }
-            : { ...x, done: false, remaining: Math.max(0, x.remaining) + min * 60_000 },
-      ),
-    );
-  };
-
-  const remove = (id: string) => {
-    notified.current.delete(id);
-    persist(timers.filter((x) => x.id !== id));
-  };
-
-  const sorted = useMemo(
-    () => [...timers].sort((a, b) => remainingOf(a) - remainingOf(b)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [timers],
-  );
+  const sorted = [...timers].sort((a, b) => remainingOf(a) - remainingOf(b));
 
   return (
     <div className="space-y-3">
@@ -184,11 +77,7 @@ export function StudyTimers({ defaultLabel = "" }: { defaultLabel?: string }) {
                   "animate-scale-in border-2 border-destructive bg-destructive/10 p-5 shadow-lg",
               )}
             >
-              <TimerIcon
-                className={cn(
-                  expired ? "size-7 text-destructive" : "size-4 text-primary",
-                )}
-              />
+              <TimerIcon className={cn(expired ? "size-7 text-destructive" : "size-4 text-primary")} />
               <span
                 className={cn(
                   "min-w-0 flex-1 truncate font-medium",
@@ -212,7 +101,7 @@ export function StudyTimers({ defaultLabel = "" }: { defaultLabel?: string }) {
                 size="icon"
                 className="rounded-2xl"
                 title={t.running ? "Anhalten" : "Fortsetzen"}
-                onClick={() => toggle(t)}
+                onClick={() => toggleTimer(t.id)}
               >
                 {t.running ? <Pause className="size-4" /> : <Play className="size-4" />}
               </Button>
@@ -221,7 +110,7 @@ export function StudyTimers({ defaultLabel = "" }: { defaultLabel?: string }) {
                 size="sm"
                 className="rounded-2xl"
                 title="Um 5 Minuten verlängern"
-                onClick={() => extend(t, 5)}
+                onClick={() => extendTimer(t.id, 5)}
               >
                 +5
               </Button>
@@ -230,7 +119,7 @@ export function StudyTimers({ defaultLabel = "" }: { defaultLabel?: string }) {
                 size="sm"
                 className="rounded-2xl"
                 title="Um 15 Minuten verlängern"
-                onClick={() => extend(t, 15)}
+                onClick={() => extendTimer(t.id, 15)}
               >
                 +15
               </Button>
@@ -239,7 +128,7 @@ export function StudyTimers({ defaultLabel = "" }: { defaultLabel?: string }) {
                 size="icon"
                 className="rounded-2xl text-destructive"
                 title="Timer löschen"
-                onClick={() => remove(t.id)}
+                onClick={() => removeTimer(t.id)}
               >
                 <Trash2 className="size-4" />
               </Button>
