@@ -17,7 +17,6 @@ import { Route as AuthenticatedKalenderRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedLehrplaeneRouteImport } from './routes/_authenticated/lehrplaene'
 import { Route as AuthenticatedLibraryRouteImport } from './routes/_authenticated/library'
 import { Route as AuthenticatedLinksRouteImport } from './routes/_authenticated/links'
-import { Route as AuthenticatedPapierkorbRouteImport } from './routes/_authenticated/papierkorb'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -59,11 +58,6 @@ const AuthenticatedLinksRoute = AuthenticatedLinksRouteImport.update({
   path: '/links',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedPapierkorbRoute = AuthenticatedPapierkorbRouteImport.update({
-  id: '/papierkorb',
-  path: '/papierkorb',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -73,7 +67,6 @@ export interface FileRoutesByFullPath {
   '/lehrplaene': typeof AuthenticatedLehrplaeneRoute
   '/library': typeof AuthenticatedLibraryRoute
   '/links': typeof AuthenticatedLinksRoute
-  '/papierkorb': typeof AuthenticatedPapierkorbRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -83,7 +76,6 @@ export interface FileRoutesByTo {
   '/lehrplaene': typeof AuthenticatedLehrplaeneRoute
   '/library': typeof AuthenticatedLibraryRoute
   '/links': typeof AuthenticatedLinksRoute
-  '/papierkorb': typeof AuthenticatedPapierkorbRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -95,7 +87,6 @@ export interface FileRoutesById {
   '/_authenticated/lehrplaene': typeof AuthenticatedLehrplaeneRoute
   '/_authenticated/library': typeof AuthenticatedLibraryRoute
   '/_authenticated/links': typeof AuthenticatedLinksRoute
-  '/_authenticated/papierkorb': typeof AuthenticatedPapierkorbRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -107,7 +98,6 @@ export interface FileRouteTypes {
     | '/lehrplaene'
     | '/library'
     | '/links'
-    | '/papierkorb'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -117,7 +107,6 @@ export interface FileRouteTypes {
     | '/lehrplaene'
     | '/library'
     | '/links'
-    | '/papierkorb'
   id:
     | '__root__'
     | '/'
@@ -128,7 +117,6 @@ export interface FileRouteTypes {
     | '/_authenticated/lehrplaene'
     | '/_authenticated/library'
     | '/_authenticated/links'
-    | '/_authenticated/papierkorb'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -195,13 +183,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLinksRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/papierkorb': {
-      id: '/_authenticated/papierkorb'
-      path: '/papierkorb'
-      fullPath: '/papierkorb'
-      preLoaderRoute: typeof AuthenticatedPapierkorbRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
   }
 }
 
@@ -211,7 +192,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedLehrplaeneRoute: typeof AuthenticatedLehrplaeneRoute
   AuthenticatedLibraryRoute: typeof AuthenticatedLibraryRoute
   AuthenticatedLinksRoute: typeof AuthenticatedLinksRoute
-  AuthenticatedPapierkorbRoute: typeof AuthenticatedPapierkorbRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -220,7 +200,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedLehrplaeneRoute: AuthenticatedLehrplaeneRoute,
   AuthenticatedLibraryRoute: AuthenticatedLibraryRoute,
   AuthenticatedLinksRoute: AuthenticatedLinksRoute,
-  AuthenticatedPapierkorbRoute: AuthenticatedPapierkorbRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

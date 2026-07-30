@@ -1,28 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { FileText, Folder, RotateCcw, Trash2 } from "lucide-react";
+import type { ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ConfirmDelete } from "@/components/ConfirmDelete";
 
-export const Route = createFileRoute("/_authenticated/papierkorb")({
-  head: () => ({
-    meta: [
-      { title: "Papierkorb – Gelöschtes wiederherstellen" },
-      {
-        name: "description",
-        content:
-          "Gelöschte Ordner und Dateien wiederherstellen oder mit Namensbestätigung endgültig entfernen.",
-      },
-      { property: "og:title", content: "Papierkorb – Gelöschtes wiederherstellen" },
-      { property: "og:description", content: "Erschwertes Löschen schützt vor Versehen." },
-    ],
-  }),
-  component: TrashPage,
-});
-
-function TrashPage() {
+export function TrashPanel() {
   const qc = useQueryClient();
 
   const trash = useQuery({
@@ -76,45 +60,31 @@ function TrashPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const empty =
-    !trash.data?.folders.length && !trash.data?.documents.length && !trash.isLoading;
+  const empty = !trash.data?.folders.length && !trash.data?.documents.length && !trash.isLoading;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-4">
-      <div className="glass rounded-3xl p-4">
-        <h1 className="text-lg font-semibold">Papierkorb</h1>
-        <p className="text-sm text-muted-foreground">
-          Wiederherstellen oder endgültig löschen – dafür musst du den Namen exakt eintippen.
-        </p>
-      </div>
-
-      <div className="space-y-2.5">
-        {trash.data?.folders.map((f) => (
-          <Row
-            key={f.id}
-            icon={<Folder className="size-5 text-primary" />}
-            name={f.name}
-            onRestore={() => restore.mutate({ table: "folders", id: f.id })}
-            onPurge={() => purge.mutate({ table: "folders", id: f.id })}
-          />
-        ))}
-        {trash.data?.documents.map((d) => (
-          <Row
-            key={d.id}
-            icon={<FileText className="size-5 text-muted-foreground" />}
-            name={d.name}
-            onRestore={() => restore.mutate({ table: "documents", id: d.id })}
-            onPurge={() =>
-              purge.mutate({ table: "documents", id: d.id, storagePath: d.storage_path })
-            }
-          />
-        ))}
-        {empty && (
-          <p className="py-16 text-center text-sm text-muted-foreground">
-            Der Papierkorb ist leer.
-          </p>
-        )}
-      </div>
+    <div className="space-y-2.5">
+      {trash.data?.folders.map((f) => (
+        <Row
+          key={f.id}
+          icon={<Folder className="size-5 text-primary" />}
+          name={f.name}
+          onRestore={() => restore.mutate({ table: "folders", id: f.id })}
+          onPurge={() => purge.mutate({ table: "folders", id: f.id })}
+        />
+      ))}
+      {trash.data?.documents.map((d) => (
+        <Row
+          key={d.id}
+          icon={<FileText className="size-5 text-muted-foreground" />}
+          name={d.name}
+          onRestore={() => restore.mutate({ table: "documents", id: d.id })}
+          onPurge={() => purge.mutate({ table: "documents", id: d.id, storagePath: d.storage_path })}
+        />
+      ))}
+      {empty && (
+        <p className="py-10 text-center text-sm text-muted-foreground">Der Papierkorb ist leer.</p>
+      )}
     </div>
   );
 }
@@ -125,20 +95,20 @@ function Row({
   onRestore,
   onPurge,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   name: string;
   onRestore: () => void;
   onPurge: () => void;
 }) {
   return (
-    <div className="glass flex items-center gap-3 rounded-3xl p-4">
+    <div className="glass-soft flex items-center gap-3 rounded-2xl p-3">
       <span className="flex size-10 items-center justify-center rounded-2xl bg-muted">{icon}</span>
-      <span className="min-w-0 flex-1 truncate font-medium">{name}</span>
-      <Button variant="ghost" size="icon" className="rounded-2xl" onClick={onRestore}>
+      <span className="min-w-0 flex-1 truncate text-sm font-medium">{name}</span>
+      <Button variant="ghost" size="icon" className="rounded-2xl" onClick={onRestore} title="Wiederherstellen">
         <RotateCcw className="size-4" />
       </Button>
       <ConfirmDelete name={name} onConfirm={onPurge}>
-        <Button variant="ghost" size="icon" className="rounded-2xl text-destructive">
+        <Button variant="ghost" size="icon" className="rounded-2xl text-destructive" title="Endgültig löschen">
           <Trash2 className="size-4" />
         </Button>
       </ConfirmDelete>

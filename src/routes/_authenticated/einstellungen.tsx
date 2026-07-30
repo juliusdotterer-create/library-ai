@@ -3,8 +3,10 @@ import { Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { TrashPanel } from "@/components/TrashPanel";
 import { useTheme, ACCENT_PRESETS } from "@/lib/theme";
 import { cn } from "@/lib/utils";
+
 
 export const Route = createFileRoute("/_authenticated/einstellungen")({
   head: () => ({
@@ -101,6 +103,17 @@ function SettingsPage() {
           Vorschau der Akzentfarbe
         </div>
       </section>
+
+      <section className="glass space-y-3 rounded-3xl p-5">
+        <div>
+          <h2 className="font-semibold">Papierkorb</h2>
+          <p className="text-sm text-muted-foreground">
+            Wiederherstellen oder endgültig löschen – dafür musst du den Namen exakt eintippen.
+          </p>
+        </div>
+        <TrashPanel />
+      </section>
     </div>
+
   );
 }

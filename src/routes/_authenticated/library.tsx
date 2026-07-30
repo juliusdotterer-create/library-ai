@@ -9,6 +9,7 @@ import {
   FileText,
   Folder,
   FolderPlus,
+  FolderUp,
   Home,
   MoreVertical,
   Pencil,
@@ -53,6 +54,7 @@ function LibraryPage() {
   const [path, setPath] = useState<Crumb[]>([{ id: null, name: "Library" }]);
   const current = path[path.length - 1];
   const fileInput = useRef<HTMLInputElement>(null);
+  const folderInput = useRef<HTMLInputElement>(null);
   const [newFolder, setNewFolder] = useState("");
   const [rename, setRename] = useState<{
     table: "folders" | "documents";
@@ -107,26 +109,28 @@ function LibraryPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const uploadFile = async (file: File, uid: string, folderId: string | null) => {
+    const storagePath = `${uid}/${crypto.randomUUID()}-${file.name.replace(/[^\w.\-]/g, "_")}`;
+    const { error: upErr } = await supabase.storage
+      .from("documents")
+      .upload(storagePath, file, { contentType: file.type || undefined });
+    if (upErr) throw upErr;
+    const { error } = await supabase.from("documents").insert({
+      user_id: uid,
+      folder_id: folderId,
+      name: file.name,
+      storage_path: storagePath,
+      mime_type: file.type,
+      size_bytes: file.size,
+    });
+    if (error) throw error;
+  };
+
   const upload = useMutation({
     mutationFn: async (files: FileList) => {
       const { data: auth } = await supabase.auth.getUser();
       const uid = auth.user!.id;
-      for (const file of Array.from(files)) {
-        const storagePath = `${uid}/${crypto.randomUUID()}-${file.name.replace(/[^\w.\-]/g, "_")}`;
-        const { error: upErr } = await supabase.storage
-          .from("documents")
-          .upload(storagePath, file, { contentType: file.type || undefined });
-        if (upErr) throw upErr;
-        const { error } = await supabase.from("documents").insert({
-          user_id: uid,
-          folder_id: current.id,
-          name: file.name,
-          storage_path: storagePath,
-          mime_type: file.type,
-          size_bytes: file.size,
-        });
-        if (error) throw error;
-      }
+      for (const file of Array.from(files)) await uploadFile(file, uid, current.id);
     },
     onSuccess: () => {
       invalidate();
@@ -134,6 +138,42 @@ function LibraryPage() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const uploadFolder = useMutation({
+    mutationFn: async (files: FileList) => {
+      const { data: auth } = await supabase.auth.getUser();
+      const uid = auth.user!.id;
+      const cache = new Map<string, string | null>([["", current.id]]);
+
+      const ensureFolder = async (segments: string[]): Promise<string | null> => {
+        const key = segments.join("/");
+        if (cache.has(key)) return cache.get(key)!;
+        const parent = await ensureFolder(segments.slice(0, -1));
+        const name = segments[segments.length - 1];
+        const { data, error } = await supabase
+          .from("folders")
+          .insert({ user_id: uid, parent_id: parent, name })
+          .select("id")
+          .single();
+        if (error) throw error;
+        cache.set(key, data.id);
+        return data.id;
+      };
+
+      for (const file of Array.from(files)) {
+        const rel = (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name;
+        const segments = rel.split("/").slice(0, -1);
+        const folderId = await ensureFolder(segments);
+        await uploadFile(file, uid, folderId);
+      }
+    },
+    onSuccess: () => {
+      invalidate();
+      toast.success("Ordner hochgeladen");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
 
   const softDelete = useMutation({
     mutationFn: async ({ table, id }: { table: "folders" | "documents"; id: string }) => {
@@ -210,6 +250,13 @@ function LibraryPage() {
           <Button className="rounded-2xl" onClick={() => fileInput.current?.click()}>
             <FilePlus2 className="size-4" /> Dateien
           </Button>
+          <Button
+            variant="secondary"
+            className="rounded-2xl"
+            onClick={() => folderInput.current?.click()}
+          >
+            <FolderUp className="size-4" /> Ordner
+          </Button>
           <input
             ref={fileInput}
             type="file"
@@ -220,6 +267,20 @@ function LibraryPage() {
               e.target.value = "";
             }}
           />
+          <input
+            ref={folderInput}
+            type="file"
+            multiple
+            hidden
+            // @ts-expect-error nicht-standardisierte Ordner-Auswahl
+            webkitdirectory=""
+            directory=""
+            onChange={(e) => {
+              if (e.target.files?.length) uploadFolder.mutate(e.target.files);
+              e.target.value = "";
+            }}
+          />
+
         </div>
       </div>
 

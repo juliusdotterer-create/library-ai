@@ -13,19 +13,23 @@ import {
 import type { ReactNode } from "react";
 
 export type PickedDocument = { id: string; name: string; path: string };
+export type PickedFolder = { id: string; name: string; path: string };
 
 type Crumb = { id: string | null; name: string };
 
 export function DocumentPicker({
   trigger,
   onPick,
+  onPickFolder,
 }: {
   trigger: ReactNode;
   onPick: (doc: PickedDocument) => void;
+  onPickFolder?: (folder: PickedFolder) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [path, setPath] = useState<Crumb[]>([{ id: null, name: "Library" }]);
   const current = path[path.length - 1];
+
 
   const folders = useQuery({
     queryKey: ["picker-folders", current.id],
@@ -115,9 +119,31 @@ export function DocumentPicker({
           )}
         </div>
 
-        <Button variant="ghost" className="rounded-2xl" onClick={() => setOpen(false)}>
-          Abbrechen
-        </Button>
+        <div className="flex gap-2">
+          {onPickFolder && current.id && (
+            <Button
+              className="flex-1 rounded-2xl"
+              onClick={() => {
+                onPickFolder({
+                  id: current.id!,
+                  name: current.name,
+                  path: path
+                    .slice(1, -1)
+                    .map((c) => c.name)
+                    .join(" / "),
+                });
+                setOpen(false);
+                setPath([{ id: null, name: "Library" }]);
+              }}
+            >
+              Ganzen Ordner übernehmen
+            </Button>
+          )}
+          <Button variant="ghost" className="rounded-2xl" onClick={() => setOpen(false)}>
+            Abbrechen
+          </Button>
+        </div>
+
       </DialogContent>
     </Dialog>
   );

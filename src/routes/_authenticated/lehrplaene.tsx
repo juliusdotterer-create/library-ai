@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { CheckCircle2, Circle, FileText, GraduationCap, Plus, Trash2 } from "lucide-react";
+import { CheckCircle2, Circle, FileText, Plus, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,7 +18,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { DocumentPicker, type PickedDocument } from "@/components/DocumentPicker";
+import { DocumentPicker, type PickedDocument, type PickedFolder } from "@/components/DocumentPicker";
 import { StudyTimers } from "@/components/StudyTimer";
 import { cn } from "@/lib/utils";
 
@@ -152,6 +152,39 @@ function LehrplanPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const addFolderTasks = useMutation({
+    mutationFn: async (folder: PickedFolder) => {
+      const { data: auth } = await supabase.auth.getUser();
+      const { data: folderDocs, error: docErr } = await supabase
+        .from("documents")
+        .select("id,name")
+        .eq("folder_id", folder.id)
+        .is("deleted_at", null)
+        .order("name");
+      if (docErr) throw docErr;
+      if (!folderDocs.length) throw new Error("Dieser Ordner enthält keine Dokumente.");
+      const { error } = await supabase.from("study_tasks").insert(
+        folderDocs.map((d) => ({
+          user_id: auth.user!.id,
+          plan_id: activeId!,
+          title: `${d.name} lernen`,
+          due_date: task.due || null,
+          document_id: d.id,
+        })),
+      );
+      if (error) throw error;
+      return folderDocs.length;
+    },
+    onSuccess: (count) => {
+      setTask({ title: "", due: task.due });
+      setDoc(null);
+      void qc.invalidateQueries({ queryKey: ["study_tasks"] });
+      void qc.invalidateQueries({ queryKey: ["all-docs"] });
+      toast.success(`${count} Dokumente eingeplant`);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const toggleTask = useMutation({
     mutationFn: async (t: { id: string; done: boolean }) => {
       const { error } = await supabase
@@ -227,7 +260,6 @@ function LehrplanPage() {
                 activeId === p.id ? "bg-primary text-primary-foreground" : "hover:bg-muted",
               )}
             >
-              <GraduationCap className="size-4 shrink-0" />
               <span className="truncate">{p.title}</span>
             </button>
           ))}
@@ -262,7 +294,7 @@ function LehrplanPage() {
             <div className="mb-4 space-y-2">
               <div className="flex flex-wrap gap-2">
                 <Input
-                  placeholder="Aufgabe, z. B. Klausur 2021 lösen"
+                  placeholder="Was lernen? z. B. Klausur 2021 lösen"
                   className="h-9 flex-1 rounded-2xl"
                   value={task.title}
                   onChange={(e) => setTask({ ...task, title: e.target.value })}
@@ -274,13 +306,14 @@ function LehrplanPage() {
                   onChange={(e) => setTask({ ...task, due: e.target.value })}
                 />
                 <DocumentPicker
+                  onPickFolder={(f) => addFolderTasks.mutate(f)}
                   onPick={(d) => {
                     setDoc(d);
                     if (!task.title.trim()) setTask((t) => ({ ...t, title: `${d.name} lernen` }));
                   }}
                   trigger={
                     <Button variant="secondary" className="h-9 rounded-2xl">
-                      <FileText className="size-4" /> Dokument
+                      <FileText className="size-4" /> Dokument wählen
                     </Button>
                   }
                 />
