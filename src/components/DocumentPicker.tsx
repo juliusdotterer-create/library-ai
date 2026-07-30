@@ -119,9 +119,31 @@ export function DocumentPicker({
           )}
         </div>
 
-        <Button variant="ghost" className="rounded-2xl" onClick={() => setOpen(false)}>
-          Abbrechen
-        </Button>
+        <div className="flex gap-2">
+          {onPickFolder && current.id && (
+            <Button
+              className="flex-1 rounded-2xl"
+              onClick={() => {
+                onPickFolder({
+                  id: current.id!,
+                  name: current.name,
+                  path: path
+                    .slice(1, -1)
+                    .map((c) => c.name)
+                    .join(" / "),
+                });
+                setOpen(false);
+                setPath([{ id: null, name: "Library" }]);
+              }}
+            >
+              Ganzen Ordner übernehmen
+            </Button>
+          )}
+          <Button variant="ghost" className="rounded-2xl" onClick={() => setOpen(false)}>
+            Abbrechen
+          </Button>
+        </div>
+
       </DialogContent>
     </Dialog>
   );
