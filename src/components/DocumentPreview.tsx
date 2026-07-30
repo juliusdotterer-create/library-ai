@@ -82,8 +82,11 @@ export function DocumentPreview({
           <p className="text-sm text-muted-foreground">Wird geladen…</p>
         ) : isImage ? (
           <img src={url} alt={doc.name} className="max-h-full max-w-full object-contain" />
+        ) : isPdf && isMobile ? (
+          <PdfCanvasViewer url={url} />
         ) : embeddable ? (
           <iframe src={url} title={doc.name} className="size-full rounded-3xl bg-background" />
+
         ) : (
           <div className="space-y-3 p-8 text-center">
             <p className="text-sm text-muted-foreground">
