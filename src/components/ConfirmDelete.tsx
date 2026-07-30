@@ -20,16 +20,28 @@ export function ConfirmDelete({
   name,
   title = "Endgültig löschen",
   description,
+  confirmLabel = "Endgültig löschen",
   onConfirm,
   children,
+  open: openProp,
+  onOpenChange,
 }: {
   name: string;
   title?: string;
   description?: string;
+  confirmLabel?: string;
   onConfirm: () => void | Promise<void>;
-  children: ReactNode;
+  children?: ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [openState, setOpenState] = useState(false);
+  const controlled = openProp !== undefined;
+  const open = controlled ? openProp : openState;
+  const setOpen = (o: boolean) => {
+    if (!controlled) setOpenState(o);
+    onOpenChange?.(o);
+  };
   const [value, setValue] = useState("");
   const ok = value.trim().toLowerCase() === "ja";
 
@@ -41,7 +53,7 @@ export function ConfirmDelete({
         if (!o) setValue("");
       }}
     >
-      <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
+      {children && <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>}
       <AlertDialogContent className="glass rounded-3xl">
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
@@ -76,7 +88,7 @@ export function ConfirmDelete({
               setValue("");
             }}
           >
-            Endgültig löschen
+            {confirmLabel}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

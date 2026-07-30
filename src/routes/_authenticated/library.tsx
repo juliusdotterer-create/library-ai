@@ -19,6 +19,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { softDeleteFolder } from "@/lib/tree";
 import { Progress } from "@/components/ui/progress";
+import { ConfirmDelete } from "@/components/ConfirmDelete";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -317,6 +318,12 @@ function LibraryPage() {
 
 
 
+  const [confirmDel, setConfirmDel] = useState<{
+    table: "folders" | "documents";
+    id: string;
+    name: string;
+  } | null>(null);
+
   const softDelete = useMutation({
     mutationFn: async ({ table, id }: { table: "folders" | "documents"; id: string }) => {
       if (table === "folders") {
@@ -334,6 +341,7 @@ function LibraryPage() {
       invalidate();
       toast.success("In den Papierkorb verschoben");
     },
+    onError: (e: Error) => toast.error(e.message || "Löschen fehlgeschlagen"),
   });
 
   const doRename = useMutation({
@@ -496,7 +504,7 @@ function LibraryPage() {
             </button>
             <RowMenu
               onRename={() => setRename({ table: "folders", id: f.id, name: f.name })}
-              onDelete={() => softDelete.mutate({ table: "folders", id: f.id })}
+              onDelete={() => setConfirmDel({ table: "folders", id: f.id, name: f.name })}
             />
           </div>
         ))}
@@ -520,7 +528,7 @@ function LibraryPage() {
             <RowMenu
               onOpen={() => open(d)}
               onRename={() => setRename({ table: "documents", id: d.id, name: d.name })}
-              onDelete={() => softDelete.mutate({ table: "documents", id: d.id })}
+              onDelete={() => setConfirmDel({ table: "documents", id: d.id, name: d.name })}
             />
           </div>
         ))}
@@ -556,6 +564,24 @@ function LibraryPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDelete
+        open={!!confirmDel}
+        onOpenChange={(o) => !o && setConfirmDel(null)}
+        name={confirmDel?.name ?? ""}
+        title={confirmDel?.table === "folders" ? "Ordner löschen" : "Datei löschen"}
+        description={
+          confirmDel?.table === "folders"
+            ? `„${confirmDel?.name}“ wird mit allen Unterordnern und Dateien in den Papierkorb verschoben.`
+            : `„${confirmDel?.name}“ wird in den Papierkorb verschoben.`
+        }
+        confirmLabel="In den Papierkorb"
+        onConfirm={async () => {
+          if (!confirmDel) return;
+          await softDelete.mutateAsync({ table: confirmDel.table, id: confirmDel.id });
+          setConfirmDel(null);
+        }}
+      />
 
       <DocumentPreview doc={preview} onClose={() => setPreview(null)} />
     </div>
