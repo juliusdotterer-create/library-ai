@@ -139,13 +139,16 @@ function LehrplanPage() {
         plan_id: activeId!,
         title: task.title,
         due_date: task.due || null,
+        document_id: doc?.id ?? null,
       });
       if (error) throw error;
     },
     onSuccess: () => {
       setTask({ title: "", due: "" });
+      setDoc(null);
       void qc.invalidateQueries({ queryKey: ["study_tasks"] });
     },
+
     onError: (e: Error) => toast.error(e.message),
   });
 
