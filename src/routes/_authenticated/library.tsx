@@ -317,6 +317,12 @@ function LibraryPage() {
 
 
 
+  const [confirmDel, setConfirmDel] = useState<{
+    table: "folders" | "documents";
+    id: string;
+    name: string;
+  } | null>(null);
+
   const softDelete = useMutation({
     mutationFn: async ({ table, id }: { table: "folders" | "documents"; id: string }) => {
       if (table === "folders") {
@@ -334,6 +340,7 @@ function LibraryPage() {
       invalidate();
       toast.success("In den Papierkorb verschoben");
     },
+    onError: (e: Error) => toast.error(e.message || "Löschen fehlgeschlagen"),
   });
 
   const doRename = useMutation({
