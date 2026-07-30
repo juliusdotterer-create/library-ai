@@ -299,6 +299,48 @@ export type Database = {
           },
         ]
       }
+      timetable_entries: {
+        Row: {
+          color: string | null
+          created_at: string
+          end_time: string
+          id: string
+          room: string | null
+          start_time: string
+          teacher: string | null
+          title: string
+          updated_at: string
+          user_id: string
+          weekday: number
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          end_time?: string
+          id?: string
+          room?: string | null
+          start_time?: string
+          teacher?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+          weekday?: number
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          end_time?: string
+          id?: string
+          room?: string | null
+          start_time?: string
+          teacher?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+          weekday?: number
+        }
+        Relationships: []
+      }
       user_settings: {
         Row: {
           accent: string
