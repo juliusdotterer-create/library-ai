@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { StudyTimers } from "@/components/StudyTimer";
+import { DocumentPreview, type PreviewDoc } from "@/components/DocumentPreview";
 
 type PickedDocument = { id: string; name: string; path: string };
 type PickedFolder = { id: string; name: string; path: string };
@@ -91,7 +92,7 @@ function LehrplanPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("documents")
-        .select("id,name,storage_path,folder_id")
+        .select("id,name,storage_path,folder_id,mime_type")
         .is("deleted_at", null)
         .order("name");
       if (error) throw error;
