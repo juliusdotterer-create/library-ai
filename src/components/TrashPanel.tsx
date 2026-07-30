@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { FileText, Folder, RotateCcw, Trash2 } from "lucide-react";
-import type { ReactNode } from "react";
+import { FileText, Folder, Loader2, RotateCcw, Trash2 } from "lucide-react";
+import { useRef, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { purgeDocuments, purgeFolder, restoreFolder } from "@/lib/tree";
+import { purgeDocuments, purgeFolder, restoreFolder, type PurgeProgress } from "@/lib/tree";
 
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { ConfirmDelete } from "@/components/ConfirmDelete";
 
 export function TrashPanel() {
