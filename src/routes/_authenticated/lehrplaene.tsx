@@ -105,7 +105,7 @@ function LehrplanPage() {
       const { data: auth } = await supabase.auth.getUser();
       const { error } = await supabase.from("study_tasks").insert({
         user_id: auth.user!.id,
-        plan_id: activeId,
+        plan_id: activeId!,
         title: task.title,
         due_date: task.due || null,
       });
@@ -122,7 +122,7 @@ function LehrplanPage() {
     mutationFn: async (t: { id: string; done: boolean }) => {
       const { error } = await supabase
         .from("study_tasks")
-        .update({ completed_at: t.done ? null : new Date().toISOString() })
+        .update({ status: t.done ? "open" : "done" })
         .eq("id", t.id);
       if (error) throw error;
     },
@@ -249,7 +249,7 @@ function LehrplanPage() {
 
             <div className="space-y-2">
               {tasks.data?.map((t) => {
-                const done = !!t.completed_at;
+                const done = t.status === "done";
                 return (
                   <div key={t.id} className="glass-soft flex items-center gap-3 rounded-2xl p-3">
                     <button onClick={() => toggleTask.mutate({ id: t.id, done })}>
