@@ -525,3 +525,23 @@ function RowMenu({
     </DropdownMenu>
   );
 }
+
+function mb(bytes: number) {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function remainingLabel(p: {
+  done: number;
+  total: number;
+  bytesDone: number;
+  bytesTotal: number;
+  started: number;
+}) {
+  const elapsed = (Date.now() - p.started) / 1000;
+  const ratio = p.bytesTotal ? p.bytesDone / p.bytesTotal : p.done / Math.max(p.total, 1);
+  if (!ratio || elapsed < 0.5) return "Restzeit wird berechnet…";
+  const rest = Math.max(0, Math.round(elapsed / ratio - elapsed));
+  if (rest < 60) return `noch ca. ${rest}s`;
+  return `noch ca. ${Math.floor(rest / 60)}:${String(rest % 60).padStart(2, "0")} min`;
+}
