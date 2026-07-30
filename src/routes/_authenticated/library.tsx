@@ -111,6 +111,15 @@ function LibraryPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const [progress, setProgress] = useState<{
+    done: number;
+    total: number;
+    bytesDone: number;
+    bytesTotal: number;
+    started: number;
+    name: string;
+  } | null>(null);
+
   const uploadFile = async (file: File, uid: string, folderId: string | null) => {
     const storagePath = `${uid}/${crypto.randomUUID()}-${file.name.replace(/[^\w.\-]/g, "_")}`;
     const { error: upErr } = await supabase.storage
@@ -128,51 +137,62 @@ function LibraryPage() {
     if (error) throw error;
   };
 
-  const upload = useMutation({
-    mutationFn: async (files: FileList) => {
-      const { data: auth } = await supabase.auth.getUser();
-      const uid = auth.user!.id;
-      for (const file of Array.from(files)) await uploadFile(file, uid, current.id);
-    },
-    onSuccess: () => {
-      invalidate();
-      toast.success("Dateien hochgeladen");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const runUpload = async (entries: { file: File; segments: string[] }[]) => {
+    const { data: auth } = await supabase.auth.getUser();
+    const uid = auth.user!.id;
+    const cache = new Map<string, string | null>([["", current.id]]);
+
+    const ensureFolder = async (segments: string[]): Promise<string | null> => {
+      const key = segments.join("/");
+      if (cache.has(key)) return cache.get(key)!;
+      const parent = await ensureFolder(segments.slice(0, -1));
+      const name = segments[segments.length - 1];
+      const { data, error } = await supabase
+        .from("folders")
+        .insert({ user_id: uid, parent_id: parent, name })
+        .select("id")
+        .single();
+      if (error) throw error;
+      cache.set(key, data.id);
+      return data.id;
+    };
+
+    const bytesTotal = entries.reduce((s, e) => s + e.file.size, 0);
+    const started = Date.now();
+    let bytesDone = 0;
+    setProgress({
+      done: 0,
+      total: entries.length,
+      bytesDone: 0,
+      bytesTotal,
+      started,
+      name: entries[0]?.file.name ?? "",
+    });
+
+    for (let i = 0; i < entries.length; i++) {
+      const { file, segments } = entries[i];
+      setProgress((p) => (p ? { ...p, name: file.name } : p));
+      const folderId = await ensureFolder(segments);
+      await uploadFile(file, uid, folderId);
+      bytesDone += file.size;
+      const doneCount = i + 1;
+      setProgress((p) => (p ? { ...p, done: doneCount, bytesDone } : p));
+    }
+    setProgress(null);
+  };
 
   const uploadEntries = useMutation({
-    mutationFn: async (entries: { file: File; segments: string[] }[]) => {
-      const { data: auth } = await supabase.auth.getUser();
-      const uid = auth.user!.id;
-      const cache = new Map<string, string | null>([["", current.id]]);
-
-      const ensureFolder = async (segments: string[]): Promise<string | null> => {
-        const key = segments.join("/");
-        if (cache.has(key)) return cache.get(key)!;
-        const parent = await ensureFolder(segments.slice(0, -1));
-        const name = segments[segments.length - 1];
-        const { data, error } = await supabase
-          .from("folders")
-          .insert({ user_id: uid, parent_id: parent, name })
-          .select("id")
-          .single();
-        if (error) throw error;
-        cache.set(key, data.id);
-        return data.id;
-      };
-
-      for (const { file, segments } of entries) {
-        const folderId = await ensureFolder(segments);
-        await uploadFile(file, uid, folderId);
-      }
-    },
+    mutationFn: runUpload,
     onSuccess: () => {
       invalidate();
       toast.success("Import abgeschlossen");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      setProgress(null);
+      toast.error(e.message);
+    },
   });
+
 
   const fromFileList = (files: FileList) =>
     Array.from(files).map((file) => {
