@@ -182,12 +182,12 @@ function KalenderPage() {
         </div>
       </div>
 
-      <aside className="glass h-fit rounded-3xl p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-semibold">{format(selected, "EEEE, d. MMM", { locale: de })}</h2>
+      <aside className="glass h-fit rounded-3xl p-2 sm:p-4">
+        <div className="mb-2 flex items-center justify-between sm:mb-3">
+          <h2 className="text-sm font-semibold sm:text-base">{format(selected, "EEEE, d. MMM", { locale: de })}</h2>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button size="icon" className="rounded-2xl">
+              <Button size="icon" className="h-8 w-8 rounded-2xl sm:h-9 sm:w-9">
                 <CalendarPlus className="size-4" />
               </Button>
             </DialogTrigger>
@@ -235,28 +235,28 @@ function KalenderPage() {
           </Dialog>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-1.5 sm:space-y-2">
           {dayEvents(selected).map((e) => (
-            <div key={e.id} className="glass-soft flex items-start gap-2 rounded-2xl p-3">
-              <div className="flex-1">
-                <p className="text-sm font-medium">{e.title}</p>
-                <p className="text-xs text-muted-foreground">
+            <div key={e.id} className="glass-soft flex items-start gap-2 rounded-xl p-2 sm:rounded-2xl sm:p-3">
+              <div className="flex-1 min-w-0">
+                <p className="truncate text-xs font-medium sm:text-sm">{e.title}</p>
+                <p className="text-[10px] text-muted-foreground sm:text-xs">
                   {format(new Date(e.start_at), "HH:mm")} Uhr
                 </p>
-                {e.notes && <p className="mt-1 text-xs text-muted-foreground">{e.notes}</p>}
+                {e.notes && <p className="mt-0.5 text-[10px] text-muted-foreground sm:mt-1 sm:text-xs">{e.notes}</p>}
               </div>
               <Button
                 variant="ghost"
                 size="icon"
-                className="rounded-2xl text-destructive"
+                className="h-7 w-7 shrink-0 rounded-2xl text-destructive sm:h-9 sm:w-9"
                 onClick={() => remove.mutate(e.id)}
               >
-                <Trash2 className="size-4" />
+                <Trash2 className="size-3.5 sm:size-4" />
               </Button>
             </div>
           ))}
           {!dayEvents(selected).length && (
-            <p className="py-8 text-center text-sm text-muted-foreground">Keine Termine.</p>
+            <p className="py-4 text-center text-xs text-muted-foreground sm:py-8 sm:text-sm">Keine Termine.</p>
           )}
         </div>
       </aside>
