@@ -71,12 +71,21 @@ export function AppShell({ children }: { children: ReactNode }) {
             })}
           </nav>
 
+          <Link
+            to="/einstellungen"
+            title="Design"
+            aria-label="Design-Einstellungen"
+            className="rounded-2xl p-2 text-muted-foreground/40 transition-colors hover:text-foreground"
+          >
+            <Settings2 className="size-4" />
+          </Link>
           <Button variant="ghost" size="icon" className="rounded-2xl" onClick={toggleMode}>
             {mode === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
           </Button>
           <Button variant="ghost" size="icon" className="rounded-2xl" onClick={signOut}>
             <LogOut className="size-4" />
           </Button>
+
         </div>
       </header>
 
