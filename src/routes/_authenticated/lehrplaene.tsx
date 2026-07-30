@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { StudyTimers } from "@/components/StudyTimer";
+import { DocumentPreview, type PreviewDoc } from "@/components/DocumentPreview";
 
 type PickedDocument = { id: string; name: string; path: string };
 type PickedFolder = { id: string; name: string; path: string };
@@ -91,7 +92,7 @@ function LehrplanPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("documents")
-        .select("id,name,storage_path,folder_id")
+        .select("id,name,storage_path,folder_id,mime_type")
         .is("deleted_at", null)
         .order("name");
       if (error) throw error;
@@ -129,15 +130,14 @@ function LehrplanPage() {
   );
 
 
-  const openDoc = async (id: string) => {
+  const [preview, setPreview] = useState<PreviewDoc | null>(null);
+
+  const openDoc = (id: string) => {
     const d = docs.data?.find((x) => x.id === id);
     if (!d) return;
-    const { data, error } = await supabase.storage
-      .from("documents")
-      .createSignedUrl(d.storage_path, 60);
-    if (error) return toast.error(error.message);
-    window.open(data.signedUrl, "_blank");
+    setPreview({ name: d.name, storage_path: d.storage_path, mime_type: d.mime_type });
   };
+
 
 
   const createPlan = useMutation({
@@ -483,6 +483,8 @@ function LehrplanPage() {
           </p>
         )}
       </section>
+      <DocumentPreview doc={preview} onClose={() => setPreview(null)} />
     </div>
+
   );
 }

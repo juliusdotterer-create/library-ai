@@ -25,6 +25,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { DocumentPreview, type PreviewDoc } from "@/components/DocumentPreview";
 import {
   Dialog,
   DialogContent,
@@ -250,13 +251,9 @@ function LibraryPage() {
     },
   });
 
-  const open = async (storagePath: string) => {
-    const { data, error } = await supabase.storage
-      .from("documents")
-      .createSignedUrl(storagePath, 60 * 10);
-    if (error || !data) return toast.error("Datei konnte nicht geöffnet werden");
-    window.open(data.signedUrl, "_blank", "noopener");
-  };
+  const [preview, setPreview] = useState<PreviewDoc | null>(null);
+  const open = (d: { name: string; storage_path: string; mime_type: string | null }) =>
+    setPreview({ name: d.name, storage_path: d.storage_path, mime_type: d.mime_type });
 
   return (
     <div
@@ -385,7 +382,7 @@ function LibraryPage() {
             key={d.id}
             className="glass group flex items-center gap-3 rounded-3xl p-4 transition-transform hover:-translate-y-0.5"
           >
-            <button className="flex flex-1 items-center gap-3 text-left" onClick={() => open(d.storage_path)}>
+            <button className="flex flex-1 items-center gap-3 text-left" onClick={() => open(d)}>
               <span className="flex size-10 items-center justify-center rounded-2xl bg-muted">
                 <FileText className="size-5 text-muted-foreground" />
               </span>
@@ -397,7 +394,7 @@ function LibraryPage() {
               </span>
             </button>
             <RowMenu
-              onOpen={() => open(d.storage_path)}
+              onOpen={() => open(d)}
               onRename={() => setRename({ table: "documents", id: d.id, name: d.name })}
               onDelete={() => softDelete.mutate({ table: "documents", id: d.id })}
             />
@@ -435,6 +432,8 @@ function LibraryPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <DocumentPreview doc={preview} onClose={() => setPreview(null)} />
     </div>
   );
 }
