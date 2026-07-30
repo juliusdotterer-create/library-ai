@@ -1,24 +1,44 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Logo } from "@/components/Logo";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "Archiv – Dokumente, Kalender & Lehrpläne" },
+      {
+        name: "description",
+        content:
+          "Persönliches Studienarchiv: PDFs und Dateien in verschachtelten Ordnern, integrierter Kalender, eigene Lehrpläne und ein Linktree – in Off-White, Orange und Darkmode.",
+      },
+      { property: "og:title", content: "Archiv – Dokumente, Kalender & Lehrpläne" },
+      {
+        property: "og:description",
+        content: "Dein privater Ort für PDFs, Klausuren, Termine und Lernpläne.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
 function Index() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    void supabase.auth.getSession().then(({ data }) => {
+      navigate({ to: data.session ? "/archiv" : "/auth", replace: true });
+    });
+  }, [navigate]);
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <div className="flex min-h-screen items-center justify-center">
+      <div className="glass flex items-center gap-3 rounded-3xl px-6 py-4">
+        <Logo className="size-8" />
+        <h1 className="text-sm font-medium text-muted-foreground">Archiv wird geladen…</h1>
+      </div>
     </div>
   );
 }
