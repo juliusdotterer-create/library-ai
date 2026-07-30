@@ -490,18 +490,6 @@ function LehrplanPage() {
                         >
                           <Folder className="size-4 shrink-0 opacity-60" />
                           <span className="flex-1 truncate">{f.name}</span>
-                          <span
-                            className={cn(
-                              "text-xs",
-                              docsIn(f.id).length > 0
-                                ? "text-muted-foreground"
-                                : "text-destructive/70",
-                            )}
-                          >
-                            {docsIn(f.id).length > 0
-                              ? `${docsIn(f.id).length} Dok.`
-                              : "leer"}
-                          </span>
                           <ChevronRight className="size-3.5 shrink-0 opacity-50" />
                         </button>
                       ))}
