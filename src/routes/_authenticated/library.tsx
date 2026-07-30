@@ -247,12 +247,17 @@ function LibraryPage() {
 
   const softDelete = useMutation({
     mutationFn: async ({ table, id }: { table: "folders" | "documents"; id: string }) => {
+      if (table === "folders") {
+        await softDeleteFolder(id);
+        return;
+      }
       const { error } = await supabase
-        .from(table)
+        .from("documents")
         .update({ deleted_at: new Date().toISOString() })
         .eq("id", id);
       if (error) throw error;
     },
+
     onSuccess: () => {
       invalidate();
       toast.success("In den Papierkorb verschoben");
