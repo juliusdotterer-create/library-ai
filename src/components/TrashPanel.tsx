@@ -134,6 +134,22 @@ export function TrashPanel() {
           </ConfirmDelete>
         </div>
       )}
+
+      {progress && (
+        <div className="glass space-y-2 rounded-3xl p-4">
+          <div className="flex items-center justify-between gap-3 text-sm">
+            <span className="flex min-w-0 items-center gap-2">
+              <Loader2 className="size-4 shrink-0 animate-spin text-primary" />
+              <span className="truncate font-medium">{progress.label}</span>
+            </span>
+            <span className="shrink-0 text-muted-foreground">
+              {speedLabel(progress, started.current)}
+            </span>
+          </div>
+          <Progress value={(progress.done / Math.max(progress.total, 1)) * 100} />
+        </div>
+      )}
+
       {topFolders.map((f) => (
         <Row
           key={f.id}
