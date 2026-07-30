@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   ChevronRight,
@@ -38,6 +38,9 @@ import {
 } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/_authenticated/library")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    folder: typeof search.folder === "string" ? search.folder : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Library – Ordner & Dokumente" },
@@ -54,8 +57,13 @@ export const Route = createFileRoute("/_authenticated/library")({
 
 type Crumb = { id: string | null; name: string };
 
+/** Systemdateien, die Windows/macOS beim Ordner-Upload mitschickt – nie importieren. */
+const JUNK = /^(desktop\.ini|thumbs\.db|\.ds_store|\.localized|icon\r?)$/i;
+const isJunk = (name: string) => JUNK.test(name) || name.startsWith("._");
+
 function LibraryPage() {
   const qc = useQueryClient();
+  const { folder: folderParam } = Route.useSearch();
   const [path, setPath] = useState<Crumb[]>([{ id: null, name: "Library" }]);
   const current = path[path.length - 1];
   const fileInput = useRef<HTMLInputElement>(null);
@@ -66,6 +74,35 @@ function LibraryPage() {
     id: string;
     name: string;
   } | null>(null);
+
+  // Sprung aus der Suche: Pfad zum verlinkten Ordner aufbauen
+  useEffect(() => {
+    if (!folderParam) return;
+    if (folderParam === "root") {
+      setPath([{ id: null, name: "Library" }]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const crumbs: Crumb[] = [];
+      let id: string | null = folderParam;
+      while (id) {
+        const { data, error } = await supabase
+          .from("folders")
+          .select("id,name,parent_id")
+          .eq("id", id)
+          .maybeSingle();
+        if (error || !data) break;
+        crumbs.unshift({ id: data.id, name: data.name });
+        id = data.parent_id;
+      }
+      if (!cancelled) setPath([{ id: null, name: "Library" }, ...crumbs]);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [folderParam]);
+
 
   const folders = useQuery({
     queryKey: ["folders", current.id],
@@ -140,10 +177,16 @@ function LibraryPage() {
     if (error) throw error;
   };
 
-  const runUpload = async (entries: { file: File; segments: string[] }[]) => {
+  const runUpload = async (all: { file: File; segments: string[] }[]) => {
+    const entries = all.filter((e) => !isJunk(e.file.name));
+    if (!entries.length) {
+      toast.info("Nur Systemdateien (z. B. desktop.ini) – nichts importiert");
+      return;
+    }
     const { data: auth } = await supabase.auth.getUser();
     const uid = auth.user!.id;
     const cache = new Map<string, string | null>([["", current.id]]);
+
 
     const ensureFolder = async (segments: string[]): Promise<string | null> => {
       const key = segments.join("/");
