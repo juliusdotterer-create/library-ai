@@ -445,7 +445,6 @@ function LehrplanPage() {
                     })}
                   </SelectContent>
                 </Select>
-                </Select>
 
                 <Button
                   className="h-9 rounded-2xl"
