@@ -88,7 +88,7 @@ export function ConfirmDelete({
               setValue("");
             }}
           >
-            Endgültig löschen
+            {confirmLabel}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
