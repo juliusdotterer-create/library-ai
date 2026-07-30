@@ -13,19 +13,23 @@ import {
 import type { ReactNode } from "react";
 
 export type PickedDocument = { id: string; name: string; path: string };
+export type PickedFolder = { id: string; name: string; path: string };
 
 type Crumb = { id: string | null; name: string };
 
 export function DocumentPicker({
   trigger,
   onPick,
+  onPickFolder,
 }: {
   trigger: ReactNode;
   onPick: (doc: PickedDocument) => void;
+  onPickFolder?: (folder: PickedFolder) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [path, setPath] = useState<Crumb[]>([{ id: null, name: "Library" }]);
   const current = path[path.length - 1];
+
 
   const folders = useQuery({
     queryKey: ["picker-folders", current.id],
