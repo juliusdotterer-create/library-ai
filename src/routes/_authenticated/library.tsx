@@ -245,8 +245,18 @@ function LibraryPage() {
 
   const uploadEntries = useMutation({
     mutationFn: runUpload,
-    onSuccess: () => {
+    onSuccess: (res) => {
       invalidate();
+      if (!res) return;
+      if (res.failed.length) {
+        toast.error(
+          `${res.failed.length} von ${res.total} Dateien fehlgeschlagen: ${res.failed
+            .slice(0, 3)
+            .map((f) => `${f.name} (${f.reason})`)
+            .join(", ")}`,
+        );
+        return;
+      }
       toast.success("Import abgeschlossen");
     },
     onError: (e: Error) => {
