@@ -174,19 +174,39 @@ export function StudyTimers({ defaultLabel = "" }: { defaultLabel?: string }) {
       <div className="space-y-2">
         {sorted.map((t) => {
           const rest = remainingOf(t);
+          const expired = rest <= 0;
           return (
-            <div key={t.id} className="glass-soft flex flex-wrap items-center gap-2 rounded-2xl p-3">
-              <TimerIcon className={cn("size-4", rest <= 0 ? "text-destructive" : "text-primary")} />
-              <span className="min-w-0 flex-1 truncate text-sm font-medium">{t.label}</span>
+            <div
+              key={t.id}
+              className={cn(
+                "glass-soft flex flex-wrap items-center gap-2 rounded-2xl p-3 transition-all",
+                expired &&
+                  "animate-scale-in border-2 border-destructive bg-destructive/10 p-5 shadow-lg",
+              )}
+            >
+              <TimerIcon
+                className={cn(
+                  expired ? "size-7 text-destructive" : "size-4 text-primary",
+                )}
+              />
               <span
                 className={cn(
-                  "tabular-nums text-sm font-semibold",
-                  rest <= 0 && "text-destructive",
-                  !t.running && rest > 0 && "opacity-60",
+                  "min-w-0 flex-1 truncate font-medium",
+                  expired ? "text-lg" : "text-sm",
                 )}
               >
-                {rest <= 0 ? "abgelaufen" : fmt(rest)}
+                {t.label}
               </span>
+              <span
+                className={cn(
+                  "tabular-nums font-semibold",
+                  expired ? "text-2xl font-bold text-destructive sm:text-3xl" : "text-sm",
+                  !t.running && !expired && "opacity-60",
+                )}
+              >
+                {expired ? "Abgelaufen!" : fmt(rest)}
+              </span>
+
               <Button
                 variant="ghost"
                 size="icon"
