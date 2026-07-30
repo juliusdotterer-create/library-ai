@@ -27,6 +27,7 @@ export function LibrarySearch({
           .from("documents")
           .select("id,name,storage_path,mime_type,folder_id")
           .is("deleted_at", null)
+          .not("name", "ilike", "desktop.ini")
           .ilike("name", `%${q}%`)
           .limit(25),
         supabase
