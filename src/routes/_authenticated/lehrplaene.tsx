@@ -126,6 +126,30 @@ function LehrplanPage() {
     return parts.join(" / ");
   };
 
+  const natural = new Intl.Collator("de", { numeric: true, sensitivity: "base" });
+
+  // Ordner in Baum-Reihenfolge (Eltern → Kinder), Geschwister natürlich sortiert
+  const orderedFolders: { id: string; name: string; depth: number }[] = (() => {
+    const list = folders.data ?? [];
+    const out: { id: string; name: string; depth: number }[] = [];
+    const walk = (parent: string | null, depth: number) => {
+      list
+        .filter((f) => (f.parent_id ?? null) === parent)
+        .sort((a, b) => natural.compare(a.name, b.name))
+        .forEach((f) => {
+          out.push({ id: f.id, name: f.name, depth });
+          walk(f.id, depth + 1);
+        });
+    };
+    walk(null, 0);
+    return out;
+  })();
+
+  const docsIn = (folderId: string | null) =>
+    (docs.data ?? [])
+      .filter((d) => (d.folder_id ?? null) === folderId)
+      .sort((a, b) => natural.compare(a.name, b.name));
+
   const docMap: Record<string, string> = Object.fromEntries(
     (docs.data ?? []).map((d) => [d.id, d.name]),
   );
