@@ -140,8 +140,8 @@ function LibraryPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const uploadFolder = useMutation({
-    mutationFn: async (files: FileList) => {
+  const uploadEntries = useMutation({
+    mutationFn: async (entries: { file: File; segments: string[] }[]) => {
       const { data: auth } = await supabase.auth.getUser();
       const uid = auth.user!.id;
       const cache = new Map<string, string | null>([["", current.id]]);
@@ -161,19 +161,67 @@ function LibraryPage() {
         return data.id;
       };
 
-      for (const file of Array.from(files)) {
-        const rel = (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name;
-        const segments = rel.split("/").slice(0, -1);
+      for (const { file, segments } of entries) {
         const folderId = await ensureFolder(segments);
         await uploadFile(file, uid, folderId);
       }
     },
     onSuccess: () => {
       invalidate();
-      toast.success("Ordner hochgeladen");
+      toast.success("Import abgeschlossen");
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const fromFileList = (files: FileList) =>
+    Array.from(files).map((file) => {
+      const rel = (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name;
+      return { file, segments: rel.split("/").slice(0, -1) };
+    });
+
+  const [dragging, setDragging] = useState(false);
+
+  const readEntry = async (
+    entry: FileSystemEntry,
+    segments: string[],
+    out: { file: File; segments: string[] }[],
+  ): Promise<void> => {
+    if (entry.isFile) {
+      const file = await new Promise<File>((res, rej) =>
+        (entry as FileSystemFileEntry).file(res, rej),
+      );
+      out.push({ file, segments });
+      return;
+    }
+    const reader = (entry as FileSystemDirectoryEntry).createReader();
+    const children: FileSystemEntry[] = [];
+    for (;;) {
+      const batch = await new Promise<FileSystemEntry[]>((res, rej) =>
+        reader.readEntries(res, rej),
+      );
+      if (!batch.length) break;
+      children.push(...batch);
+    }
+    for (const child of children) await readEntry(child, [...segments, entry.name], out);
+  };
+
+  const onDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragging(false);
+    const items = Array.from(e.dataTransfer.items ?? []);
+    const out: { file: File; segments: string[] }[] = [];
+    const entries = items
+      .map((i) => (typeof i.webkitGetAsEntry === "function" ? i.webkitGetAsEntry() : null))
+      .filter(Boolean) as FileSystemEntry[];
+    if (entries.length) {
+      for (const entry of entries) await readEntry(entry, [], out);
+    } else if (e.dataTransfer.files?.length) {
+      out.push(...fromFileList(e.dataTransfer.files));
+    }
+    if (out.length) uploadEntries.mutate(out);
+  };
+
+
 
 
   const softDelete = useMutation({
