@@ -266,7 +266,17 @@ function LehrplanPage() {
                     </button>
                     <span className={cn("flex-1 text-sm", done && "line-through opacity-60")}>
                       {t.title}
+                      {t.document_id && docMap[t.document_id] && (
+                        <button
+                          onClick={() => openDoc(t.document_id!)}
+                          className="bg-primary-soft text-accent-foreground ml-2 inline-flex items-center gap-1 rounded-lg px-2 py-0.5 align-middle text-[11px]"
+                        >
+                          <FileText className="size-3" />
+                          {docMap[t.document_id]}
+                        </button>
+                      )}
                     </span>
+
                     {t.due_date && (
                       <span className="text-xs text-muted-foreground">
                         {format(new Date(t.due_date), "d. MMM", { locale: de })}
