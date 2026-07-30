@@ -37,10 +37,10 @@ function AuthPage() {
 
   useEffect(() => {
     void supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/archiv", replace: true });
+      if (data.session) navigate({ to: "/library", replace: true });
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
-      if (s) navigate({ to: "/archiv", replace: true });
+      if (s) navigate({ to: "/library", replace: true });
     });
     return () => sub.subscription.unsubscribe();
   }, [navigate]);
