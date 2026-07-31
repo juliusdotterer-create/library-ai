@@ -61,16 +61,39 @@ export const transferAccountData = createServerFn({ method: "POST" })
     );
     const folderMap = new Map<string, string>();
     folders.forEach((f) => folderMap.set(f.id, crypto.randomUUID()));
-    await insertAll(
-      "folders",
-      folders.map((f) => ({
-        id: folderMap.get(f.id),
-        user_id: uid,
-        parent_id: f.parent_id ? (folderMap.get(f.parent_id) ?? null) : null,
-        name: f.name,
-        color: f.color,
-      })),
-    );
+
+    // Eltern zuerst einfügen (sonst verletzt der Verweis auf den Elternordner die Fremdschlüssel-Regel)
+    const byId = new Map(folders.map((f) => [f.id, f]));
+    const depthOf = (f: F) => {
+      let depth = 0;
+      let cur: F | undefined = f;
+      const seen = new Set<string>();
+      while (cur?.parent_id && byId.has(cur.parent_id) && !seen.has(cur.id)) {
+        seen.add(cur.id);
+        cur = byId.get(cur.parent_id);
+        depth++;
+        if (depth > 50) break;
+      }
+      return depth;
+    };
+    const levels = new Map<number, F[]>();
+    for (const f of folders) {
+      const d = depthOf(f);
+      levels.set(d, [...(levels.get(d) ?? []), f]);
+    }
+    for (const depth of [...levels.keys()].sort((a, b) => a - b)) {
+      await insertAll(
+        "folders",
+        (levels.get(depth) ?? []).map((f) => ({
+          id: folderMap.get(f.id),
+          user_id: uid,
+          parent_id: f.parent_id ? (folderMap.get(f.parent_id) ?? null) : null,
+          name: f.name,
+          color: f.color,
+        })),
+      );
+    }
+
 
     // ---- Dokumente inkl. Dateien im Speicher
     type D = {

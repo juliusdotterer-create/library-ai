@@ -33,45 +33,55 @@ export function LibrarySearch({
   const q = term.trim();
   const navigate = useNavigate();
 
-  const results = useQuery({
-    queryKey: ["library-search", q],
-    enabled: open && q.length > 0,
+  const library = useQuery({
+    queryKey: ["library-search-index"],
+    enabled: open,
     queryFn: async () => {
-      const [docs, matchedFolders, allFolders] = await Promise.all([
+      const [docs, allFolders] = await Promise.all([
         supabase
           .from("documents")
           .select("id,name,storage_path,mime_type,folder_id")
           .is("deleted_at", null)
           .not("name", "ilike", "desktop.ini")
-          .ilike("name", `%${q}%`)
-          .limit(25),
-        supabase
-          .from("folders")
-          .select("id,name")
-          .is("deleted_at", null)
-          .ilike("name", `%${q}%`)
-          .limit(25),
-        supabase
-          .from("folders")
-          .select("id,name,parent_id")
-          .is("deleted_at", null)
-          .limit(1000),
+          .limit(5000),
+        supabase.from("folders").select("id,name,parent_id").is("deleted_at", null).limit(5000),
       ]);
       if (docs.error) throw docs.error;
-      if (matchedFolders.error) throw matchedFolders.error;
       if (allFolders.error) throw allFolders.error;
-
-      const docsWithPath = (docs.data ?? []).map((d) => ({
-        ...d,
-        path: folderPath(d.folder_id, allFolders.data ?? []),
-      }));
-      const foldersWithPath = (matchedFolders.data ?? []).map((f) => ({
-        ...f,
-        path: folderPath(f.id, allFolders.data ?? []),
-      }));
-      return { docs: docsWithPath, folders: foldersWithPath };
+      return { docs: docs.data ?? [], folders: allFolders.data ?? [] };
     },
   });
+
+  const norm = (s: string) =>
+    s
+      .toLowerCase()
+      .replace(/[_\-/.]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+  const tokens = norm(q).split(" ").filter(Boolean);
+  const matches = (haystack: string) => {
+    const h = norm(haystack);
+    return tokens.every((t) => h.includes(t));
+  };
+
+  const allFolders = library.data?.folders ?? [];
+  const results = {
+    isLoading: library.isLoading,
+    data: q
+      ? {
+          folders: allFolders
+            .map((f) => ({ ...f, path: folderPath(f.id, allFolders) }))
+            .filter((f) => matches(`${f.name} ${f.path}`))
+            .slice(0, 25),
+          docs: (library.data?.docs ?? [])
+            .map((d) => ({ ...d, path: folderPath(d.folder_id, allFolders) }))
+            .filter((d) => matches(`${d.name} ${d.path}`))
+            .slice(0, 100),
+        }
+      : undefined,
+  };
+
 
   const [preview, setPreview] = useState<PreviewDoc | null>(null);
 
