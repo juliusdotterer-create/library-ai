@@ -467,32 +467,38 @@ function LehrplanPage() {
                         </button>
                       ))}
 
-                      <p className="px-2 pb-1 pt-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                        Alle Dokumente ({allDocs.length})
-                      </p>
-                      {allDocs.map((d) => (
-                        <button
-                          key={`all-${d.id}`}
-                          onClick={() => pickDoc(d)}
-                          className={cn(
-                            "flex w-full items-start gap-2 rounded-xl px-2 py-1.5 text-left text-sm hover:bg-muted",
-                            doc?.id === d.id && "bg-muted",
-                          )}
-                        >
-                          <FileText className="mt-0.5 size-4 shrink-0 opacity-60" />
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate">{d.name}</span>
-                            <span className="block truncate text-[11px] text-muted-foreground">
-                              {folderPath(d.folder_id) || "Library"}
+                      {docQuery.trim() &&
+                        allDocs.map((d) => (
+                          <button
+                            key={`all-${d.id}`}
+                            onClick={() => pickDoc(d)}
+                            className={cn(
+                              "flex w-full items-start gap-2 rounded-xl px-2 py-1.5 text-left text-sm hover:bg-muted",
+                              doc?.id === d.id && "bg-muted",
+                            )}
+                          >
+                            <FileText className="mt-0.5 size-4 shrink-0 opacity-60" />
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate">{d.name}</span>
+                              <span className="block truncate text-[11px] text-muted-foreground">
+                                {folderPath(d.folder_id) || "Library"}
+                              </span>
                             </span>
-                          </span>
-                        </button>
-                      ))}
-                      {!allDocs.length && (
+                          </button>
+                        ))}
+                      {docQuery.trim() && !allDocs.length && (
                         <p className="py-6 text-center text-xs text-muted-foreground">
                           Keine Dokumente gefunden.
                         </p>
                       )}
+                      {!docQuery.trim() &&
+                        !subFolders(pickerFolder).length &&
+                        !docsIn(pickerFolder).length && (
+                          <p className="py-6 text-center text-xs text-muted-foreground">
+                            Ordner ist leer.
+                          </p>
+                        )}
+
                     </div>
                   </PopoverContent>
 
