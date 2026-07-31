@@ -6,6 +6,7 @@ import {
   ListChecks,
   LinkIcon,
   Settings2,
+  Bot,
   Moon,
   Sun,
   LogOut,
