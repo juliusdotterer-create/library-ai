@@ -4,6 +4,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 
+type OAuthDetails = {
+  client?: { name?: string; redirect_uri?: string };
+  scope?: string;
+  redirect_url?: string;
+  redirect_to?: string;
+};
+
+
 export const Route = createFileRoute("/.lovable/oauth/consent")({
   ssr: false,
   validateSearch: (s: Record<string, unknown>) => ({
