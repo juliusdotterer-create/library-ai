@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
+import { Route as AuthenticatedConnectRouteImport } from './routes/_authenticated/connect'
 import { Route as AuthenticatedEinstellungenRouteImport } from './routes/_authenticated/einstellungen'
 import { Route as AuthenticatedKalenderRouteImport } from './routes/_authenticated/kalender'
 import { Route as AuthenticatedLehrplaeneRouteImport } from './routes/_authenticated/lehrplaene'
@@ -54,6 +55,11 @@ const Char91DotwellKnownChar93OauthProtectedResourceRoute =
     path: '/.well-known/oauth-protected-resource',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AuthenticatedConnectRoute = AuthenticatedConnectRouteImport.update({
+  id: '/connect',
+  path: '/connect',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedEinstellungenRoute =
   AuthenticatedEinstellungenRouteImport.update({
     id: '/einstellungen',
@@ -98,6 +104,7 @@ export interface FileRoutesByFullPath {
   '/mcp': typeof McpRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/connect': typeof AuthenticatedConnectRoute
   '/einstellungen': typeof AuthenticatedEinstellungenRoute
   '/kalender': typeof AuthenticatedKalenderRoute
   '/lehrplaene': typeof AuthenticatedLehrplaeneRoute
@@ -112,6 +119,7 @@ export interface FileRoutesByTo {
   '/mcp': typeof McpRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/connect': typeof AuthenticatedConnectRoute
   '/einstellungen': typeof AuthenticatedEinstellungenRoute
   '/kalender': typeof AuthenticatedKalenderRoute
   '/lehrplaene': typeof AuthenticatedLehrplaeneRoute
@@ -128,6 +136,7 @@ export interface FileRoutesById {
   '/mcp': typeof McpRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/_authenticated/connect': typeof AuthenticatedConnectRoute
   '/_authenticated/einstellungen': typeof AuthenticatedEinstellungenRoute
   '/_authenticated/kalender': typeof AuthenticatedKalenderRoute
   '/_authenticated/lehrplaene': typeof AuthenticatedLehrplaeneRoute
@@ -144,6 +153,7 @@ export interface FileRouteTypes {
     | '/mcp'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
+    | '/connect'
     | '/einstellungen'
     | '/kalender'
     | '/lehrplaene'
@@ -158,6 +168,7 @@ export interface FileRouteTypes {
     | '/mcp'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
+    | '/connect'
     | '/einstellungen'
     | '/kalender'
     | '/lehrplaene'
@@ -173,6 +184,7 @@ export interface FileRouteTypes {
     | '/mcp'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
+    | '/_authenticated/connect'
     | '/_authenticated/einstellungen'
     | '/_authenticated/kalender'
     | '/_authenticated/lehrplaene'
@@ -237,6 +249,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/connect': {
+      id: '/_authenticated/connect'
+      path: '/connect'
+      fullPath: '/connect'
+      preLoaderRoute: typeof AuthenticatedConnectRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/einstellungen': {
       id: '/_authenticated/einstellungen'
       path: '/einstellungen'
@@ -290,6 +309,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedConnectRoute: typeof AuthenticatedConnectRoute
   AuthenticatedEinstellungenRoute: typeof AuthenticatedEinstellungenRoute
   AuthenticatedKalenderRoute: typeof AuthenticatedKalenderRoute
   AuthenticatedLehrplaeneRoute: typeof AuthenticatedLehrplaeneRoute
@@ -298,6 +318,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedConnectRoute: AuthenticatedConnectRoute,
   AuthenticatedEinstellungenRoute: AuthenticatedEinstellungenRoute,
   AuthenticatedKalenderRoute: AuthenticatedKalenderRoute,
   AuthenticatedLehrplaeneRoute: AuthenticatedLehrplaeneRoute,
