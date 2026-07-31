@@ -7,6 +7,21 @@ import { Input } from "@/components/ui/input";
 import { DocumentPreview, type PreviewDoc } from "@/components/DocumentPreview";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
+type FolderNode = { id: string; name: string; parent_id: string | null };
+
+function folderPath(folderId: string | null, folders: FolderNode[]): string {
+  const map = new Map(folders.map((f) => [f.id, f]));
+  const parts: string[] = [];
+  let id: string | null = folderId;
+  while (id) {
+    const f = map.get(id);
+    if (!f) break;
+    parts.unshift(f.name);
+    id = f.parent_id;
+  }
+  return parts.join(" -- ");
+}
+
 export function LibrarySearch({
   open,
   onOpenChange,
@@ -22,7 +37,7 @@ export function LibrarySearch({
     queryKey: ["library-search", q],
     enabled: open && q.length > 0,
     queryFn: async () => {
-      const [docs, folders] = await Promise.all([
+      const [docs, matchedFolders, allFolders] = await Promise.all([
         supabase
           .from("documents")
           .select("id,name,storage_path,mime_type,folder_id")
@@ -36,10 +51,25 @@ export function LibrarySearch({
           .is("deleted_at", null)
           .ilike("name", `%${q}%`)
           .limit(25),
+        supabase
+          .from("folders")
+          .select("id,name,parent_id")
+          .is("deleted_at", null)
+          .limit(1000),
       ]);
       if (docs.error) throw docs.error;
-      if (folders.error) throw folders.error;
-      return { docs: docs.data, folders: folders.data };
+      if (matchedFolders.error) throw matchedFolders.error;
+      if (allFolders.error) throw allFolders.error;
+
+      const docsWithPath = (docs.data ?? []).map((d) => ({
+        ...d,
+        path: folderPath(d.folder_id, allFolders.data ?? []),
+      }));
+      const foldersWithPath = (matchedFolders.data ?? []).map((f) => ({
+        ...f,
+        path: folderPath(f.id, allFolders.data ?? []),
+      }));
+      return { docs: docsWithPath, folders: foldersWithPath };
     },
   });
 
@@ -81,7 +111,12 @@ export function LibrarySearch({
                 className="glass-soft hover:bg-primary-soft flex w-full items-center gap-3 rounded-2xl p-3 text-left"
               >
                 <Folder className="size-4 text-primary" />
-                <span className="truncate text-sm font-medium">{f.name}</span>
+                <div className="min-w-0 text-left">
+                  <span className="block truncate text-sm font-medium">{f.name}</span>
+                  {f.path && (
+                    <span className="block truncate text-xs text-muted-foreground">{f.path}</span>
+                  )}
+                </div>
               </button>
             ))}
             {results.data?.docs.map((d) => (
@@ -94,7 +129,12 @@ export function LibrarySearch({
                   className="flex min-w-0 flex-1 items-center gap-3 rounded-xl p-1.5 text-left"
                 >
                   <FileText className="size-4 shrink-0 text-muted-foreground" />
-                  <span className="truncate text-sm">{d.name}</span>
+                  <div className="min-w-0">
+                    <span className="block truncate text-sm">{d.name}</span>
+                    {d.path && (
+                      <span className="block truncate text-xs text-muted-foreground">{d.path}</span>
+                    )}
+                  </div>
                 </button>
                 <button
                   aria-label="Vorschau"
