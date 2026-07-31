@@ -109,7 +109,12 @@ export function LibrarySearch({
                 className="glass-soft hover:bg-primary-soft flex w-full items-center gap-3 rounded-2xl p-3 text-left"
               >
                 <Folder className="size-4 text-primary" />
-                <span className="truncate text-sm font-medium">{f.name}</span>
+                <div className="min-w-0 text-left">
+                  <span className="block truncate text-sm font-medium">{f.name}</span>
+                  {f.path && (
+                    <span className="block truncate text-xs text-muted-foreground">{f.path}</span>
+                  )}
+                </div>
               </button>
             ))}
             {results.data?.docs.map((d) => (
@@ -122,7 +127,12 @@ export function LibrarySearch({
                   className="flex min-w-0 flex-1 items-center gap-3 rounded-xl p-1.5 text-left"
                 >
                   <FileText className="size-4 shrink-0 text-muted-foreground" />
-                  <span className="truncate text-sm">{d.name}</span>
+                  <div className="min-w-0">
+                    <span className="block truncate text-sm">{d.name}</span>
+                    {d.path && (
+                      <span className="block truncate text-xs text-muted-foreground">{d.path}</span>
+                    )}
+                  </div>
                 </button>
                 <button
                   aria-label="Vorschau"
