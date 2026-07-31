@@ -61,13 +61,15 @@ export function LibrarySearch({
       if (matchedFolders.error) throw matchedFolders.error;
       if (allFolders.error) throw allFolders.error;
 
-      const folderMap = new Map((allFolders.data ?? []).map((f) => [f.id, f]));
       const docsWithPath = (docs.data ?? []).map((d) => ({
         ...d,
         path: folderPath(d.folder_id, allFolders.data ?? []),
-        folder: d.folder_id ? folderMap.get(d.folder_id) ?? null : null,
       }));
-      return { docs: docsWithPath, folders: matchedFolders.data };
+      const foldersWithPath = (matchedFolders.data ?? []).map((f) => ({
+        ...f,
+        path: folderPath(f.id, allFolders.data ?? []),
+      }));
+      return { docs: docsWithPath, folders: foldersWithPath };
     },
   });
 
