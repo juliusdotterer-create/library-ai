@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.is_email_allowed(text) FROM anon;

@@ -34,8 +34,13 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [blocked, setBlocked] = useState(false);
 
   useEffect(() => {
+    if (window.localStorage.getItem("access_blocked") === "1") {
+      window.localStorage.removeItem("access_blocked");
+      setBlocked(true);
+    }
     void supabase.auth.getSession().then(({ data }) => {
       if (data.session) navigate({ to: "/library", replace: true });
     });
@@ -44,6 +49,7 @@ function AuthPage() {
     });
     return () => sub.subscription.unsubscribe();
   }, [navigate]);
+
 
   const signIn = async () => {
     setBusy(true);
@@ -84,6 +90,15 @@ function AuthPage() {
             <p className="text-sm text-muted-foreground">Dokumente, Termine & Lernpläne</p>
           </div>
         </div>
+
+        {blocked ? (
+          <div className="mb-5 rounded-2xl border border-primary/40 bg-primary/10 p-3 text-sm">
+            Diese E-Mail-Adresse ist nicht freigeschaltet. Bitte wende dich an den Inhaber, um
+            Zugang zu erhalten.
+          </div>
+        ) : null}
+
+
 
         <Tabs defaultValue="login">
           <TabsList className="mb-5 grid w-full grid-cols-2 rounded-2xl">

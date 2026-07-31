@@ -1,11 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { TrashPanel } from "@/components/TrashPanel";
+import { WhitelistPanel } from "@/components/WhitelistPanel";
+import { supabase } from "@/integrations/supabase/client";
 import { useTheme, ACCENT_PRESETS } from "@/lib/theme";
 import { cn } from "@/lib/utils";
+
 
 
 export const Route = createFileRoute("/_authenticated/einstellungen")({
@@ -25,6 +29,21 @@ export const Route = createFileRoute("/_authenticated/einstellungen")({
 
 function SettingsPage() {
   const { mode, hue, chroma, setTheme } = useTheme();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    void (async () => {
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) return;
+      const { data: admin } = await supabase.rpc("has_role", {
+        _user_id: data.user.id,
+        _role: "admin",
+      });
+      setIsAdmin(Boolean(admin));
+    })();
+  }, []);
+
+
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
@@ -104,6 +123,18 @@ function SettingsPage() {
         </div>
       </section>
 
+      {isAdmin ? (
+        <section className="glass space-y-3 rounded-3xl p-5">
+          <div>
+            <h2 className="font-semibold">Zugang / Whitelist</h2>
+            <p className="text-sm text-muted-foreground">
+              Nur diese E-Mail-Adressen können sich anmelden oder registrieren.
+            </p>
+          </div>
+          <WhitelistPanel />
+        </section>
+      ) : null}
+
       <section className="glass space-y-3 rounded-3xl p-5">
         <div>
           <h2 className="font-semibold">Papierkorb</h2>
@@ -113,6 +144,7 @@ function SettingsPage() {
         </div>
         <TrashPanel />
       </section>
+
     </div>
 
   );
