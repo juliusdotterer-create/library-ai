@@ -160,6 +160,30 @@ function LehrplanPage() {
   const toggleGroup = (key: string) =>
     setOpenGroups((s) => ({ ...s, [key]: !s[key] }));
 
+  const [docQuery, setDocQuery] = useState("");
+
+  const allDocs = (docs.data ?? [])
+    .filter((d) => {
+      const q = docQuery.trim().toLowerCase();
+      if (!q) return true;
+      return (
+        d.name.toLowerCase().includes(q) || folderPath(d.folder_id).toLowerCase().includes(q)
+      );
+    })
+    .sort(
+      (a, b) =>
+        natural.compare(folderPath(a.folder_id), folderPath(b.folder_id)) ||
+        natural.compare(a.name, b.name),
+    );
+
+  const pickDoc = (d: { id: string; name: string; folder_id: string | null }) => {
+    setDoc({ id: d.id, name: d.name, path: folderPath(d.folder_id) });
+    if (!task.title.trim()) setTask((t) => ({ ...t, title: `${d.name} lernen` }));
+    setDocQuery("");
+    setPickerOpen(false);
+  };
+
+
 
 
 
@@ -388,45 +412,50 @@ function LehrplanPage() {
                       <ChevronRight className="size-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent align="start" className="glass w-72 rounded-2xl p-2">
-                    <div className="mb-2 flex items-center gap-1 px-1 text-xs text-muted-foreground">
-                      {pickerFolder && (
-                        <button
-                          className="rounded-lg p-1 hover:bg-muted"
-                          onClick={() =>
-                            setPickerFolder(
-                              folders.data?.find((f) => f.id === pickerFolder)?.parent_id ?? null,
-                            )
-                          }
-                        >
-                          <ArrowLeft className="size-3.5" />
-                        </button>
-                      )}
-                      <span className="truncate">
-                        {pickerFolder ? folderPath(pickerFolder) : "Library"}
-                      </span>
-                    </div>
-                    <div className="max-h-72 space-y-0.5 overflow-y-auto">
-                      {subFolders(pickerFolder).map((f) => (
-                        <button
-                          key={f.id}
-                          onClick={() => setPickerFolder(f.id)}
-                          className="flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left text-sm hover:bg-muted"
-                        >
-                          <Folder className="size-4 shrink-0 opacity-60" />
-                          <span className="flex-1 truncate">{f.name}</span>
-                          <ChevronRight className="size-3.5 shrink-0 opacity-50" />
-                        </button>
-                      ))}
-                      {docsIn(pickerFolder).map((d) => (
+                  <PopoverContent align="start" className="glass w-80 rounded-2xl p-2">
+                    <Input
+                      autoFocus
+                      placeholder="Alle Dokumente durchsuchen…"
+                      className="mb-2 h-8 rounded-xl text-sm"
+                      value={docQuery}
+                      onChange={(e) => setDocQuery(e.target.value)}
+                    />
+                    {!docQuery.trim() && (
+                      <div className="mb-2 flex items-center gap-1 px-1 text-xs text-muted-foreground">
+                        {pickerFolder && (
+                          <button
+                            className="rounded-lg p-1 hover:bg-muted"
+                            onClick={() =>
+                              setPickerFolder(
+                                folders.data?.find((f) => f.id === pickerFolder)?.parent_id ?? null,
+                              )
+                            }
+                          >
+                            <ArrowLeft className="size-3.5" />
+                          </button>
+                        )}
+                        <span className="truncate">
+                          {pickerFolder ? folderPath(pickerFolder) : "Library"}
+                        </span>
+                      </div>
+                    )}
+                    <div className="max-h-80 space-y-0.5 overflow-y-auto">
+                      {!docQuery.trim() &&
+                        subFolders(pickerFolder).map((f) => (
+                          <button
+                            key={f.id}
+                            onClick={() => setPickerFolder(f.id)}
+                            className="flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left text-sm hover:bg-muted"
+                          >
+                            <Folder className="size-4 shrink-0 opacity-60" />
+                            <span className="flex-1 truncate">{f.name}</span>
+                            <ChevronRight className="size-3.5 shrink-0 opacity-50" />
+                          </button>
+                        ))}
+                      {!docQuery.trim() && docsIn(pickerFolder).map((d) => (
                         <button
                           key={d.id}
-                          onClick={() => {
-                            setDoc({ id: d.id, name: d.name, path: folderPath(d.folder_id) });
-                            if (!task.title.trim())
-                              setTask((t) => ({ ...t, title: `${d.name} lernen` }));
-                            setPickerOpen(false);
-                          }}
+                          onClick={() => pickDoc(d)}
                           className={cn(
                             "flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left text-sm hover:bg-muted",
                             doc?.id === d.id && "bg-muted",
@@ -436,13 +465,36 @@ function LehrplanPage() {
                           <span className="flex-1 truncate">{d.name}</span>
                         </button>
                       ))}
-                      {!subFolders(pickerFolder).length && !docsIn(pickerFolder).length && (
+
+                      <p className="px-2 pb-1 pt-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                        Alle Dokumente ({allDocs.length})
+                      </p>
+                      {allDocs.map((d) => (
+                        <button
+                          key={`all-${d.id}`}
+                          onClick={() => pickDoc(d)}
+                          className={cn(
+                            "flex w-full items-start gap-2 rounded-xl px-2 py-1.5 text-left text-sm hover:bg-muted",
+                            doc?.id === d.id && "bg-muted",
+                          )}
+                        >
+                          <FileText className="mt-0.5 size-4 shrink-0 opacity-60" />
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate">{d.name}</span>
+                            <span className="block truncate text-[11px] text-muted-foreground">
+                              {folderPath(d.folder_id) || "Library"}
+                            </span>
+                          </span>
+                        </button>
+                      ))}
+                      {!allDocs.length && (
                         <p className="py-6 text-center text-xs text-muted-foreground">
-                          Dieser Ordner ist leer.
+                          Keine Dokumente gefunden.
                         </p>
                       )}
                     </div>
                   </PopoverContent>
+
                 </Popover>
 
                 <Popover open={folderPickerOpen} onOpenChange={setFolderPickerOpen}>
