@@ -160,6 +160,30 @@ function LehrplanPage() {
   const toggleGroup = (key: string) =>
     setOpenGroups((s) => ({ ...s, [key]: !s[key] }));
 
+  const [docQuery, setDocQuery] = useState("");
+
+  const allDocs = (docs.data ?? [])
+    .filter((d) => {
+      const q = docQuery.trim().toLowerCase();
+      if (!q) return true;
+      return (
+        d.name.toLowerCase().includes(q) || folderPath(d.folder_id).toLowerCase().includes(q)
+      );
+    })
+    .sort(
+      (a, b) =>
+        natural.compare(folderPath(a.folder_id), folderPath(b.folder_id)) ||
+        natural.compare(a.name, b.name),
+    );
+
+  const pickDoc = (d: { id: string; name: string; folder_id: string | null }) => {
+    setDoc({ id: d.id, name: d.name, path: folderPath(d.folder_id) });
+    if (!task.title.trim()) setTask((t) => ({ ...t, title: `${d.name} lernen` }));
+    setDocQuery("");
+    setPickerOpen(false);
+  };
+
+
 
 
 
