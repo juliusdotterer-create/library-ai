@@ -5,7 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { TrashPanel } from "@/components/TrashPanel";
+import { TransferPanel } from "@/components/TransferPanel";
 import { WhitelistPanel } from "@/components/WhitelistPanel";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useTheme, ACCENT_PRESETS } from "@/lib/theme";
 import { cn } from "@/lib/utils";
