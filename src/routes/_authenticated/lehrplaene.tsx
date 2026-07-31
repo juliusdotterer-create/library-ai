@@ -152,6 +152,16 @@ function LehrplanPage() {
     (docs.data ?? []).map((d) => [d.id, d.name]),
   );
 
+  const docFolderMap: Record<string, string | null> = Object.fromEntries(
+    (docs.data ?? []).map((d) => [d.id, d.folder_id ?? null]),
+  );
+
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const toggleGroup = (key: string) =>
+    setOpenGroups((s) => ({ ...s, [key]: !s[key] }));
+
+
+
 
   const [preview, setPreview] = useState<PreviewDoc | null>(null);
 
