@@ -29,6 +29,21 @@ export const Route = createFileRoute("/_authenticated/einstellungen")({
 
 function SettingsPage() {
   const { mode, hue, chroma, setTheme } = useTheme();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    void (async () => {
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) return;
+      const { data: admin } = await supabase.rpc("has_role", {
+        _user_id: data.user.id,
+        _role: "admin",
+      });
+      setIsAdmin(Boolean(admin));
+    })();
+  }, []);
+
+
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
