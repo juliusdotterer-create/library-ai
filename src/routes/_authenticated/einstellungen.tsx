@@ -104,6 +104,18 @@ function SettingsPage() {
         </div>
       </section>
 
+      {isAdmin ? (
+        <section className="glass space-y-3 rounded-3xl p-5">
+          <div>
+            <h2 className="font-semibold">Zugang / Whitelist</h2>
+            <p className="text-sm text-muted-foreground">
+              Nur diese E-Mail-Adressen können sich anmelden oder registrieren.
+            </p>
+          </div>
+          <WhitelistPanel />
+        </section>
+      ) : null}
+
       <section className="glass space-y-3 rounded-3xl p-5">
         <div>
           <h2 className="font-semibold">Papierkorb</h2>
@@ -113,6 +125,7 @@ function SettingsPage() {
         </div>
         <TrashPanel />
       </section>
+
     </div>
 
   );
