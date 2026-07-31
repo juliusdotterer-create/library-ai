@@ -91,6 +91,15 @@ function AuthPage() {
           </div>
         </div>
 
+        {blocked ? (
+          <div className="mb-5 rounded-2xl border border-primary/40 bg-primary/10 p-3 text-sm">
+            Diese E-Mail-Adresse ist nicht freigeschaltet. Bitte wende dich an den Inhaber, um
+            Zugang zu erhalten.
+          </div>
+        ) : null}
+
+
+
         <Tabs defaultValue="login">
           <TabsList className="mb-5 grid w-full grid-cols-2 rounded-2xl">
             <TabsTrigger value="login" className="rounded-xl">
