@@ -147,6 +147,18 @@ function SettingsPage() {
         <TrashPanel />
       </section>
 
+      <section className="glass space-y-3 rounded-3xl p-5">
+        <div>
+          <h2 className="font-semibold">Daten an anderen Account übertragen</h2>
+          <p className="text-sm text-muted-foreground">
+            Kopiert deine Ordner, Dateien, Termine, Lehrpläne und Links in einen anderen, bereits
+            registrierten Account.
+          </p>
+        </div>
+        <TransferPanel />
+      </section>
+
+
     </div>
 
   );
