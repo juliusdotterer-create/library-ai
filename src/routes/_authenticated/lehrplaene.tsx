@@ -538,52 +538,115 @@ function LehrplanPage() {
 
 
             <div className="space-y-2">
-              {tasks.data?.map((t) => {
-                const done = t.status === "done";
-                return (
-                  <div key={t.id} className="glass-soft flex items-center gap-3 rounded-2xl p-3">
-                    <button onClick={() => toggleTask.mutate({ id: t.id, done })}>
-                      {done ? (
-                        <CheckCircle2 className="size-5 text-primary" />
-                      ) : (
-                        <Circle className="size-5 text-muted-foreground" />
+              {(() => {
+                type Task = NonNullable<typeof tasks.data>[number];
+                const renderTask = (t: Task, nested = false) => {
+                  const done = t.status === "done";
+                  return (
+                    <div
+                      key={t.id}
+                      className={cn(
+                        "flex items-center gap-3 rounded-2xl p-3",
+                        nested ? "bg-muted/40" : "glass-soft",
                       )}
-                    </button>
-                    <span className={cn("flex-1 text-sm", done && "line-through opacity-60")}>
-                      {t.title}
-                      {t.document_id && docMap[t.document_id] && (
-                        <button
-                          onClick={() => openDoc(t.document_id!)}
-                          className="bg-primary-soft text-accent-foreground ml-2 inline-flex items-center gap-1 rounded-lg px-2 py-0.5 align-middle text-[11px]"
-                        >
-                          <FileText className="size-3" />
-                          {docMap[t.document_id]}
-                        </button>
-                      )}
-                    </span>
-
-                    {t.due_date && (
-                      <span className="text-xs text-muted-foreground">
-                        {format(new Date(t.due_date), "d. MMM", { locale: de })}
-                      </span>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="rounded-2xl text-destructive"
-                      onClick={() => removeTask.mutate(t.id)}
                     >
-                      <Trash2 className="size-4" />
-                    </Button>
-                  </div>
-                );
-              })}
+                      <button onClick={() => toggleTask.mutate({ id: t.id, done })}>
+                        {done ? (
+                          <CheckCircle2 className="size-5 text-primary" />
+                        ) : (
+                          <Circle className="size-5 text-muted-foreground" />
+                        )}
+                      </button>
+                      <span className={cn("flex-1 text-sm", done && "line-through opacity-60")}>
+                        {t.title}
+                        {t.document_id && docMap[t.document_id] && (
+                          <button
+                            onClick={() => openDoc(t.document_id!)}
+                            className="bg-primary-soft text-accent-foreground ml-2 inline-flex items-center gap-1 rounded-lg px-2 py-0.5 align-middle text-[11px]"
+                          >
+                            <FileText className="size-3" />
+                            {docMap[t.document_id]}
+                          </button>
+                        )}
+                      </span>
+
+                      {!nested && t.due_date && (
+                        <span className="text-xs text-muted-foreground">
+                          {format(new Date(t.due_date), "d. MMM", { locale: de })}
+                        </span>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="rounded-2xl text-destructive"
+                        onClick={() => removeTask.mutate(t.id)}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
+                  );
+                };
+
+                const groups: { key: string; folderId: string | null; items: Task[] }[] = [];
+                const index = new Map<string, number>();
+                for (const t of tasks.data ?? []) {
+                  const folderId = t.document_id ? (docFolderMap[t.document_id] ?? null) : null;
+                  const key = folderId ? `${folderId}|${t.due_date ?? ""}` : `single-${t.id}`;
+                  const at = index.get(key);
+                  if (at === undefined) {
+                    index.set(key, groups.length);
+                    groups.push({ key, folderId, items: [t] });
+                  } else {
+                    groups[at].items.push(t);
+                  }
+                }
+
+                return groups.map((g) => {
+                  if (g.items.length < 2 || !g.folderId) return renderTask(g.items[0]);
+                  const open = !!openGroups[g.key];
+                  const doneCount = g.items.filter((t) => t.status === "done").length;
+                  const due = g.items[0].due_date;
+                  const name = folders.data?.find((f) => f.id === g.folderId)?.name ?? "Ordner";
+                  return (
+                    <div key={g.key} className="glass-soft rounded-2xl p-2">
+                      <button
+                        onClick={() => toggleGroup(g.key)}
+                        className="flex w-full items-center gap-3 rounded-xl px-1 py-1.5 text-left hover:bg-muted/50"
+                      >
+                        {open ? (
+                          <ChevronDown className="size-4 shrink-0 opacity-60" />
+                        ) : (
+                          <ChevronRight className="size-4 shrink-0 opacity-60" />
+                        )}
+                        <Folder className="size-5 shrink-0 text-primary" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-medium">{name}</span>
+                          <span className="block truncate text-xs text-muted-foreground">
+                            {folderPath(g.folderId)} · {doneCount}/{g.items.length} erledigt
+                          </span>
+                        </span>
+                        {due && (
+                          <span className="text-xs text-muted-foreground">
+                            {format(new Date(due), "d. MMM", { locale: de })}
+                          </span>
+                        )}
+                      </button>
+                      {open && (
+                        <div className="mt-1 space-y-1 pl-6">
+                          {g.items.map((t) => renderTask(t, true))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                });
+              })()}
               {!tasks.data?.length && (
                 <p className="py-10 text-center text-sm text-muted-foreground">
                   Noch keine Aufgaben in diesem Plan.
                 </p>
               )}
             </div>
+
           </>
         ) : (
           <p className="py-20 text-center text-sm text-muted-foreground">
