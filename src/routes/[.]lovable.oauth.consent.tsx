@@ -21,10 +21,12 @@ export const Route = createFileRoute("/.lovable/oauth/consent")({
     const authorizationId = new URLSearchParams(location.search).get("authorization_id")!;
     const { data, error } = await supabase.auth.oauth.getAuthorizationDetails(authorizationId);
     if (error) throw error;
-    const immediate = data?.redirect_url ?? data?.redirect_to;
-    if (immediate && !data?.client) throw redirect({ href: immediate });
-    return data;
+    const details = data as OAuthDetails | null;
+    const immediate = details?.redirect_url ?? details?.redirect_to;
+    if (immediate && !details?.client) throw redirect({ href: immediate });
+    return details;
   },
+
   component: Consent,
   errorComponent: ({ error }) => (
     <main className="flex min-h-screen items-center justify-center px-4">
