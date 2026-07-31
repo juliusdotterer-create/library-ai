@@ -10,12 +10,19 @@ export const Route = createFileRoute("/_authenticated")({
     if (error || !data.user) throw redirect({ to: "/auth" });
 
     // Zugangs-Whitelist: nur freigeschaltete E-Mail-Adressen dürfen die App nutzen.
-    const access = await checkAccess();
-    if (!access.allowed) {
+    // Netzwerkfehler dürfen die App nicht blockieren (Blank Screen) – dann wird nicht ausgesperrt.
+    let allowed = true;
+    try {
+      allowed = (await checkAccess()).allowed;
+    } catch {
+      allowed = true;
+    }
+    if (!allowed) {
       if (typeof window !== "undefined") window.localStorage.setItem("access_blocked", "1");
       await supabase.auth.signOut();
       throw redirect({ to: "/auth" });
     }
+
 
 
     return { user: data.user };
