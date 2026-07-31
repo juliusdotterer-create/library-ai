@@ -9,7 +9,13 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Logo } from "@/components/Logo";
 
+function safeNext(value: unknown): string | null {
+  if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//")) return null;
+  return value;
+}
+
 export const Route = createFileRoute("/auth")({
+  validateSearch: (s: Record<string, unknown>) => ({ next: safeNext(s.next) ?? undefined }),
   head: () => ({
     meta: [
       { title: "Anmelden – Library Studienarchiv" },
@@ -30,6 +36,7 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
+  const { next } = Route.useSearch();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -41,15 +48,20 @@ function AuthPage() {
       window.localStorage.removeItem("access_blocked");
       setBlocked(true);
     }
+    const go = () => {
+      if (next) window.location.replace(next);
+      else navigate({ to: "/library", replace: true });
+    };
     void supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/library", replace: true });
+      if (data.session) go();
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
-      if (s) navigate({ to: "/library", replace: true });
+      if (s) go();
     });
     return () => sub.subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, next]);
 
+  const returnUrl = next ? window.location.origin + next : window.location.origin;
 
   const signIn = async () => {
     setBusy(true);
@@ -64,7 +76,7 @@ function AuthPage() {
       email,
       password,
       options: {
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: returnUrl,
         data: { display_name: name },
       },
     });
@@ -75,10 +87,11 @@ function AuthPage() {
 
   const google = async () => {
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+      redirect_uri: returnUrl,
     });
     if (result.error) toast.error("Google-Anmeldung fehlgeschlagen.");
   };
+
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-10">
