@@ -34,8 +34,13 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [blocked, setBlocked] = useState(false);
 
   useEffect(() => {
+    if (window.localStorage.getItem("access_blocked") === "1") {
+      window.localStorage.removeItem("access_blocked");
+      setBlocked(true);
+    }
     void supabase.auth.getSession().then(({ data }) => {
       if (data.session) navigate({ to: "/library", replace: true });
     });
@@ -44,6 +49,7 @@ function AuthPage() {
     });
     return () => sub.subscription.unsubscribe();
   }, [navigate]);
+
 
   const signIn = async () => {
     setBusy(true);
