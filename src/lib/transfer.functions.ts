@@ -39,10 +39,21 @@ export const transferAccountData = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const uid = target.id;
 
+    // Seitenweise laden: der Datenzugriff liefert pro Abfrage max. 1000 Zeilen
     const grab = async <T,>(table: string, cols: string) => {
-      const { data: rows, error } = await src.from(table as never).select(cols);
-      if (error) throw new Error(`${table}: ${error.message}`);
-      return (rows ?? []) as unknown as T[];
+      const page = 1000;
+      const all: unknown[] = [];
+      for (let from = 0; ; from += page) {
+        const { data: rows, error } = await src
+          .from(table as never)
+          .select(cols)
+          .range(from, from + page - 1);
+        if (error) throw new Error(`${table}: ${error.message}`);
+        const batch = rows ?? [];
+        all.push(...batch);
+        if (batch.length < page) break;
+      }
+      return all as T[];
     };
 
     const insertAll = async (table: string, rows: Record<string, unknown>[]) => {

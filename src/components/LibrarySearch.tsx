@@ -37,18 +37,35 @@ export function LibrarySearch({
     queryKey: ["library-search-index"],
     enabled: open,
     queryFn: async () => {
+      // Seitenweise laden: pro Abfrage liefert der Server max. 1000 Zeilen
+      const fetchAll = async <T,>(build: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>) => {
+        const page = 1000;
+        const all: T[] = [];
+        for (let from = 0; ; from += page) {
+          const { data, error } = await build(from, from + page - 1);
+          if (error) throw new Error(error.message);
+          const batch = data ?? [];
+          all.push(...batch);
+          if (batch.length < page) break;
+        }
+        return all;
+      };
+
       const [docs, allFolders] = await Promise.all([
-        supabase
-          .from("documents")
-          .select("id,name,storage_path,mime_type,folder_id")
-          .is("deleted_at", null)
-          .not("name", "ilike", "desktop.ini")
-          .limit(5000),
-        supabase.from("folders").select("id,name,parent_id").is("deleted_at", null).limit(5000),
+        fetchAll<{ id: string; name: string; storage_path: string; mime_type: string | null; folder_id: string | null }>((from, to) =>
+          supabase
+            .from("documents")
+            .select("id,name,storage_path,mime_type,folder_id")
+            .is("deleted_at", null)
+            .not("name", "ilike", "desktop.ini")
+            .order("id")
+            .range(from, to),
+        ),
+        fetchAll<FolderNode>((from, to) =>
+          supabase.from("folders").select("id,name,parent_id").is("deleted_at", null).order("id").range(from, to),
+        ),
       ]);
-      if (docs.error) throw docs.error;
-      if (allFolders.error) throw allFolders.error;
-      return { docs: docs.data ?? [], folders: allFolders.data ?? [] };
+      return { docs, folders: allFolders };
     },
   });
 
