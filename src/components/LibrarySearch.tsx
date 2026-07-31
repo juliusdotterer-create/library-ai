@@ -7,6 +7,21 @@ import { Input } from "@/components/ui/input";
 import { DocumentPreview, type PreviewDoc } from "@/components/DocumentPreview";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
+type FolderNode = { id: string; name: string; parent_id: string | null };
+
+function folderPath(folderId: string | null, folders: FolderNode[]): string {
+  const map = new Map(folders.map((f) => [f.id, f]));
+  const parts: string[] = [];
+  let id: string | null = folderId;
+  while (id) {
+    const f = map.get(id);
+    if (!f) break;
+    parts.unshift(f.name);
+    id = f.parent_id;
+  }
+  return parts.join(" -- ");
+}
+
 export function LibrarySearch({
   open,
   onOpenChange,
@@ -22,7 +37,7 @@ export function LibrarySearch({
     queryKey: ["library-search", q],
     enabled: open && q.length > 0,
     queryFn: async () => {
-      const [docs, folders] = await Promise.all([
+      const [docs, matchedFolders, allFolders] = await Promise.all([
         supabase
           .from("documents")
           .select("id,name,storage_path,mime_type,folder_id")
@@ -36,10 +51,23 @@ export function LibrarySearch({
           .is("deleted_at", null)
           .ilike("name", `%${q}%`)
           .limit(25),
+        supabase
+          .from("folders")
+          .select("id,name,parent_id")
+          .is("deleted_at", null)
+          .limit(1000),
       ]);
       if (docs.error) throw docs.error;
-      if (folders.error) throw folders.error;
-      return { docs: docs.data, folders: folders.data };
+      if (matchedFolders.error) throw matchedFolders.error;
+      if (allFolders.error) throw allFolders.error;
+
+      const folderMap = new Map((allFolders.data ?? []).map((f) => [f.id, f]));
+      const docsWithPath = (docs.data ?? []).map((d) => ({
+        ...d,
+        path: folderPath(d.folder_id, allFolders.data ?? []),
+        folder: d.folder_id ? folderMap.get(d.folder_id) ?? null : null,
+      }));
+      return { docs: docsWithPath, folders: matchedFolders.data };
     },
   });
 
