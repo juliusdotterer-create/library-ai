@@ -415,11 +415,12 @@ function LehrplanPage() {
                   <PopoverContent align="start" className="glass w-80 rounded-2xl p-2">
                     <Input
                       autoFocus
-                      placeholder="Alle Dokumente durchsuchen…"
+                      placeholder="Dokumente suchen…"
                       className="mb-2 h-8 rounded-xl text-sm"
                       value={docQuery}
                       onChange={(e) => setDocQuery(e.target.value)}
                     />
+
                     {!docQuery.trim() && (
                       <div className="mb-2 flex items-center gap-1 px-1 text-xs text-muted-foreground">
                         {pickerFolder && (
