@@ -5,7 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { TrashPanel } from "@/components/TrashPanel";
+import { TransferPanel } from "@/components/TransferPanel";
 import { WhitelistPanel } from "@/components/WhitelistPanel";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useTheme, ACCENT_PRESETS } from "@/lib/theme";
 import { cn } from "@/lib/utils";
@@ -144,6 +146,18 @@ function SettingsPage() {
         </div>
         <TrashPanel />
       </section>
+
+      <section className="glass space-y-3 rounded-3xl p-5">
+        <div>
+          <h2 className="font-semibold">Daten an anderen Account übertragen</h2>
+          <p className="text-sm text-muted-foreground">
+            Kopiert deine Ordner, Dateien, Termine, Lehrpläne und Links in einen anderen, bereits
+            registrierten Account.
+          </p>
+        </div>
+        <TransferPanel />
+      </section>
+
 
     </div>
 
