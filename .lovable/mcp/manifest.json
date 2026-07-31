@@ -1,0 +1,204 @@
+{
+  "version": 1,
+  "sdk_version": "0.26.1",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://hnwcznivfbjrththcxmj.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "library",
+      "version": "0.1.0",
+      "title": "Library"
+    },
+    "tools": [
+      {
+        "name": "search_library",
+        "title": "Library durchsuchen",
+        "description": "Sucht Dokumente und Ordner in der Library des angemeldeten Nutzers anhand eines Namensfragments.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Suchbegriff für Dokument- oder Ordnernamen."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991,
+              "description": "Maximale Trefferzahl (Standard 25)."
+            }
+          },
+          "required": [
+            "query"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_folder",
+        "title": "Ordnerinhalt auflisten",
+        "description": "Listet Unterordner und Dokumente eines Ordners. Ohne folder_id wird die oberste Ebene der Library gezeigt.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "folder_id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "ID des Ordners; leer lassen für die oberste Ebene."
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_events",
+        "title": "Termine auflisten",
+        "description": "Listet Kalendertermine des angemeldeten Nutzers, optional in einem Zeitraum.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "from": {
+              "type": "string",
+              "description": "ISO-Startzeitpunkt des Zeitraums."
+            },
+            "to": {
+              "type": "string",
+              "description": "ISO-Endzeitpunkt des Zeitraums."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991,
+              "description": "Maximale Trefferzahl (Standard 50)."
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_event",
+        "title": "Termin anlegen",
+        "description": "Legt einen neuen Kalendertermin für den angemeldeten Nutzer an.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Titel des Termins."
+            },
+            "start_at": {
+              "type": "string",
+              "description": "ISO-Startzeitpunkt, z. B. 2026-08-01T09:00:00Z."
+            },
+            "end_at": {
+              "type": "string",
+              "description": "ISO-Endzeitpunkt."
+            },
+            "notes": {
+              "type": "string",
+              "description": "Freitext-Notiz zum Termin."
+            },
+            "all_day": {
+              "type": "boolean",
+              "description": "Ganztägiger Termin."
+            }
+          },
+          "required": [
+            "title",
+            "start_at"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_study_tasks",
+        "title": "Lernaufgaben auflisten",
+        "description": "Listet Lehrplan-Aufgaben des angemeldeten Nutzers, optional gefiltert nach Status oder Lehrplan.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "plan_id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "ID des Lehrplans."
+            },
+            "status": {
+              "type": "string",
+              "description": "Status-Filter, z. B. open oder done."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991,
+              "description": "Maximale Trefferzahl (Standard 50)."
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_links",
+        "title": "Linktree auflisten",
+        "description": "Listet die gespeicherten Links (Linktree) des angemeldeten Nutzers.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991,
+              "description": "Maximale Trefferzahl (Standard 100)."
+            }
+          }
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
