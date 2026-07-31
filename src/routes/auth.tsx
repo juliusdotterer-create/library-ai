@@ -61,7 +61,8 @@ function AuthPage() {
     return () => sub.subscription.unsubscribe();
   }, [navigate, next]);
 
-  const returnUrl = next ? window.location.origin + next : window.location.origin;
+  const returnUrl =
+    typeof window === "undefined" ? "" : next ? window.location.origin + next : window.location.origin;
 
   const signIn = async () => {
     setBusy(true);
