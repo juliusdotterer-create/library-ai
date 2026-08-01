@@ -521,10 +521,8 @@ function LibraryPage() {
               </span>
               <span className="min-w-0">
                 <span className="block truncate font-medium">{d.name}</span>
-                <span className="block text-xs text-muted-foreground">
-                  {d.size_bytes ? `${Math.round(Number(d.size_bytes) / 1024)} KB` : ""}
-                </span>
               </span>
+
             </button>
             <RowMenu
               onOpen={() => open(d)}

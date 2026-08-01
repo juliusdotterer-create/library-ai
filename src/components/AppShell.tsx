@@ -55,14 +55,14 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Link to="/library" aria-label="Zur Library">
               <Logo className="size-8 shrink-0" />
             </Link>
-            <button
-              type="button"
-              onClick={() => setSearchOpen(true)}
-              title="Library durchsuchen"
-              className="hidden text-sm font-semibold tracking-tight transition-colors hover:text-primary sm:block"
+            <Link
+              to="/library"
+              title="Zur Startseite"
+              className="text-sm font-semibold tracking-tight transition-colors hover:text-primary"
             >
               Library
-            </button>
+            </Link>
+
           </div>
 
           <nav className="hidden flex-1 items-center gap-1 overflow-x-auto md:flex">
