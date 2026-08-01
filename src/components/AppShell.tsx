@@ -10,6 +10,8 @@ import {
   Moon,
   Sun,
   LogOut,
+  Search,
+
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -55,14 +57,24 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Link to="/library" aria-label="Zur Library">
               <Logo className="size-8 shrink-0" />
             </Link>
+            <Link
+              to="/library"
+              title="Zur Startseite"
+              className="text-sm font-semibold tracking-tight transition-colors hover:text-primary"
+            >
+              Library
+            </Link>
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
               title="Library durchsuchen"
-              className="hidden text-sm font-semibold tracking-tight transition-colors hover:text-primary sm:block"
+              aria-label="Library durchsuchen"
+              className="rounded-2xl p-2 text-muted-foreground/60 transition-colors hover:text-foreground"
             >
-              Library
+              <Search className="size-4" />
             </button>
+
+
           </div>
 
           <nav className="hidden flex-1 items-center gap-1 overflow-x-auto md:flex">

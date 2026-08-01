@@ -23,6 +23,13 @@ export function DocumentPreview({
 }) {
   const [url, setUrl] = useState<string | null>(null);
   const isMobile = useIsMobile();
+  const [isTouch, setIsTouch] = useState(false);
+  // iPad/Tablets rendern PDFs im iframe oft nur als erste Seite -> Canvas-Viewer nutzen.
+  useEffect(() => {
+    setIsTouch(window.matchMedia("(pointer: coarse)").matches);
+  }, []);
+  const useCanvas = isMobile || isTouch;
+
 
 
   useEffect(() => {
@@ -61,8 +68,8 @@ export function DocumentPreview({
   const embeddable = isImage || isPdf || mime.startsWith("text/");
 
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col bg-foreground/20 p-3 backdrop-blur-[2px] sm:p-5">
-      <div className="glass flex shrink-0 items-center gap-2 rounded-3xl p-3">
+    <div className="fixed inset-0 z-[60] flex flex-col bg-foreground/20 p-2 backdrop-blur-[2px] lg:p-4">
+      <div className="glass flex shrink-0 items-center gap-2 rounded-3xl px-3 py-2">
         <span className="min-w-0 flex-1 truncate text-sm font-semibold">{doc.name}</span>
         <HeaderTimers />
         {url && (
@@ -77,15 +84,17 @@ export function DocumentPreview({
         </Button>
       </div>
 
-      <div className="glass mt-3 flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-3xl">
+      <div className="glass mt-2 flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-3xl p-0">
         {!url ? (
           <p className="text-sm text-muted-foreground">Wird geladen…</p>
         ) : isImage ? (
           <img src={url} alt={doc.name} className="max-h-full max-w-full object-contain" />
-        ) : isPdf && isMobile ? (
+        ) : isPdf && useCanvas ? (
           <PdfCanvasViewer url={url} />
         ) : embeddable ? (
           <iframe src={url} title={doc.name} className="size-full rounded-3xl bg-background" />
+
+
 
         ) : (
           <div className="space-y-3 p-8 text-center">
