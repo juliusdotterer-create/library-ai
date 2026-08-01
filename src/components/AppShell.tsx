@@ -59,18 +59,15 @@ export function AppShell({ children }: { children: ReactNode }) {
               onClick={() => setSearchOpen(true)}
               title="Library durchsuchen"
               aria-label="Library durchsuchen"
-              className="rounded-2xl p-2 text-muted-foreground/60 transition-colors hover:text-foreground"
-            >
-              <Search className="size-4" />
-            </button>
-            <Link
-              to="/library"
-              aria-label="Zur Startseite"
-              title="Zur Startseite"
+              className="relative rounded-2xl transition-transform hover:scale-105"
             >
               <Logo className="size-8 shrink-0" />
-            </Link>
+              <span className="absolute -bottom-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-background shadow-sm">
+                <Search className="size-3 text-primary" />
+              </span>
+            </button>
           </div>
+
 
           <nav className="hidden flex-1 items-center gap-1 overflow-x-auto md:flex">
             {NAV.map((item) => {
