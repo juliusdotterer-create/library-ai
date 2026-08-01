@@ -54,16 +54,6 @@ export function AppShell({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-40 px-3 pt-3 sm:px-5">
         <div className="glass mx-auto flex max-w-7xl items-center gap-2 rounded-3xl px-3 py-2">
           <div className="flex min-w-0 items-center gap-2 pr-2">
-            <Link to="/library" aria-label="Zur Library">
-              <Logo className="size-8 shrink-0" />
-            </Link>
-            <Link
-              to="/library"
-              title="Zur Startseite"
-              className="text-sm font-semibold tracking-tight transition-colors hover:text-primary"
-            >
-              Library
-            </Link>
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
@@ -73,8 +63,13 @@ export function AppShell({ children }: { children: ReactNode }) {
             >
               <Search className="size-4" />
             </button>
-
-
+            <Link
+              to="/library"
+              aria-label="Zur Startseite"
+              title="Zur Startseite"
+            >
+              <Logo className="size-8 shrink-0" />
+            </Link>
           </div>
 
           <nav className="hidden flex-1 items-center gap-1 overflow-x-auto md:flex">
