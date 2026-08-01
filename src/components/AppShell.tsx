@@ -70,8 +70,6 @@ export function AppShell({ children }: { children: ReactNode }) {
             >
               <Logo className="size-8 shrink-0" />
             </Link>
-
-
           </div>
 
           <nav className="hidden flex-1 items-center gap-1 overflow-x-auto md:flex">
