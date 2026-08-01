@@ -62,6 +62,16 @@ export function AppShell({ children }: { children: ReactNode }) {
             >
               Library
             </Link>
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              title="Library durchsuchen"
+              aria-label="Library durchsuchen"
+              className="rounded-2xl p-2 text-muted-foreground/60 transition-colors hover:text-foreground"
+            >
+              <Search className="size-4" />
+            </button>
+
 
           </div>
 
