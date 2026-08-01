@@ -62,7 +62,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               className="relative rounded-2xl transition-transform hover:scale-105"
             >
               <Logo className="size-8 shrink-0" />
-              <span className="absolute -bottom-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-background shadow-sm">
+              <span className="hidden absolute -bottom-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-background shadow-sm">
                 <Search className="size-3 text-primary" />
               </span>
             </button>
