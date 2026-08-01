@@ -23,6 +23,13 @@ export function DocumentPreview({
 }) {
   const [url, setUrl] = useState<string | null>(null);
   const isMobile = useIsMobile();
+  const [isTouch, setIsTouch] = useState(false);
+  // iPad/Tablets rendern PDFs im iframe oft nur als erste Seite -> Canvas-Viewer nutzen.
+  useEffect(() => {
+    setIsTouch(window.matchMedia("(pointer: coarse)").matches);
+  }, []);
+  const useCanvas = isMobile || isTouch;
+
 
 
   useEffect(() => {
