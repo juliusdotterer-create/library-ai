@@ -127,6 +127,7 @@ export function PdfAnnotator({
   /* ---------------- render pages ---------------- */
   useEffect(() => {
     const doc = docRef.current;
+    console.log("[pdf-eff2]", !!doc, pages.length, canvasRefs.current.length, canvasRefs.current.filter(Boolean).length);
     if (!doc || pages.length === 0) return;
     let cancelled = false;
     void (async () => {
