@@ -127,7 +127,6 @@ export function PdfAnnotator({
   /* ---------------- render pages ---------------- */
   useEffect(() => {
     const doc = docRef.current;
-    console.log("[pdf-eff2]", !!doc, pages.length, canvasRefs.current.length, canvasRefs.current.filter(Boolean).length);
     if (!doc || pages.length === 0) return;
     let cancelled = false;
     void (async () => {
@@ -145,8 +144,7 @@ export function PdfAnnotator({
         if (!ctx) continue;
         try {
           await page.render({ canvas, canvasContext: ctx, viewport }).promise;
-          console.log("[pdf-ok]", i, canvas.width, canvas.height, ctx.getImageData(0,0,50,50).data.slice(0,8).join(","));
-        } catch (e) { console.error("[pdf-err]", e);
+        } catch {
           /* re-render race, ignore */
         }
         if (cancelled) return;
