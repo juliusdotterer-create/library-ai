@@ -18,6 +18,7 @@ export function PdfCanvasViewer({ url }: { url: string }) {
 
     void (async () => {
       try {
+        await import("@/lib/map-upsert-polyfill");
         const pdfjs = await import("pdfjs-dist");
         const workerSrc = (await import("pdfjs-dist/build/pdf.worker.min.mjs?url")).default;
         pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;

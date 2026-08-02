@@ -357,8 +357,8 @@ function LibraryPage() {
   });
 
   const [preview, setPreview] = useState<PreviewDoc | null>(null);
-  const open = (d: { name: string; storage_path: string; mime_type: string | null }) =>
-    setPreview({ name: d.name, storage_path: d.storage_path, mime_type: d.mime_type });
+  const open = (d: { id: string; name: string; storage_path: string; mime_type: string | null }) =>
+    setPreview({ id: d.id, name: d.name, storage_path: d.storage_path, mime_type: d.mime_type });
 
   return (
     <div

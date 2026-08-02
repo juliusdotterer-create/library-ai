@@ -107,9 +107,9 @@ export function LibrarySearch({
     void navigate({ to: "/library", search: { folder: folderId ?? "root" } });
   };
 
-  const openDoc = (d: { name: string; storage_path: string; mime_type: string | null }) => {
+  const openDoc = (d: { id: string; name: string; storage_path: string; mime_type: string | null }) => {
     onOpenChange(false);
-    setPreview({ name: d.name, storage_path: d.storage_path, mime_type: d.mime_type });
+    setPreview({ id: d.id, name: d.name, storage_path: d.storage_path, mime_type: d.mime_type });
   };
 
   return (

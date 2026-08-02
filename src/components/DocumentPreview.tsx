@@ -1,13 +1,16 @@
 import { useEffect, useState } from "react";
-import { Download, X } from "lucide-react";
+import { Download, PanelRightClose, PanelRightOpen, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { HeaderTimers } from "@/components/GlobalTimer";
 import { PdfCanvasViewer } from "@/components/PdfCanvasViewer";
+import { PdfAnnotator } from "@/components/PdfAnnotator";
+import { DocumentNotepad } from "@/components/DocumentNotepad";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export type PreviewDoc = {
+  id?: string;
   name: string;
   storage_path: string;
   mime_type?: string | null;
@@ -24,11 +27,13 @@ export function DocumentPreview({
   const [url, setUrl] = useState<string | null>(null);
   const isMobile = useIsMobile();
   const [isTouch, setIsTouch] = useState(false);
+  const [notepad, setNotepad] = useState(false);
   // iPad/Tablets rendern PDFs im iframe oft nur als erste Seite -> Canvas-Viewer nutzen.
   useEffect(() => {
     setIsTouch(window.matchMedia("(pointer: coarse)").matches);
   }, []);
   const useCanvas = isMobile || isTouch;
+
 
 
 
@@ -67,11 +72,24 @@ export function DocumentPreview({
   const isPdf = mime === "application/pdf" || doc.name.toLowerCase().endsWith(".pdf");
   const embeddable = isImage || isPdf || mime.startsWith("text/");
 
+  const canAnnotate = isPdf && !!doc.id;
+
   return (
     <div className="fixed inset-0 z-[60] flex flex-col bg-foreground/20 p-2 backdrop-blur-[2px] lg:p-4">
       <div className="glass flex shrink-0 items-center gap-2 rounded-3xl px-3 py-2">
         <span className="min-w-0 flex-1 truncate text-sm font-semibold">{doc.name}</span>
         <HeaderTimers />
+        {doc.id && (
+          <Button
+            variant={notepad ? "default" : "secondary"}
+            size="icon"
+            className="rounded-2xl"
+            onClick={() => setNotepad((v) => !v)}
+            title={notepad ? "Schreibblatt ausblenden" : "Schreibblatt einblenden"}
+          >
+            {notepad ? <PanelRightClose className="size-4" /> : <PanelRightOpen className="size-4" />}
+          </Button>
+        )}
         {url && (
           <Button asChild variant="secondary" size="icon" className="rounded-2xl">
             <a href={url} download={doc.name} title="Herunterladen">
@@ -84,31 +102,38 @@ export function DocumentPreview({
         </Button>
       </div>
 
-      <div className="glass mt-2 flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-3xl p-0">
-        {!url ? (
-          <p className="text-sm text-muted-foreground">Wird geladen…</p>
-        ) : isImage ? (
-          <img src={url} alt={doc.name} className="max-h-full max-w-full object-contain" />
-        ) : isPdf && useCanvas ? (
-          <PdfCanvasViewer url={url} />
-        ) : embeddable ? (
-          <iframe src={url} title={doc.name} className="size-full rounded-3xl bg-background" />
-
-
-
-        ) : (
-          <div className="space-y-3 p-8 text-center">
-            <p className="text-sm text-muted-foreground">
-              Für diesen Dateityp gibt es keine Vorschau.
-            </p>
-            <Button asChild className="rounded-2xl">
-              <a href={url} download={doc.name}>
-                <Download className="size-4" /> Herunterladen
-              </a>
-            </Button>
+      <div className="mt-2 flex min-h-0 flex-1 flex-col gap-2 lg:flex-row">
+        <div className="glass flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-3xl p-0">
+          {!url ? (
+            <p className="text-sm text-muted-foreground">Wird geladen…</p>
+          ) : isImage ? (
+            <img src={url} alt={doc.name} className="max-h-full max-w-full object-contain" />
+          ) : canAnnotate ? (
+            <PdfAnnotator url={url} documentId={doc.id!} />
+          ) : isPdf && useCanvas ? (
+            <PdfCanvasViewer url={url} />
+          ) : embeddable ? (
+            <iframe src={url} title={doc.name} className="size-full rounded-3xl bg-background" />
+          ) : (
+            <div className="space-y-3 p-8 text-center">
+              <p className="text-sm text-muted-foreground">
+                Für diesen Dateityp gibt es keine Vorschau.
+              </p>
+              <Button asChild className="rounded-2xl">
+                <a href={url} download={doc.name}>
+                  <Download className="size-4" /> Herunterladen
+                </a>
+              </Button>
+            </div>
+          )}
+        </div>
+        {doc.id && notepad && (
+          <div className="glass min-h-0 flex-1 overflow-hidden rounded-3xl p-0 lg:max-w-[40%]">
+            <DocumentNotepad documentId={doc.id} />
           </div>
         )}
       </div>
+
     </div>
   );
 }
