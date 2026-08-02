@@ -192,7 +192,7 @@ function LehrplanPage() {
   const openDoc = (id: string) => {
     const d = docs.data?.find((x) => x.id === id);
     if (!d) return;
-    setPreview({ name: d.name, storage_path: d.storage_path, mime_type: d.mime_type });
+    setPreview({ id: d.id, name: d.name, storage_path: d.storage_path, mime_type: d.mime_type });
   };
 
 
