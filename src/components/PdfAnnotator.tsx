@@ -96,6 +96,7 @@ export function PdfAnnotator({
     setStatus("loading");
     void (async () => {
       try {
+        await import("@/lib/map-upsert-polyfill");
         const pdfjs = await import("pdfjs-dist");
         const workerSrc = (await import("pdfjs-dist/build/pdf.worker.min.mjs?url")).default;
         pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
@@ -114,8 +115,7 @@ export function PdfAnnotator({
         overlayRefs.current = [];
         setPages(dims);
         setStatus("ready");
-      } catch (err) {
-        console.error("[pdf-load]", err);
+      } catch {
         if (!cancelled) setStatus("error");
       }
     })();
@@ -127,7 +127,6 @@ export function PdfAnnotator({
   /* ---------------- render pages ---------------- */
   useEffect(() => {
     const doc = docRef.current;
-    console.log("[pdf-eff2]", !!doc, pages.length, canvasRefs.current.length);
     if (!doc || pages.length === 0) return;
     let cancelled = false;
     void (async () => {
@@ -145,8 +144,8 @@ export function PdfAnnotator({
         if (!ctx) continue;
         try {
           await page.render({ canvas, canvasContext: ctx, viewport }).promise;
-        } catch (err) {
-          console.error("[pdf-render]", err);
+        } catch {
+          /* re-render race, ignore */
         }
         if (cancelled) return;
       }
