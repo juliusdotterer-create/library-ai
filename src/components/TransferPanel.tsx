@@ -29,12 +29,19 @@ export function TransferPanel() {
   const [email, setEmail] = useState("");
   const [confirm, setConfirm] = useState("");
   const [checked, setChecked] = useState<string | null>(null);
+  const [scopes, setScopes] = useState({
+    library: true,
+    calendar: true,
+    plans: true,
+    links: true,
+  });
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
   const [total, setTotal] = useState(0);
   const [doneCount, setDoneCount] = useState(0);
   const [eta, setEta] = useState<number | null>(null);
   const cancelRef = useRef(false);
+
 
   const check = async () => {
     const value = email.trim().toLowerCase();
