@@ -73,10 +73,12 @@ type F = {
   deleted_at: string | null;
 };
 
+export type Scopes = { library: boolean; calendar: boolean; plans: boolean; links: boolean };
+
 /** Schritt 1: Ordnerstruktur anlegen, Gesamtzahl der Dateien melden. */
 export const transferStart = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { email: string; confirm: string }) => input)
+  .inputValidator((input: { email: string; confirm: string; scopes: Scopes }) => input)
   .handler(async ({ data, context }) => {
     if (data.confirm.trim().toUpperCase() !== "ÜBERTRAGEN") throw new Error("Bestätigung fehlt.");
     const target = await findUserByEmail(data.email);
@@ -85,9 +87,13 @@ export const transferStart = createServerFn({ method: "POST" })
     const uid = target.id;
     const src = context.supabase as unknown as Client;
 
+    if (!data.scopes.library)
+      return { uid, email: target.email ?? data.email, folders: 0, totalDocs: 0 };
+
     const folders = (
       await grab<F>(src, "folders", "id,parent_id,name,color,deleted_at")
     ).filter((f) => !f.deleted_at);
+
 
     const map = new Map<string, string>();
     for (const f of folders) map.set(f.id, await detUuid(`${uid}:folder:${f.id}`));
