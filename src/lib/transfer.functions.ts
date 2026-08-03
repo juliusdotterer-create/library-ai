@@ -209,7 +209,8 @@ export const transferDocsChunk = createServerFn({ method: "POST" })
 /** Schritt 3: Termine, Lehrpläne, Aufgaben und Links übertragen. */
 export const transferFinish = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { email: string }) => input)
+  .inputValidator((input: { email: string; scopes: Scopes }) => input)
+
   .handler(async ({ data, context }) => {
     const target = await findUserByEmail(data.email);
     if (!target) throw new Error("Zielaccount nicht gefunden.");
