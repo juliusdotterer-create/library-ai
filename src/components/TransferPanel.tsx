@@ -71,22 +71,30 @@ export function TransferPanel() {
     if (!checked) return toast.error("Bitte zuerst den Ziel-Account prüfen.");
     if (confirm.trim().toUpperCase() !== "ÜBERTRAGEN")
       return toast.error('Bitte "ÜBERTRAGEN" eintippen.');
+    if (!scopes.library && !scopes.calendar && !scopes.plans && !scopes.links)
+      return toast.error("Bitte mindestens einen Bereich auswählen.");
     setBusy(true);
     cancelRef.current = false;
     setDoneCount(0);
     setEta(null);
     try {
-      setStatus("Ordnerstruktur wird angelegt …");
-      const s = await start({ data: { email: checked, confirm } });
+      setStatus(
+        scopes.library ? "Ordnerstruktur wird angelegt …" : "Übertragung wird vorbereitet …",
+      );
+      const s = await start({ data: { email: checked, confirm, scopes } });
       setTotal(s.totalDocs);
-      setStatus(`Ordner übertragen: ${s.folders}. Dateien werden kopiert …`);
+      setStatus(
+        scopes.library
+          ? `Ordner übertragen: ${s.folders}. Dateien werden kopiert …`
+          : "Library übersprungen.",
+      );
 
       const limit = 20;
       let offset = 0;
       let copied = 0;
       let failed = 0;
       const t0 = Date.now();
-      for (;;) {
+      while (scopes.library) {
         if (cancelRef.current) throw new Error("Abgebrochen");
         const r = await chunk({ data: { email: checked, offset, limit } });
         copied += r.copied;
@@ -102,7 +110,8 @@ export function TransferPanel() {
 
       setEta(null);
       setStatus("Termine, Lehrpläne und Links werden übertragen …");
-      const f = await finish({ data: { email: checked } });
+      const f = await finish({ data: { email: checked, scopes } });
+
 
       setStatus("");
       toast.success(
