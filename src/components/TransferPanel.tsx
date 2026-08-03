@@ -29,12 +29,19 @@ export function TransferPanel() {
   const [email, setEmail] = useState("");
   const [confirm, setConfirm] = useState("");
   const [checked, setChecked] = useState<string | null>(null);
+  const [scopes, setScopes] = useState({
+    library: true,
+    calendar: true,
+    plans: true,
+    links: true,
+  });
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
   const [total, setTotal] = useState(0);
   const [doneCount, setDoneCount] = useState(0);
   const [eta, setEta] = useState<number | null>(null);
   const cancelRef = useRef(false);
+
 
   const check = async () => {
     const value = email.trim().toLowerCase();
@@ -64,22 +71,30 @@ export function TransferPanel() {
     if (!checked) return toast.error("Bitte zuerst den Ziel-Account prüfen.");
     if (confirm.trim().toUpperCase() !== "ÜBERTRAGEN")
       return toast.error('Bitte "ÜBERTRAGEN" eintippen.');
+    if (!scopes.library && !scopes.calendar && !scopes.plans && !scopes.links)
+      return toast.error("Bitte mindestens einen Bereich auswählen.");
     setBusy(true);
     cancelRef.current = false;
     setDoneCount(0);
     setEta(null);
     try {
-      setStatus("Ordnerstruktur wird angelegt …");
-      const s = await start({ data: { email: checked, confirm } });
+      setStatus(
+        scopes.library ? "Ordnerstruktur wird angelegt …" : "Übertragung wird vorbereitet …",
+      );
+      const s = await start({ data: { email: checked, confirm, scopes } });
       setTotal(s.totalDocs);
-      setStatus(`Ordner übertragen: ${s.folders}. Dateien werden kopiert …`);
+      setStatus(
+        scopes.library
+          ? `Ordner übertragen: ${s.folders}. Dateien werden kopiert …`
+          : "Library übersprungen.",
+      );
 
       const limit = 20;
       let offset = 0;
       let copied = 0;
       let failed = 0;
       const t0 = Date.now();
-      for (;;) {
+      while (scopes.library) {
         if (cancelRef.current) throw new Error("Abgebrochen");
         const r = await chunk({ data: { email: checked, offset, limit } });
         copied += r.copied;
@@ -95,7 +110,8 @@ export function TransferPanel() {
 
       setEta(null);
       setStatus("Termine, Lehrpläne und Links werden übertragen …");
-      const f = await finish({ data: { email: checked } });
+      const f = await finish({ data: { email: checked, scopes } });
+
 
       setStatus("");
       toast.success(
@@ -133,9 +149,30 @@ export function TransferPanel() {
       {checked ? (
         <div className="space-y-2 rounded-2xl border border-border/60 p-3">
           <Label className="text-xs text-muted-foreground">
-            Kopiert Ordner, alle Dateien darin, Termine, Lehrpläne und Links zu <b>{checked}</b>.
-            Deine eigenen Daten bleiben unverändert. Tippe zur Bestätigung „ÜBERTRAGEN“.
+            Kopiert die ausgewählten Bereiche zu <b>{checked}</b>. Deine eigenen Daten bleiben
+            unverändert. Tippe zur Bestätigung „ÜBERTRAGEN“.
           </Label>
+          <div className="flex flex-wrap gap-3 py-1">
+            {(
+              [
+                ["library", "Library (Ordner & Dateien)"],
+                ["calendar", "Kalender"],
+                ["plans", "Lehrpläne"],
+                ["links", "Linktree"],
+              ] as const
+            ).map(([key, label]) => (
+              <label key={key} className="flex items-center gap-2 text-xs">
+                <input
+                  type="checkbox"
+                  className="size-4 accent-primary"
+                  checked={scopes[key]}
+                  onChange={(e) => setScopes((p) => ({ ...p, [key]: e.target.checked }))}
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+
           <div className="flex flex-col gap-2 sm:flex-row">
             <Input
               placeholder="ÜBERTRAGEN"

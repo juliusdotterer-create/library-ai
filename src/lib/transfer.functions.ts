@@ -73,10 +73,12 @@ type F = {
   deleted_at: string | null;
 };
 
+export type Scopes = { library: boolean; calendar: boolean; plans: boolean; links: boolean };
+
 /** Schritt 1: Ordnerstruktur anlegen, Gesamtzahl der Dateien melden. */
 export const transferStart = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { email: string; confirm: string }) => input)
+  .inputValidator((input: { email: string; confirm: string; scopes: Scopes }) => input)
   .handler(async ({ data, context }) => {
     if (data.confirm.trim().toUpperCase() !== "ÜBERTRAGEN") throw new Error("Bestätigung fehlt.");
     const target = await findUserByEmail(data.email);
@@ -85,9 +87,13 @@ export const transferStart = createServerFn({ method: "POST" })
     const uid = target.id;
     const src = context.supabase as unknown as Client;
 
+    if (!data.scopes.library)
+      return { uid, email: target.email ?? data.email, folders: 0, totalDocs: 0 };
+
     const folders = (
       await grab<F>(src, "folders", "id,parent_id,name,color,deleted_at")
     ).filter((f) => !f.deleted_at);
+
 
     const map = new Map<string, string>();
     for (const f of folders) map.set(f.id, await detUuid(`${uid}:folder:${f.id}`));
@@ -203,7 +209,8 @@ export const transferDocsChunk = createServerFn({ method: "POST" })
 /** Schritt 3: Termine, Lehrpläne, Aufgaben und Links übertragen. */
 export const transferFinish = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { email: string }) => input)
+  .inputValidator((input: { email: string; scopes: Scopes }) => input)
+
   .handler(async ({ data, context }) => {
     const target = await findUserByEmail(data.email);
     if (!target) throw new Error("Zielaccount nicht gefunden.");
@@ -239,11 +246,9 @@ export const transferFinish = createServerFn({ method: "POST" })
       color: string | null;
       document_id: string | null;
     };
-    const events = await grab<E>(
-      src,
-      "events",
-      "id,title,notes,start_at,end_at,all_day,color,document_id",
-    );
+    const events = data.scopes.calendar
+      ? await grab<E>(src, "events", "id,title,notes,start_at,end_at,all_day,color,document_id")
+      : [];
     await upsertAll(
       "events",
       await Promise.all(
@@ -268,7 +273,9 @@ export const transferFinish = createServerFn({ method: "POST" })
       start_date: string | null;
       end_date: string | null;
     };
-    const plans = await grab<P>(src, "study_plans", "id,title,description,start_date,end_date");
+    const plans = data.scopes.plans
+      ? await grab<P>(src, "study_plans", "id,title,description,start_date,end_date")
+      : [];
     await upsertAll(
       "study_plans",
       await Promise.all(
@@ -294,11 +301,13 @@ export const transferFinish = createServerFn({ method: "POST" })
       document_id: string | null;
       position: number;
     };
-    const tasks = await grab<T>(
-      src,
-      "study_tasks",
-      "id,plan_id,title,notes,due_date,status,document_id,position",
-    );
+    const tasks = data.scopes.plans
+      ? await grab<T>(
+          src,
+          "study_tasks",
+          "id,plan_id,title,notes,due_date,status,document_id,position",
+        )
+      : [];
     await upsertAll(
       "study_tasks",
       await Promise.all(
@@ -325,7 +334,9 @@ export const transferFinish = createServerFn({ method: "POST" })
       description: string | null;
       position: number;
     };
-    const links = await grab<L>(src, "links", "id,title,url,description,position");
+    const links = data.scopes.links
+      ? await grab<L>(src, "links", "id,title,url,description,position")
+      : [];
     await upsertAll(
       "links",
       await Promise.all(
@@ -348,4 +359,5 @@ export const transferFinish = createServerFn({ method: "POST" })
       tasks: tasks.length,
       links: links.length,
     };
+
   });
