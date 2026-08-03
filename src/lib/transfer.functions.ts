@@ -246,11 +246,9 @@ export const transferFinish = createServerFn({ method: "POST" })
       color: string | null;
       document_id: string | null;
     };
-    const events = await grab<E>(
-      src,
-      "events",
-      "id,title,notes,start_at,end_at,all_day,color,document_id",
-    );
+    const events = data.scopes.calendar
+      ? await grab<E>(src, "events", "id,title,notes,start_at,end_at,all_day,color,document_id")
+      : [];
     await upsertAll(
       "events",
       await Promise.all(
@@ -275,7 +273,9 @@ export const transferFinish = createServerFn({ method: "POST" })
       start_date: string | null;
       end_date: string | null;
     };
-    const plans = await grab<P>(src, "study_plans", "id,title,description,start_date,end_date");
+    const plans = data.scopes.plans
+      ? await grab<P>(src, "study_plans", "id,title,description,start_date,end_date")
+      : [];
     await upsertAll(
       "study_plans",
       await Promise.all(
@@ -301,11 +301,13 @@ export const transferFinish = createServerFn({ method: "POST" })
       document_id: string | null;
       position: number;
     };
-    const tasks = await grab<T>(
-      src,
-      "study_tasks",
-      "id,plan_id,title,notes,due_date,status,document_id,position",
-    );
+    const tasks = data.scopes.plans
+      ? await grab<T>(
+          src,
+          "study_tasks",
+          "id,plan_id,title,notes,due_date,status,document_id,position",
+        )
+      : [];
     await upsertAll(
       "study_tasks",
       await Promise.all(
@@ -332,7 +334,9 @@ export const transferFinish = createServerFn({ method: "POST" })
       description: string | null;
       position: number;
     };
-    const links = await grab<L>(src, "links", "id,title,url,description,position");
+    const links = data.scopes.links
+      ? await grab<L>(src, "links", "id,title,url,description,position")
+      : [];
     await upsertAll(
       "links",
       await Promise.all(
@@ -355,4 +359,5 @@ export const transferFinish = createServerFn({ method: "POST" })
       tasks: tasks.length,
       links: links.length,
     };
+
   });
