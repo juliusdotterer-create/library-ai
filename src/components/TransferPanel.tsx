@@ -149,9 +149,30 @@ export function TransferPanel() {
       {checked ? (
         <div className="space-y-2 rounded-2xl border border-border/60 p-3">
           <Label className="text-xs text-muted-foreground">
-            Kopiert Ordner, alle Dateien darin, Termine, Lehrpläne und Links zu <b>{checked}</b>.
-            Deine eigenen Daten bleiben unverändert. Tippe zur Bestätigung „ÜBERTRAGEN“.
+            Kopiert die ausgewählten Bereiche zu <b>{checked}</b>. Deine eigenen Daten bleiben
+            unverändert. Tippe zur Bestätigung „ÜBERTRAGEN“.
           </Label>
+          <div className="flex flex-wrap gap-3 py-1">
+            {(
+              [
+                ["library", "Library (Ordner & Dateien)"],
+                ["calendar", "Kalender"],
+                ["plans", "Lehrpläne"],
+                ["links", "Linktree"],
+              ] as const
+            ).map(([key, label]) => (
+              <label key={key} className="flex items-center gap-2 text-xs">
+                <input
+                  type="checkbox"
+                  className="size-4 accent-primary"
+                  checked={scopes[key]}
+                  onChange={(e) => setScopes((p) => ({ ...p, [key]: e.target.checked }))}
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+
           <div className="flex flex-col gap-2 sm:flex-row">
             <Input
               placeholder="ÜBERTRAGEN"
