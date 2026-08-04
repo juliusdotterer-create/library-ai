@@ -532,7 +532,23 @@ function LibraryPage() {
         </div>
       )}
 
-
+      {!current.id && !!favorites.data?.length && (
+        <div className="glass flex flex-wrap items-center gap-2 rounded-3xl p-4">
+          <span className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
+            <Star className="size-4 fill-primary text-primary" /> Favoriten
+          </span>
+          {favorites.data.map((f) => (
+            <button
+              key={f.id}
+              onClick={() => void openFolder(f.id, f.name)}
+              className="glass-soft hover:bg-primary-soft flex items-center gap-2 rounded-2xl px-3 py-1.5 text-sm"
+            >
+              <Folder className="size-4 text-primary" />
+              <span className="max-w-40 truncate">{f.name}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {folders.data?.map((f) => (
@@ -541,7 +557,7 @@ function LibraryPage() {
             className="glass group flex items-center gap-3 rounded-3xl p-4 transition-transform hover:-translate-y-0.5"
           >
             <button
-              className="flex flex-1 items-center gap-3 text-left"
+              className="flex min-w-0 flex-1 items-center gap-3 text-left"
               onClick={() => setPath([...path, { id: f.id, name: f.name }])}
             >
               <span className="bg-primary-soft flex size-10 items-center justify-center rounded-2xl">
@@ -549,12 +565,24 @@ function LibraryPage() {
               </span>
               <span className="truncate font-medium">{f.name}</span>
             </button>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="rounded-2xl"
+              title={f.is_favorite ? "Favorit entfernen" : "Als Favorit markieren"}
+              onClick={() => toggleFavorite.mutate({ id: f.id, value: !f.is_favorite })}
+            >
+              <Star
+                className={cn("size-4", f.is_favorite && "fill-primary text-primary")}
+              />
+            </Button>
             <RowMenu
               onRename={() => setRename({ table: "folders", id: f.id, name: f.name })}
               onDelete={() => setConfirmDel({ table: "folders", id: f.id, name: f.name })}
             />
           </div>
         ))}
+
 
         {docs.data?.map((d) => (
           <div
