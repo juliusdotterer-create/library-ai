@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 import { softDeleteFolder } from "@/lib/tree";
 import { Progress } from "@/components/ui/progress";
 import { ConfirmDelete } from "@/components/ConfirmDelete";
