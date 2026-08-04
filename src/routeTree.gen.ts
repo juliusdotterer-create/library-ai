@@ -21,6 +21,7 @@ import { Route as AuthenticatedKalenderRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedLehrplaeneRouteImport } from './routes/_authenticated/lehrplaene'
 import { Route as AuthenticatedLibraryRouteImport } from './routes/_authenticated/library'
 import { Route as AuthenticatedLinksRouteImport } from './routes/_authenticated/links'
+import { Route as AuthenticatedNotizenRouteImport } from './routes/_authenticated/notizen'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 
@@ -86,6 +87,11 @@ const AuthenticatedLinksRoute = AuthenticatedLinksRouteImport.update({
   path: '/links',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedNotizenRoute = AuthenticatedNotizenRouteImport.update({
+  id: '/notizen',
+  path: '/notizen',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
   id: '/.lovable/oauth/consent',
   path: '/.lovable/oauth/consent',
@@ -110,6 +116,7 @@ export interface FileRoutesByFullPath {
   '/lehrplaene': typeof AuthenticatedLehrplaeneRoute
   '/library': typeof AuthenticatedLibraryRoute
   '/links': typeof AuthenticatedLinksRoute
+  '/notizen': typeof AuthenticatedNotizenRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
 }
@@ -125,6 +132,7 @@ export interface FileRoutesByTo {
   '/lehrplaene': typeof AuthenticatedLehrplaeneRoute
   '/library': typeof AuthenticatedLibraryRoute
   '/links': typeof AuthenticatedLinksRoute
+  '/notizen': typeof AuthenticatedNotizenRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
 }
@@ -142,6 +150,7 @@ export interface FileRoutesById {
   '/_authenticated/lehrplaene': typeof AuthenticatedLehrplaeneRoute
   '/_authenticated/library': typeof AuthenticatedLibraryRoute
   '/_authenticated/links': typeof AuthenticatedLinksRoute
+  '/_authenticated/notizen': typeof AuthenticatedNotizenRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
 }
@@ -159,6 +168,7 @@ export interface FileRouteTypes {
     | '/lehrplaene'
     | '/library'
     | '/links'
+    | '/notizen'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
   fileRoutesByTo: FileRoutesByTo
@@ -174,6 +184,7 @@ export interface FileRouteTypes {
     | '/lehrplaene'
     | '/library'
     | '/links'
+    | '/notizen'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
   id:
@@ -190,6 +201,7 @@ export interface FileRouteTypes {
     | '/_authenticated/lehrplaene'
     | '/_authenticated/library'
     | '/_authenticated/links'
+    | '/_authenticated/notizen'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
   fileRoutesById: FileRoutesById
@@ -291,6 +303,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLinksRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/notizen': {
+      id: '/_authenticated/notizen'
+      path: '/notizen'
+      fullPath: '/notizen'
+      preLoaderRoute: typeof AuthenticatedNotizenRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/.lovable/oauth/consent': {
       id: '/.lovable/oauth/consent'
       path: '/.lovable/oauth/consent'
@@ -315,6 +334,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedLehrplaeneRoute: typeof AuthenticatedLehrplaeneRoute
   AuthenticatedLibraryRoute: typeof AuthenticatedLibraryRoute
   AuthenticatedLinksRoute: typeof AuthenticatedLinksRoute
+  AuthenticatedNotizenRoute: typeof AuthenticatedNotizenRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -324,6 +344,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedLehrplaeneRoute: AuthenticatedLehrplaeneRoute,
   AuthenticatedLibraryRoute: AuthenticatedLibraryRoute,
   AuthenticatedLinksRoute: AuthenticatedLinksRoute,
+  AuthenticatedNotizenRoute: AuthenticatedNotizenRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
