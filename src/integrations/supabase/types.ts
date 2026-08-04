@@ -217,6 +217,7 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           id: string
+          is_favorite: boolean
           name: string
           parent_id: string | null
           updated_at: string
@@ -227,6 +228,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           id?: string
+          is_favorite?: boolean
           name: string
           parent_id?: string | null
           updated_at?: string
@@ -237,6 +239,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           id?: string
+          is_favorite?: boolean
           name?: string
           parent_id?: string | null
           updated_at?: string
@@ -284,6 +287,89 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      notebook_pages: {
+        Row: {
+          created_at: string
+          id: string
+          notebook_id: string
+          position: number
+          strokes: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notebook_id: string
+          position?: number
+          strokes?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notebook_id?: string
+          position?: number
+          strokes?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notebook_pages_notebook_id_fkey"
+            columns: ["notebook_id"]
+            isOneToOne: false
+            referencedRelation: "notebooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notebooks: {
+        Row: {
+          created_at: string
+          document_id: string | null
+          folder_id: string | null
+          id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          document_id?: string | null
+          folder_id?: string | null
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          document_id?: string | null
+          folder_id?: string | null
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notebooks_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notebooks_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
