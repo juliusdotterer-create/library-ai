@@ -387,11 +387,9 @@ function LibraryPage() {
     const crumbs: Crumb[] = [];
     let cur: string | null = id;
     while (cur) {
-      const { data } = await supabase
-        .from("folders")
-        .select("id,name,parent_id")
-        .eq("id", cur)
-        .maybeSingle();
+      const res: { data: { id: string; name: string; parent_id: string | null } | null } =
+        await supabase.from("folders").select("id,name,parent_id").eq("id", cur).maybeSingle();
+      const data = res.data;
       if (!data) break;
       crumbs.unshift({ id: data.id, name: data.name });
       cur = data.parent_id;
