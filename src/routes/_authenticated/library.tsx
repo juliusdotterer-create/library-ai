@@ -12,6 +12,7 @@ import {
   FolderUp,
   MoreVertical,
   Pencil,
+  Star,
   Trash2,
   Upload,
 } from "lucide-react";
