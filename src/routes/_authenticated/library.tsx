@@ -108,7 +108,12 @@ function LibraryPage() {
   const folders = useQuery({
     queryKey: ["folders", current.id],
     queryFn: async () => {
-      let q = supabase.from("folders").select("*").is("deleted_at", null).order("name");
+      let q = supabase
+        .from("folders")
+        .select("*")
+        .is("deleted_at", null)
+        .order("is_favorite", { ascending: false })
+        .order("name");
       q = current.id ? q.eq("parent_id", current.id) : q.is("parent_id", null);
       const { data, error } = await q;
       if (error) throw error;
