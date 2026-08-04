@@ -12,11 +12,13 @@ import {
   FolderUp,
   MoreVertical,
   Pencil,
+  Star,
   Trash2,
   Upload,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 import { softDeleteFolder } from "@/lib/tree";
 import { Progress } from "@/components/ui/progress";
 import { ConfirmDelete } from "@/components/ConfirmDelete";
@@ -108,7 +110,12 @@ function LibraryPage() {
   const folders = useQuery({
     queryKey: ["folders", current.id],
     queryFn: async () => {
-      let q = supabase.from("folders").select("*").is("deleted_at", null).order("name");
+      let q = supabase
+        .from("folders")
+        .select("*")
+        .is("deleted_at", null)
+        .order("is_favorite", { ascending: false })
+        .order("name");
       q = current.id ? q.eq("parent_id", current.id) : q.is("parent_id", null);
       const { data, error } = await q;
       if (error) throw error;
@@ -356,6 +363,47 @@ function LibraryPage() {
     },
   });
 
+  const favorites = useQuery({
+    queryKey: ["favorite-folders"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("folders")
+        .select("id,name")
+        .is("deleted_at", null)
+        .eq("is_favorite", true)
+        .order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const toggleFavorite = useMutation({
+    mutationFn: async ({ id, value }: { id: string; value: boolean }) => {
+      const { error } = await supabase.from("folders").update({ is_favorite: value }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => {
+      invalidate();
+      void qc.invalidateQueries({ queryKey: ["favorite-folders"] });
+      toast.success(v.value ? "Zu Favoriten hinzugefügt" : "Aus Favoriten entfernt");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const openFolder = async (id: string, name: string) => {
+    const crumbs: Crumb[] = [];
+    let cur: string | null = id;
+    while (cur) {
+      const res: { data: { id: string; name: string; parent_id: string | null } | null } =
+        await supabase.from("folders").select("id,name,parent_id").eq("id", cur).maybeSingle();
+      const data = res.data;
+      if (!data) break;
+      crumbs.unshift({ id: data.id, name: data.name });
+      cur = data.parent_id;
+    }
+    setPath([{ id: null, name: "Library" }, ...(crumbs.length ? crumbs : [{ id, name }])]);
+  };
+
   const [preview, setPreview] = useState<PreviewDoc | null>(null);
   const open = (d: { id: string; name: string; storage_path: string; mime_type: string | null }) =>
     setPreview({ id: d.id, name: d.name, storage_path: d.storage_path, mime_type: d.mime_type });
@@ -486,7 +534,23 @@ function LibraryPage() {
         </div>
       )}
 
-
+      {!current.id && !!favorites.data?.length && (
+        <div className="glass flex flex-wrap items-center gap-2 rounded-3xl p-4">
+          <span className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
+            <Star className="size-4 fill-primary text-primary" /> Favoriten
+          </span>
+          {favorites.data.map((f) => (
+            <button
+              key={f.id}
+              onClick={() => void openFolder(f.id, f.name)}
+              className="glass-soft hover:bg-primary-soft flex items-center gap-2 rounded-2xl px-3 py-1.5 text-sm"
+            >
+              <Folder className="size-4 text-primary" />
+              <span className="max-w-40 truncate">{f.name}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {folders.data?.map((f) => (
@@ -495,7 +559,7 @@ function LibraryPage() {
             className="glass group flex items-center gap-3 rounded-3xl p-4 transition-transform hover:-translate-y-0.5"
           >
             <button
-              className="flex flex-1 items-center gap-3 text-left"
+              className="flex min-w-0 flex-1 items-center gap-3 text-left"
               onClick={() => setPath([...path, { id: f.id, name: f.name }])}
             >
               <span className="bg-primary-soft flex size-10 items-center justify-center rounded-2xl">
@@ -503,12 +567,24 @@ function LibraryPage() {
               </span>
               <span className="truncate font-medium">{f.name}</span>
             </button>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="rounded-2xl"
+              title={f.is_favorite ? "Favorit entfernen" : "Als Favorit markieren"}
+              onClick={() => toggleFavorite.mutate({ id: f.id, value: !f.is_favorite })}
+            >
+              <Star
+                className={cn("size-4", f.is_favorite && "fill-primary text-primary")}
+              />
+            </Button>
             <RowMenu
               onRename={() => setRename({ table: "folders", id: f.id, name: f.name })}
               onDelete={() => setConfirmDel({ table: "folders", id: f.id, name: f.name })}
             />
           </div>
         ))}
+
 
         {docs.data?.map((d) => (
           <div
