@@ -356,6 +356,49 @@ function LibraryPage() {
     },
   });
 
+  const favorites = useQuery({
+    queryKey: ["favorite-folders"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("folders")
+        .select("id,name")
+        .is("deleted_at", null)
+        .eq("is_favorite", true)
+        .order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const toggleFavorite = useMutation({
+    mutationFn: async ({ id, value }: { id: string; value: boolean }) => {
+      const { error } = await supabase.from("folders").update({ is_favorite: value }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => {
+      invalidate();
+      void qc.invalidateQueries({ queryKey: ["favorite-folders"] });
+      toast.success(v.value ? "Zu Favoriten hinzugefügt" : "Aus Favoriten entfernt");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const openFolder = async (id: string, name: string) => {
+    const crumbs: Crumb[] = [];
+    let cur: string | null = id;
+    while (cur) {
+      const { data } = await supabase
+        .from("folders")
+        .select("id,name,parent_id")
+        .eq("id", cur)
+        .maybeSingle();
+      if (!data) break;
+      crumbs.unshift({ id: data.id, name: data.name });
+      cur = data.parent_id;
+    }
+    setPath([{ id: null, name: "Library" }, ...(crumbs.length ? crumbs : [{ id, name }])]);
+  };
+
   const [preview, setPreview] = useState<PreviewDoc | null>(null);
   const open = (d: { id: string; name: string; storage_path: string; mime_type: string | null }) =>
     setPreview({ id: d.id, name: d.name, storage_path: d.storage_path, mime_type: d.mime_type });
