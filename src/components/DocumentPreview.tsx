@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { HeaderTimers } from "@/components/GlobalTimer";
 import { PdfCanvasViewer } from "@/components/PdfCanvasViewer";
 import { PdfAnnotator } from "@/components/PdfAnnotator";
-import { DocumentNotepad } from "@/components/DocumentNotepad";
+import { DocumentNotes } from "@/components/DocumentNotes";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export type PreviewDoc = {
@@ -85,7 +85,7 @@ export function DocumentPreview({
             size="icon"
             className="rounded-2xl"
             onClick={() => setNotepad((v) => !v)}
-            title={notepad ? "Schreibblatt ausblenden" : "Schreibblatt einblenden"}
+            title={notepad ? "Notizen ausblenden" : "Notizen einblenden"}
           >
             {notepad ? <PanelRightClose className="size-4" /> : <PanelRightOpen className="size-4" />}
           </Button>
@@ -129,7 +129,7 @@ export function DocumentPreview({
         </div>
         {doc.id && notepad && (
           <div className="glass min-h-0 flex-1 overflow-hidden rounded-3xl p-0 lg:max-w-[40%]">
-            <DocumentNotepad documentId={doc.id} />
+            <DocumentNotes documentId={doc.id} />
           </div>
         )}
       </div>

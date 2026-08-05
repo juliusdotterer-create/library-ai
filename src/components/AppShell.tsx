@@ -5,7 +5,6 @@ import {
   CalendarDays,
   ListChecks,
   LinkIcon,
-  NotebookPen,
   Settings2,
   Bot,
   Moon,
@@ -26,7 +25,6 @@ import { GlobalTimerWatcher, HeaderTimers } from "@/components/GlobalTimer";
 
 const NAV = [
   { to: "/library", label: "Library", icon: FolderTree },
-  { to: "/notizen", label: "Notizen", icon: NotebookPen },
   { to: "/kalender", label: "Kalender", icon: CalendarDays },
   { to: "/lehrplaene", label: "Lehrpläne", icon: ListChecks },
   { to: "/links", label: "Linktree", icon: LinkIcon },
