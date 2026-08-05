@@ -11,6 +11,7 @@ import {
   FolderPlus,
   FolderUp,
   MoreVertical,
+  NotebookPen,
   Pencil,
   Star,
   Trash2,
@@ -32,6 +33,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { DocumentPreview, type PreviewDoc } from "@/components/DocumentPreview";
+import { FreeNotesOverlay } from "@/components/FreeNotesOverlay";
 import {
   Dialog,
   DialogContent,
@@ -405,6 +407,7 @@ function LibraryPage() {
   };
 
   const [preview, setPreview] = useState<PreviewDoc | null>(null);
+  const [freeNotes, setFreeNotes] = useState(false);
   const open = (d: { id: string; name: string; storage_path: string; mime_type: string | null }) =>
     setPreview({ id: d.id, name: d.name, storage_path: d.storage_path, mime_type: d.mime_type });
 
@@ -463,6 +466,15 @@ function LibraryPage() {
             onClick={() => createFolder.mutate(newFolder.trim())}
           >
             <FolderPlus className="size-4" />
+          </Button>
+          <Button
+            variant="secondary"
+            className="rounded-2xl"
+            aria-label="Freie Notizen"
+            title="Notizen ohne Dokument"
+            onClick={() => setFreeNotes(true)}
+          >
+            <NotebookPen className="size-4" />
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -659,6 +671,7 @@ function LibraryPage() {
       />
 
       <DocumentPreview doc={preview} onClose={() => setPreview(null)} />
+      <FreeNotesOverlay open={freeNotes} onClose={() => setFreeNotes(false)} />
     </div>
   );
 }
