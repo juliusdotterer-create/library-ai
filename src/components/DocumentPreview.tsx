@@ -102,8 +102,28 @@ export function DocumentPreview({
         </Button>
       </div>
 
+      {doc.id && notepad && (
+        <div className="glass mt-2 flex shrink-0 items-center gap-3 rounded-3xl px-4 py-1.5">
+          <span className="text-[11px] text-muted-foreground">Dokument</span>
+          <input
+            type="range"
+            min={20}
+            max={80}
+            step={1}
+            value={split}
+            onChange={(e) => setSplit(Number(e.target.value))}
+            className="h-1 flex-1 accent-primary"
+            title="Aufteilung Dokument / Notizen"
+          />
+          <span className="text-[11px] text-muted-foreground">Notizen</span>
+        </div>
+      )}
+
       <div className="mt-2 flex min-h-0 flex-1 flex-col gap-2 lg:flex-row">
-        <div className="glass flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-3xl p-0">
+        <div
+          className="glass flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-3xl p-0"
+          style={doc.id && notepad ? { flex: `1 1 ${split}%` } : undefined}
+        >
           {!url ? (
             <p className="text-sm text-muted-foreground">Wird geladen…</p>
           ) : isImage ? (
@@ -128,11 +148,15 @@ export function DocumentPreview({
           )}
         </div>
         {doc.id && notepad && (
-          <div className="glass min-h-0 flex-1 overflow-hidden rounded-3xl p-0 lg:max-w-[40%]">
+          <div
+            className="glass min-h-0 flex-1 overflow-hidden rounded-3xl p-0"
+            style={{ flex: `1 1 ${100 - split}%` }}
+          >
             <DocumentNotes documentId={doc.id} />
           </div>
         )}
       </div>
+
 
     </div>
   );
