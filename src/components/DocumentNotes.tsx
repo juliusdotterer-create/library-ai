@@ -13,7 +13,7 @@ const asStrokes = (raw: unknown): Stroke[] => (Array.isArray(raw) ? (raw as Stro
  * Handschriftliche Notizen zu einem Library-Dokument.
  * Ein Notizbuch pro Dokument, mehrere Seiten, Vektor-Striche, Auto-Speichern.
  */
-export function DocumentNotes({ documentId }: { documentId: string }) {
+export function DocumentNotes({ documentId }: { documentId?: string | null }) {
   const [notebookId, setNotebookId] = useState<string | null>(null);
   const [pages, setPages] = useState<Page[]>([]);
   const [index, setIndex] = useState(0);
