@@ -31,18 +31,25 @@ export function DocumentNotes({ documentId }: { documentId?: string | null }) {
       const userId = auth.user?.id;
       if (!userId) return;
 
-      let { data: nb } = await supabase
+      const base = supabase
         .from("notebooks")
         .select("id")
-        .eq("document_id", documentId)
         .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
+        .limit(1);
+
+      let { data: nb } = await (documentId
+        ? base.eq("document_id", documentId)
+        : base.is("document_id", null)
+      ).maybeSingle();
 
       if (!nb) {
         const created = await supabase
           .from("notebooks")
-          .insert({ user_id: userId, document_id: documentId, title: "Notizen" })
+          .insert({
+            user_id: userId,
+            document_id: documentId ?? null,
+            title: documentId ? "Notizen" : "Freie Notizen",
+          })
           .select("id")
           .single();
         if (created.error) {
