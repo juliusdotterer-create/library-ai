@@ -13,7 +13,7 @@ const asStrokes = (raw: unknown): Stroke[] => (Array.isArray(raw) ? (raw as Stro
  * Handschriftliche Notizen zu einem Library-Dokument.
  * Ein Notizbuch pro Dokument, mehrere Seiten, Vektor-Striche, Auto-Speichern.
  */
-export function DocumentNotes({ documentId }: { documentId: string }) {
+export function DocumentNotes({ documentId }: { documentId?: string | null }) {
   const [notebookId, setNotebookId] = useState<string | null>(null);
   const [pages, setPages] = useState<Page[]>([]);
   const [index, setIndex] = useState(0);
@@ -31,18 +31,25 @@ export function DocumentNotes({ documentId }: { documentId: string }) {
       const userId = auth.user?.id;
       if (!userId) return;
 
-      let { data: nb } = await supabase
+      const base = supabase
         .from("notebooks")
         .select("id")
-        .eq("document_id", documentId)
         .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
+        .limit(1);
+
+      let { data: nb } = await (documentId
+        ? base.eq("document_id", documentId)
+        : base.is("document_id", null)
+      ).maybeSingle();
 
       if (!nb) {
         const created = await supabase
           .from("notebooks")
-          .insert({ user_id: userId, document_id: documentId, title: "Notizen" })
+          .insert({
+            user_id: userId,
+            document_id: documentId ?? null,
+            title: documentId ? "Notizen" : "Freie Notizen",
+          })
           .select("id")
           .single();
         if (created.error) {
