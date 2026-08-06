@@ -92,14 +92,18 @@ function LibraryPage() {
       const crumbs: Crumb[] = [];
       let id: string | null = folderParam;
       while (id) {
-        const { data, error } = await supabase
+        const res: {
+          data: { id: string; name: string; parent_id: string | null } | null;
+          error: unknown;
+        } = await supabase
           .from("folders")
           .select("id,name,parent_id")
           .eq("id", id)
           .maybeSingle();
-        if (error || !data) break;
-        crumbs.unshift({ id: data.id, name: data.name });
-        id = data.parent_id;
+        if (res.error || !res.data) break;
+        crumbs.unshift({ id: res.data.id, name: res.data.name });
+        id = res.data.parent_id;
+
       }
       if (!cancelled) setPath([{ id: null, name: "Library" }, ...crumbs]);
     })();

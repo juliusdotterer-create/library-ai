@@ -153,7 +153,7 @@ export function DocumentPreview({
             className="glass min-h-0 flex-1 overflow-hidden rounded-3xl p-0"
             style={{ flex: `1 1 ${100 - split}%` }}
           >
-            <DocumentNotes documentId={doc.id} />
+            <DocumentNotes key={doc.id} documentId={doc.id} />
           </div>
         )}
       </div>
