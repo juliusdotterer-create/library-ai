@@ -675,7 +675,12 @@ function LibraryPage() {
       />
 
       <DocumentPreview doc={preview} onClose={() => setPreview(null)} />
-      <FreeNotesOverlay open={freeNotes} onClose={() => setFreeNotes(false)} />
+      <FreeNotesOverlay
+        key={current.id ?? "root"}
+        open={freeNotes}
+        folderId={current.id}
+        onClose={() => setFreeNotes(false)}
+      />
     </div>
   );
 }
