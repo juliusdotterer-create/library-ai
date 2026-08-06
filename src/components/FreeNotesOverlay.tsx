@@ -4,7 +4,15 @@ import { HeaderTimers } from "@/components/GlobalTimer";
 import { DocumentNotes } from "@/components/DocumentNotes";
 
 /** Handschriftliche Notizen ohne Bezug zu einem Dokument. */
-export function FreeNotesOverlay({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function FreeNotesOverlay({
+  open,
+  onClose,
+  folderId,
+}: {
+  open: boolean;
+  onClose: () => void;
+  folderId: string | null;
+}) {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-[60] flex flex-col bg-foreground/20 p-2 backdrop-blur-[2px] lg:p-4">
@@ -16,7 +24,7 @@ export function FreeNotesOverlay({ open, onClose }: { open: boolean; onClose: ()
         </Button>
       </div>
       <div className="glass mt-2 min-h-0 flex-1 overflow-hidden rounded-3xl p-0">
-        <DocumentNotes />
+        <DocumentNotes key={folderId ?? "root"} folderId={folderId} />
       </div>
     </div>
   );

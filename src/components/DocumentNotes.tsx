@@ -13,7 +13,13 @@ const asStrokes = (raw: unknown): Stroke[] => (Array.isArray(raw) ? (raw as Stro
  * Handschriftliche Notizen zu einem Library-Dokument.
  * Ein Notizbuch pro Dokument, mehrere Seiten, Vektor-Striche, Auto-Speichern.
  */
-export function DocumentNotes({ documentId }: { documentId?: string | null }) {
+export function DocumentNotes({
+  documentId,
+  folderId,
+}: {
+  documentId?: string | null;
+  folderId?: string | null;
+}) {
   const [notebookId, setNotebookId] = useState<string | null>(null);
   const [pages, setPages] = useState<Page[]>([]);
   const [index, setIndex] = useState(0);
@@ -35,18 +41,41 @@ export function DocumentNotes({ documentId }: { documentId?: string | null }) {
       const userId = auth.user?.id;
       if (!userId) return;
 
-      const base = supabase
+      let base = supabase
         .from("notebooks")
         .select("id")
         .eq("user_id", userId)
         .order("created_at", { ascending: true })
-        .limit(1);
+        .limit(10);
 
-      const { data: found } = await (documentId
-        ? base.eq("document_id", documentId)
-        : base.is("document_id", null));
+      if (documentId) {
+        base = base.eq("document_id", documentId);
+      } else {
+        base = base.is("document_id", null);
+        base = folderId ? base.eq("folder_id", folderId) : base.is("folder_id", null);
+      }
 
+      const { data: found } = await base;
+
+      // Ältere Lade-Rennen konnten mehrere Notizbücher für dasselbe Dokument
+      // erzeugen. Bevorzuge das tatsächlich befüllte Buch statt eines leeren
+      // Duplikats, damit niemals Seiten einer falschen Instanz erscheinen.
       let nb = found?.[0] ?? null;
+      if ((found?.length ?? 0) > 1) {
+        const ids = found?.map((item) => item.id) ?? [];
+        const { data: candidatePages } = await supabase
+          .from("notebook_pages")
+          .select("notebook_id, strokes, updated_at")
+          .in("notebook_id", ids);
+        const score = new Map<string, number>();
+        for (const page of candidatePages ?? []) {
+          const strokeCount = Array.isArray(page.strokes) ? page.strokes.length : 0;
+          score.set(page.notebook_id, (score.get(page.notebook_id) ?? 0) + 1 + strokeCount * 1000);
+        }
+        nb = [...(found ?? [])].sort(
+          (a, b) => (score.get(b.id) ?? 0) - (score.get(a.id) ?? 0),
+        )[0] ?? null;
+      }
 
       if (!nb) {
         const created = await supabase
@@ -54,6 +83,7 @@ export function DocumentNotes({ documentId }: { documentId?: string | null }) {
           .insert({
             user_id: userId,
             document_id: documentId ?? null,
+            folder_id: documentId ? null : folderId ?? null,
             title: documentId ? "Notizen" : "Freie Notizen",
           })
           .select("id")
@@ -97,7 +127,7 @@ export function DocumentNotes({ documentId }: { documentId?: string | null }) {
     return () => {
       cancelled = true;
     };
-  }, [documentId]);
+  }, [documentId, folderId]);
 
   const current = pages[index];
 
