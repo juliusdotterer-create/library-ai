@@ -25,6 +25,10 @@ export function DocumentNotes({ documentId }: { documentId?: string | null }) {
     let cancelled = false;
     setLoading(true);
     setIndex(0);
+    // Wichtig: Zustand des vorherigen Dokuments verwerfen, damit keine
+    // fremden Seiten/Striche sichtbar bleiben oder überschrieben werden.
+    setPages([]);
+    setNotebookId(null);
     dirty.current.clear();
     void (async () => {
       const { data: auth } = await supabase.auth.getUser();
@@ -34,13 +38,15 @@ export function DocumentNotes({ documentId }: { documentId?: string | null }) {
       const base = supabase
         .from("notebooks")
         .select("id")
+        .eq("user_id", userId)
         .order("created_at", { ascending: true })
         .limit(1);
 
-      let { data: nb } = await (documentId
+      const { data: found } = await (documentId
         ? base.eq("document_id", documentId)
-        : base.is("document_id", null)
-      ).maybeSingle();
+        : base.is("document_id", null));
+
+      let nb = found?.[0] ?? null;
 
       if (!nb) {
         const created = await supabase
@@ -60,6 +66,7 @@ export function DocumentNotes({ documentId }: { documentId?: string | null }) {
         nb = created.data;
       }
       if (cancelled || !nb) return;
+
 
       const { data: rows } = await supabase
         .from("notebook_pages")
