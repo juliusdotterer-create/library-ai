@@ -14,6 +14,7 @@ export type PreviewDoc = {
   name: string;
   storage_path: string;
   mime_type?: string | null;
+  folder_id?: string | null;
 };
 
 /** In-app preview overlay for documents (no extra browser window). */
