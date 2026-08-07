@@ -43,9 +43,8 @@ import {
 } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/_authenticated/library")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    folder: typeof search.folder === "string" ? search.folder : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): { folder?: string } =>
+    typeof search.folder === "string" ? { folder: search.folder } : {},
   head: () => ({
     meta: [
       { title: "Library – Ordner & Dokumente" },
@@ -412,8 +411,28 @@ function LibraryPage() {
 
   const [preview, setPreview] = useState<PreviewDoc | null>(null);
   const [freeNotes, setFreeNotes] = useState(false);
-  const open = (d: { id: string; name: string; storage_path: string; mime_type: string | null }) =>
-    setPreview({ id: d.id, name: d.name, storage_path: d.storage_path, mime_type: d.mime_type });
+  const [noteDoc, setNoteDoc] = useState<{ notebookId: string; name: string } | null>(null);
+  const open = (d: {
+    id: string;
+    name: string;
+    storage_path: string;
+    mime_type: string | null;
+    kind?: string | null;
+    notebook_id?: string | null;
+  }) => {
+    if (d.kind === "note" && d.notebook_id) {
+      setNoteDoc({ notebookId: d.notebook_id, name: d.name });
+      return;
+    }
+    setPreview({
+      id: d.id,
+      name: d.name,
+      storage_path: d.storage_path,
+      mime_type: d.mime_type,
+      folder_id: current.id,
+    });
+  };
+
 
   return (
     <div
@@ -609,8 +628,13 @@ function LibraryPage() {
           >
             <button className="flex flex-1 items-center gap-3 text-left" onClick={() => open(d)}>
               <span className="flex size-10 items-center justify-center rounded-2xl bg-muted">
-                <FileText className="size-5 text-muted-foreground" />
+                {d.kind === "note" ? (
+                  <NotebookPen className="size-5 text-primary" />
+                ) : (
+                  <FileText className="size-5 text-muted-foreground" />
+                )}
               </span>
+
               <span className="min-w-0">
                 <span className="block truncate font-medium">{d.name}</span>
               </span>
@@ -681,6 +705,18 @@ function LibraryPage() {
         folderId={current.id}
         onClose={() => setFreeNotes(false)}
       />
+      <FreeNotesOverlay
+        key={noteDoc?.notebookId ?? "note"}
+        open={!!noteDoc}
+        folderId={current.id}
+        notebookId={noteDoc?.notebookId ?? null}
+        title={noteDoc?.name}
+        onClose={() => {
+          setNoteDoc(null);
+          invalidate();
+        }}
+      />
+
     </div>
   );
 }
