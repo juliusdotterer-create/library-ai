@@ -628,8 +628,13 @@ function LibraryPage() {
           >
             <button className="flex flex-1 items-center gap-3 text-left" onClick={() => open(d)}>
               <span className="flex size-10 items-center justify-center rounded-2xl bg-muted">
-                <FileText className="size-5 text-muted-foreground" />
+                {d.kind === "note" ? (
+                  <NotebookPen className="size-5 text-primary" />
+                ) : (
+                  <FileText className="size-5 text-muted-foreground" />
+                )}
               </span>
+
               <span className="min-w-0">
                 <span className="block truncate font-medium">{d.name}</span>
               </span>
