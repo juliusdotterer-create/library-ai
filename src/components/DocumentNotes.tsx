@@ -1,13 +1,31 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, FileDown, Plus, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { HandwritingCanvas, type Stroke } from "@/components/HandwritingCanvas";
+import { downloadBlob, notesToPdfBlob } from "@/lib/notes-pdf";
 
 type Page = { id: string; position: number; strokes: Stroke[] };
 
 const asStrokes = (raw: unknown): Stroke[] => (Array.isArray(raw) ? (raw as Stroke[]) : []);
+
+const stamp = () =>
+  new Date().toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
 
 /**
  * Handschriftliche Notizen zu einem Library-Dokument.
@@ -16,15 +34,26 @@ const asStrokes = (raw: unknown): Stroke[] => (Array.isArray(raw) ? (raw as Stro
 export function DocumentNotes({
   documentId,
   folderId,
+  notebookId: fixedNotebookId,
+  saveFolderId,
+  suggestedName,
 }: {
   documentId?: string | null;
   folderId?: string | null;
+  /** Direkt zu ladendes Notizbuch (gespeicherte Notiz aus der Library). */
+  notebookId?: string | null;
+  /** Zielordner, in dem die Notiz als Library-Eintrag gespeichert wird. */
+  saveFolderId?: string | null;
+  suggestedName?: string;
 }) {
   const [notebookId, setNotebookId] = useState<string | null>(null);
   const [pages, setPages] = useState<Page[]>([]);
   const [index, setIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savedDocId, setSavedDocId] = useState<string | null>(null);
+  const [nameDialog, setNameDialog] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const dirty = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -35,46 +64,51 @@ export function DocumentNotes({
     // fremden Seiten/Striche sichtbar bleiben oder überschrieben werden.
     setPages([]);
     setNotebookId(null);
+    setSavedDocId(null);
     dirty.current.clear();
     void (async () => {
       const { data: auth } = await supabase.auth.getUser();
       const userId = auth.user?.id;
       if (!userId) return;
 
-      let base = supabase
-        .from("notebooks")
-        .select("id")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: true })
-        .limit(10);
+      let nb: { id: string } | null = fixedNotebookId ? { id: fixedNotebookId } : null;
 
-      if (documentId) {
-        base = base.eq("document_id", documentId);
-      } else {
-        base = base.is("document_id", null);
-        base = folderId ? base.eq("folder_id", folderId) : base.is("folder_id", null);
-      }
+      if (!nb) {
+        let base = supabase
+          .from("notebooks")
+          .select("id")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: true })
+          .limit(10);
 
-      const { data: found } = await base;
-
-      // Ältere Lade-Rennen konnten mehrere Notizbücher für dasselbe Dokument
-      // erzeugen. Bevorzuge das tatsächlich befüllte Buch statt eines leeren
-      // Duplikats, damit niemals Seiten einer falschen Instanz erscheinen.
-      let nb = found?.[0] ?? null;
-      if ((found?.length ?? 0) > 1) {
-        const ids = found?.map((item) => item.id) ?? [];
-        const { data: candidatePages } = await supabase
-          .from("notebook_pages")
-          .select("notebook_id, strokes, updated_at")
-          .in("notebook_id", ids);
-        const score = new Map<string, number>();
-        for (const page of candidatePages ?? []) {
-          const strokeCount = Array.isArray(page.strokes) ? page.strokes.length : 0;
-          score.set(page.notebook_id, (score.get(page.notebook_id) ?? 0) + 1 + strokeCount * 1000);
+        if (documentId) {
+          base = base.eq("document_id", documentId);
+        } else {
+          base = base.is("document_id", null);
+          base = folderId ? base.eq("folder_id", folderId) : base.is("folder_id", null);
         }
-        nb = [...(found ?? [])].sort(
-          (a, b) => (score.get(b.id) ?? 0) - (score.get(a.id) ?? 0),
-        )[0] ?? null;
+
+        const { data: found } = await base;
+
+        // Ältere Lade-Rennen konnten mehrere Notizbücher für dasselbe Dokument
+        // erzeugen. Bevorzuge das tatsächlich befüllte Buch statt eines leeren
+        // Duplikats, damit niemals Seiten einer falschen Instanz erscheinen.
+        nb = found?.[0] ?? null;
+        if ((found?.length ?? 0) > 1) {
+          const ids = found?.map((item) => item.id) ?? [];
+          const { data: candidatePages } = await supabase
+            .from("notebook_pages")
+            .select("notebook_id, strokes, updated_at")
+            .in("notebook_id", ids);
+          const score = new Map<string, number>();
+          for (const page of candidatePages ?? []) {
+            const strokeCount = Array.isArray(page.strokes) ? page.strokes.length : 0;
+            score.set(page.notebook_id, (score.get(page.notebook_id) ?? 0) + 1 + strokeCount * 1000);
+          }
+          nb =
+            [...(found ?? [])].sort((a, b) => (score.get(b.id) ?? 0) - (score.get(a.id) ?? 0))[0] ??
+            null;
+        }
       }
 
       if (!nb) {
@@ -97,7 +131,6 @@ export function DocumentNotes({
       }
       if (cancelled || !nb) return;
 
-
       const { data: rows } = await supabase
         .from("notebook_pages")
         .select("id, position, strokes")
@@ -119,15 +152,25 @@ export function DocumentNotes({
         if (first.data)
           list = [{ id: first.data.id, position: first.data.position, strokes: [] }];
       }
+
+      // Ist diese Notiz bereits als Library-Eintrag gespeichert?
+      const { data: linked } = await supabase
+        .from("documents")
+        .select("id")
+        .eq("notebook_id", nb.id)
+        .is("deleted_at", null)
+        .maybeSingle();
+
       if (cancelled) return;
       setNotebookId(nb.id);
+      setSavedDocId(linked?.id ?? null);
       setPages(list);
       setLoading(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, [documentId, folderId]);
+  }, [documentId, folderId, fixedNotebookId]);
 
   const current = pages[index];
 
@@ -192,6 +235,82 @@ export function DocumentNotes({
     if (error) toast.error("Seite konnte nicht gelöscht werden");
   };
 
+  const defaultName = suggestedName ?? `Notiz ${stamp()}`;
+
+  /** Notiz als eigenen Library-Eintrag anlegen bzw. umbenennen. */
+  const saveAsNote = async (name: string) => {
+    if (!notebookId) return;
+    setBusy(true);
+    try {
+      const { data: auth } = await supabase.auth.getUser();
+      const userId = auth.user?.id;
+      if (!userId) return;
+
+      if (savedDocId) {
+        const { error } = await supabase.from("documents").update({ name }).eq("id", savedDocId);
+        if (error) throw error;
+        toast.success("Notiz aktualisiert");
+      } else {
+        const { data, error } = await supabase
+          .from("documents")
+          .insert({
+            user_id: userId,
+            folder_id: saveFolderId ?? null,
+            notebook_id: notebookId,
+            name,
+            kind: "note",
+            storage_path: "",
+            mime_type: null,
+          })
+          .select("id")
+          .single();
+        if (error) throw error;
+        setSavedDocId(data.id);
+        toast.success("Notiz in der Library gespeichert");
+      }
+      await supabase.from("notebooks").update({ title: name }).eq("id", notebookId);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Speichern fehlgeschlagen");
+    } finally {
+      setBusy(false);
+      setNameDialog(null);
+    }
+  };
+
+  const exportPdf = async (toLibrary: boolean) => {
+    setBusy(true);
+    try {
+      const blob = await notesToPdfBlob(pages.map((p) => p.strokes));
+      const filename = `${defaultName}.pdf`;
+      if (!toLibrary) {
+        downloadBlob(blob, filename);
+        return;
+      }
+      const { data: auth } = await supabase.auth.getUser();
+      const userId = auth.user?.id;
+      if (!userId) return;
+      const storagePath = `${userId}/${crypto.randomUUID()}-notiz.pdf`;
+      const up = await supabase.storage
+        .from("documents")
+        .upload(storagePath, blob, { contentType: "application/pdf" });
+      if (up.error) throw up.error;
+      const { error } = await supabase.from("documents").insert({
+        user_id: userId,
+        folder_id: saveFolderId ?? null,
+        name: filename,
+        storage_path: storagePath,
+        mime_type: "application/pdf",
+        size_bytes: blob.size,
+      });
+      if (error) throw error;
+      toast.success("PDF in der Library gespeichert");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "PDF-Export fehlgeschlagen");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (loading)
     return (
       <div className="flex size-full items-center justify-center p-6">
@@ -245,8 +364,35 @@ export function DocumentNotes({
         >
           <Trash2 className="size-4" />
         </Button>
+
+        <Button
+          size="icon"
+          variant={savedDocId ? "secondary" : "default"}
+          className="rounded-2xl"
+          disabled={busy || !notebookId}
+          title={savedDocId ? "Notiz umbenennen" : "Als Notiz in der Library speichern"}
+          onClick={() => setNameDialog(defaultName)}
+        >
+          <Save className="size-4" />
+        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="icon" variant="ghost" className="rounded-2xl" title="Als PDF exportieren">
+              <FileDown className="size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="glass rounded-2xl">
+            <DropdownMenuItem disabled={busy} onClick={() => void exportPdf(false)}>
+              <Download className="size-4" /> PDF herunterladen
+            </DropdownMenuItem>
+            <DropdownMenuItem disabled={busy} onClick={() => void exportPdf(true)}>
+              <FileDown className="size-4" /> PDF in Library speichern
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
         <span className="ml-auto text-[11px] text-muted-foreground">
-          {saving ? "Speichert…" : "Automatisch gespeichert"}
+          {busy ? "Arbeitet…" : saving ? "Speichert…" : "Automatisch gespeichert"}
         </span>
       </div>
 
@@ -258,6 +404,29 @@ export function DocumentNotes({
           className="min-h-0 flex-1"
         />
       )}
+
+      <Dialog open={nameDialog !== null} onOpenChange={(o) => !o && setNameDialog(null)}>
+        <DialogContent className="glass rounded-3xl">
+          <DialogHeader>
+            <DialogTitle>{savedDocId ? "Notiz umbenennen" : "Notiz speichern"}</DialogTitle>
+          </DialogHeader>
+          <Input
+            className="rounded-2xl"
+            value={nameDialog ?? ""}
+            onChange={(e) => setNameDialog(e.target.value)}
+            placeholder="Name der Notiz"
+          />
+          <DialogFooter>
+            <Button
+              className="rounded-2xl"
+              disabled={busy || !nameDialog?.trim()}
+              onClick={() => nameDialog && void saveAsNote(nameDialog.trim())}
+            >
+              Speichern
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
