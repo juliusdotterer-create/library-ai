@@ -120,6 +120,7 @@ export type Database = {
           kind: string
           mime_type: string | null
           name: string
+          notebook_id: string | null
           size_bytes: number | null
           storage_path: string
           updated_at: string
@@ -133,8 +134,9 @@ export type Database = {
           kind?: string
           mime_type?: string | null
           name: string
+          notebook_id?: string | null
           size_bytes?: number | null
-          storage_path: string
+          storage_path?: string
           updated_at?: string
           user_id: string
         }
@@ -146,6 +148,7 @@ export type Database = {
           kind?: string
           mime_type?: string | null
           name?: string
+          notebook_id?: string | null
           size_bytes?: number | null
           storage_path?: string
           updated_at?: string
@@ -157,6 +160,13 @@ export type Database = {
             columns: ["folder_id"]
             isOneToOne: false
             referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_notebook_id_fkey"
+            columns: ["notebook_id"]
+            isOneToOne: false
+            referencedRelation: "notebooks"
             referencedColumns: ["id"]
           },
         ]
