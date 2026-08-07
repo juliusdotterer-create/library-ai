@@ -154,7 +154,13 @@ export function DocumentPreview({
             className="glass min-h-0 flex-1 overflow-hidden rounded-3xl p-0"
             style={{ flex: `1 1 ${100 - split}%` }}
           >
-            <DocumentNotes key={doc.id} documentId={doc.id} />
+            <DocumentNotes
+              key={doc.id}
+              documentId={doc.id}
+              saveFolderId={doc.folder_id ?? null}
+              suggestedName={`Notizen – ${doc.name.replace(/\.[^.]+$/, "")}`}
+            />
+
           </div>
         )}
       </div>
