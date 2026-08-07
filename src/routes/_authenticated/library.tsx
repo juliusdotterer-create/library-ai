@@ -705,6 +705,18 @@ function LibraryPage() {
         folderId={current.id}
         onClose={() => setFreeNotes(false)}
       />
+      <FreeNotesOverlay
+        key={noteDoc?.notebookId ?? "note"}
+        open={!!noteDoc}
+        folderId={current.id}
+        notebookId={noteDoc?.notebookId ?? null}
+        title={noteDoc?.name}
+        onClose={() => {
+          setNoteDoc(null);
+          invalidate();
+        }}
+      />
+
     </div>
   );
 }
