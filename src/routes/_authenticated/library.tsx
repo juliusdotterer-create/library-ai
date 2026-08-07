@@ -411,8 +411,28 @@ function LibraryPage() {
 
   const [preview, setPreview] = useState<PreviewDoc | null>(null);
   const [freeNotes, setFreeNotes] = useState(false);
-  const open = (d: { id: string; name: string; storage_path: string; mime_type: string | null }) =>
-    setPreview({ id: d.id, name: d.name, storage_path: d.storage_path, mime_type: d.mime_type });
+  const [noteDoc, setNoteDoc] = useState<{ notebookId: string; name: string } | null>(null);
+  const open = (d: {
+    id: string;
+    name: string;
+    storage_path: string;
+    mime_type: string | null;
+    kind?: string | null;
+    notebook_id?: string | null;
+  }) => {
+    if (d.kind === "note" && d.notebook_id) {
+      setNoteDoc({ notebookId: d.notebook_id, name: d.name });
+      return;
+    }
+    setPreview({
+      id: d.id,
+      name: d.name,
+      storage_path: d.storage_path,
+      mime_type: d.mime_type,
+      folder_id: current.id,
+    });
+  };
+
 
   return (
     <div
