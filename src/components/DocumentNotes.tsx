@@ -1,9 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Download, FileDown, Plus, Save, Trash2 } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  FileDown,
+  Pen,
+  Plus,
+  Save,
+  Trash2,
+  Type,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -11,21 +22,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { HandwritingCanvas, type Stroke } from "@/components/HandwritingCanvas";
 import { downloadBlob, notesToPdfBlob } from "@/lib/notes-pdf";
 
-type Page = { id: string; position: number; strokes: Stroke[] };
+type Page = { id: string; position: number; strokes: Stroke[]; text: string };
 
 const asStrokes = (raw: unknown): Stroke[] => (Array.isArray(raw) ? (raw as Stroke[]) : []);
 
 const stamp = () =>
   new Date().toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
+
 
 /**
  * Handschriftliche Notizen zu einem Library-Dokument.
