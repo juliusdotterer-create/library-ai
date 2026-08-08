@@ -60,6 +60,8 @@ export function DocumentNotes({
   const [savedDocId, setSavedDocId] = useState<string | null>(null);
   const [nameDialog, setNameDialog] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [mode, setMode] = useState<"draw" | "text">("draw");
   const dirty = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -393,35 +395,93 @@ export function DocumentNotes({
         >
           <Save className="size-4" />
         </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button size="icon" variant="ghost" className="rounded-2xl" title="Als PDF exportieren">
-              <FileDown className="size-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="glass rounded-2xl">
-            <DropdownMenuItem disabled={busy} onClick={() => void exportPdf(false)}>
-              <Download className="size-4" /> PDF herunterladen
-            </DropdownMenuItem>
-            <DropdownMenuItem disabled={busy} onClick={() => void exportPdf(true)}>
-              <FileDown className="size-4" /> PDF in Library speichern
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="rounded-2xl"
+          title="Als PDF exportieren"
+          disabled={busy}
+          onClick={() => setExportOpen(true)}
+        >
+          <FileDown className="size-4" />
+        </Button>
+
+        <div className="ml-2 flex items-center gap-0.5 rounded-2xl bg-muted/60 p-0.5">
+          <Button
+            size="icon"
+            variant={mode === "draw" ? "default" : "ghost"}
+            className="size-7 rounded-2xl"
+            title="Handschrift"
+            onClick={() => setMode("draw")}
+          >
+            <Pen className="size-3.5" />
+          </Button>
+          <Button
+            size="icon"
+            variant={mode === "text" ? "default" : "ghost"}
+            className="size-7 rounded-2xl"
+            title="Fließtext"
+            onClick={() => setMode("text")}
+          >
+            <Type className="size-3.5" />
+          </Button>
+        </div>
 
         <span className="ml-auto text-[11px] text-muted-foreground">
           {busy ? "Arbeitet…" : saving ? "Speichert…" : "Automatisch gespeichert"}
         </span>
       </div>
 
-      {current && (
-        <HandwritingCanvas
-          key={current.id}
-          strokes={current.strokes}
-          onChange={updateStrokes}
-          className="min-h-0 flex-1"
-        />
-      )}
+      {current &&
+        (mode === "text" ? (
+          <Textarea
+            key={`${current.id}-text`}
+            value={current.text}
+            onChange={(e) => updateText(e.target.value)}
+            placeholder="Fließtext schreiben…"
+            className="min-h-0 flex-1 resize-none rounded-none border-0 bg-transparent p-4 text-sm leading-relaxed focus-visible:ring-0"
+          />
+        ) : (
+          <HandwritingCanvas
+            key={current.id}
+            strokes={current.strokes}
+            onChange={updateStrokes}
+            className="min-h-0 flex-1"
+          />
+        ))}
+
+      <Dialog open={exportOpen} onOpenChange={setExportOpen}>
+        <DialogContent className="glass rounded-3xl">
+          <DialogHeader>
+            <DialogTitle>Als PDF exportieren</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-2">
+            <Button
+              variant="secondary"
+              className="justify-start rounded-2xl"
+              disabled={busy}
+              onClick={() => {
+                setExportOpen(false);
+                void exportPdf(false);
+              }}
+            >
+              <Download className="size-4" /> PDF herunterladen
+            </Button>
+            <Button
+              variant="secondary"
+              className="justify-start rounded-2xl"
+              disabled={busy}
+              onClick={() => {
+                setExportOpen(false);
+                void exportPdf(true);
+              }}
+            >
+              <FileDown className="size-4" /> PDF in Library speichern
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
 
       <Dialog open={nameDialog !== null} onOpenChange={(o) => !o && setNameDialog(null)}>
         <DialogContent className="glass rounded-3xl">
