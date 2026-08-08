@@ -305,6 +305,7 @@ export type Database = {
           notebook_id: string
           position: number
           strokes: Json
+          text: string
           updated_at: string
           user_id: string
         }
@@ -314,6 +315,7 @@ export type Database = {
           notebook_id: string
           position?: number
           strokes?: Json
+          text?: string
           updated_at?: string
           user_id: string
         }
@@ -323,6 +325,7 @@ export type Database = {
           notebook_id?: string
           position?: number
           strokes?: Json
+          text?: string
           updated_at?: string
           user_id?: string
         }
