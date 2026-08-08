@@ -1,9 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Download, FileDown, Plus, Save, Trash2 } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  FileDown,
+  Pen,
+  Plus,
+  Save,
+  Trash2,
+  Type,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -11,21 +22,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { HandwritingCanvas, type Stroke } from "@/components/HandwritingCanvas";
 import { downloadBlob, notesToPdfBlob } from "@/lib/notes-pdf";
 
-type Page = { id: string; position: number; strokes: Stroke[] };
+type Page = { id: string; position: number; strokes: Stroke[]; text: string };
 
 const asStrokes = (raw: unknown): Stroke[] => (Array.isArray(raw) ? (raw as Stroke[]) : []);
 
 const stamp = () =>
   new Date().toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
+
 
 /**
  * Handschriftliche Notizen zu einem Library-Dokument.
@@ -54,6 +60,8 @@ export function DocumentNotes({
   const [savedDocId, setSavedDocId] = useState<string | null>(null);
   const [nameDialog, setNameDialog] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [mode, setMode] = useState<"draw" | "text">("draw");
   const dirty = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -133,7 +141,7 @@ export function DocumentNotes({
 
       const { data: rows } = await supabase
         .from("notebook_pages")
-        .select("id, position, strokes")
+        .select("id, position, strokes, text")
         .eq("notebook_id", nb.id)
         .order("position", { ascending: true });
 
@@ -141,17 +149,19 @@ export function DocumentNotes({
         id: r.id,
         position: r.position,
         strokes: asStrokes(r.strokes),
+        text: r.text ?? "",
       }));
 
       if (!list.length) {
         const first = await supabase
           .from("notebook_pages")
           .insert({ user_id: userId, notebook_id: nb.id, position: 0, strokes: [] })
-          .select("id, position, strokes")
+          .select("id, position, strokes, text")
           .single();
         if (first.data)
-          list = [{ id: first.data.id, position: first.data.position, strokes: [] }];
+          list = [{ id: first.data.id, position: first.data.position, strokes: [], text: "" }];
       }
+
 
       // Ist diese Notiz bereits als Library-Eintrag gespeichert?
       const { data: linked } = await supabase
@@ -187,7 +197,7 @@ export function DocumentNotes({
           if (!page) continue;
           const { error } = await supabase
             .from("notebook_pages")
-            .update({ strokes: page.strokes as unknown as never })
+            .update({ strokes: page.strokes as unknown as never, text: page.text })
             .eq("id", id);
           if (error) toast.error("Notiz konnte nicht gespeichert werden");
         }
@@ -206,6 +216,16 @@ export function DocumentNotes({
     [current],
   );
 
+  const updateText = useCallback(
+    (next: string) => {
+      if (!current) return;
+      dirty.current.add(current.id);
+      setPages((prev) => prev.map((p) => (p.id === current.id ? { ...p, text: next } : p)));
+    },
+    [current],
+  );
+
+
   const addPage = async () => {
     if (!notebookId) return;
     const { data: auth } = await supabase.auth.getUser();
@@ -221,7 +241,7 @@ export function DocumentNotes({
       toast.error("Seite konnte nicht angelegt werden");
       return;
     }
-    setPages((prev) => [...prev, { id: data.id, position: data.position, strokes: [] }]);
+    setPages((prev) => [...prev, { id: data.id, position: data.position, strokes: [], text: "" }]);
     setIndex(position);
   };
 
@@ -280,7 +300,7 @@ export function DocumentNotes({
   const exportPdf = async (toLibrary: boolean) => {
     setBusy(true);
     try {
-      const blob = await notesToPdfBlob(pages.map((p) => p.strokes));
+      const blob = await notesToPdfBlob(pages.map((p) => ({ strokes: p.strokes, text: p.text })));
       const filename = `${defaultName}.pdf`;
       if (!toLibrary) {
         downloadBlob(blob, filename);
@@ -375,35 +395,93 @@ export function DocumentNotes({
         >
           <Save className="size-4" />
         </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button size="icon" variant="ghost" className="rounded-2xl" title="Als PDF exportieren">
-              <FileDown className="size-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="glass rounded-2xl">
-            <DropdownMenuItem disabled={busy} onClick={() => void exportPdf(false)}>
-              <Download className="size-4" /> PDF herunterladen
-            </DropdownMenuItem>
-            <DropdownMenuItem disabled={busy} onClick={() => void exportPdf(true)}>
-              <FileDown className="size-4" /> PDF in Library speichern
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="rounded-2xl"
+          title="Als PDF exportieren"
+          disabled={busy}
+          onClick={() => setExportOpen(true)}
+        >
+          <FileDown className="size-4" />
+        </Button>
+
+        <div className="ml-2 flex items-center gap-0.5 rounded-2xl bg-muted/60 p-0.5">
+          <Button
+            size="icon"
+            variant={mode === "draw" ? "default" : "ghost"}
+            className="size-7 rounded-2xl"
+            title="Handschrift"
+            onClick={() => setMode("draw")}
+          >
+            <Pen className="size-3.5" />
+          </Button>
+          <Button
+            size="icon"
+            variant={mode === "text" ? "default" : "ghost"}
+            className="size-7 rounded-2xl"
+            title="Fließtext"
+            onClick={() => setMode("text")}
+          >
+            <Type className="size-3.5" />
+          </Button>
+        </div>
 
         <span className="ml-auto text-[11px] text-muted-foreground">
           {busy ? "Arbeitet…" : saving ? "Speichert…" : "Automatisch gespeichert"}
         </span>
       </div>
 
-      {current && (
-        <HandwritingCanvas
-          key={current.id}
-          strokes={current.strokes}
-          onChange={updateStrokes}
-          className="min-h-0 flex-1"
-        />
-      )}
+      {current &&
+        (mode === "text" ? (
+          <Textarea
+            key={`${current.id}-text`}
+            value={current.text}
+            onChange={(e) => updateText(e.target.value)}
+            placeholder="Fließtext schreiben…"
+            className="min-h-0 flex-1 resize-none rounded-none border-0 bg-transparent p-4 text-sm leading-relaxed focus-visible:ring-0"
+          />
+        ) : (
+          <HandwritingCanvas
+            key={current.id}
+            strokes={current.strokes}
+            onChange={updateStrokes}
+            className="min-h-0 flex-1"
+          />
+        ))}
+
+      <Dialog open={exportOpen} onOpenChange={setExportOpen}>
+        <DialogContent className="glass rounded-3xl">
+          <DialogHeader>
+            <DialogTitle>Als PDF exportieren</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-2">
+            <Button
+              variant="secondary"
+              className="justify-start rounded-2xl"
+              disabled={busy}
+              onClick={() => {
+                setExportOpen(false);
+                void exportPdf(false);
+              }}
+            >
+              <Download className="size-4" /> PDF herunterladen
+            </Button>
+            <Button
+              variant="secondary"
+              className="justify-start rounded-2xl"
+              disabled={busy}
+              onClick={() => {
+                setExportOpen(false);
+                void exportPdf(true);
+              }}
+            >
+              <FileDown className="size-4" /> PDF in Library speichern
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
 
       <Dialog open={nameDialog !== null} onOpenChange={(o) => !o && setNameDialog(null)}>
         <DialogContent className="glass rounded-3xl">
