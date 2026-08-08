@@ -239,7 +239,7 @@ export function DocumentNotes({
       toast.error("Seite konnte nicht angelegt werden");
       return;
     }
-    setPages((prev) => [...prev, { id: data.id, position: data.position, strokes: [] }]);
+    setPages((prev) => [...prev, { id: data.id, position: data.position, strokes: [], text: "" }]);
     setIndex(position);
   };
 
@@ -298,7 +298,7 @@ export function DocumentNotes({
   const exportPdf = async (toLibrary: boolean) => {
     setBusy(true);
     try {
-      const blob = await notesToPdfBlob(pages.map((p) => p.strokes));
+      const blob = await notesToPdfBlob(pages.map((p) => ({ strokes: p.strokes, text: p.text })));
       const filename = `${defaultName}.pdf`;
       if (!toLibrary) {
         downloadBlob(blob, filename);
