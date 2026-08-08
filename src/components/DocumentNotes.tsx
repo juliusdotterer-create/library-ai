@@ -139,7 +139,7 @@ export function DocumentNotes({
 
       const { data: rows } = await supabase
         .from("notebook_pages")
-        .select("id, position, strokes")
+        .select("id, position, strokes, text")
         .eq("notebook_id", nb.id)
         .order("position", { ascending: true });
 
@@ -147,17 +147,19 @@ export function DocumentNotes({
         id: r.id,
         position: r.position,
         strokes: asStrokes(r.strokes),
+        text: r.text ?? "",
       }));
 
       if (!list.length) {
         const first = await supabase
           .from("notebook_pages")
           .insert({ user_id: userId, notebook_id: nb.id, position: 0, strokes: [] })
-          .select("id, position, strokes")
+          .select("id, position, strokes, text")
           .single();
         if (first.data)
-          list = [{ id: first.data.id, position: first.data.position, strokes: [] }];
+          list = [{ id: first.data.id, position: first.data.position, strokes: [], text: "" }];
       }
+
 
       // Ist diese Notiz bereits als Library-Eintrag gespeichert?
       const { data: linked } = await supabase
