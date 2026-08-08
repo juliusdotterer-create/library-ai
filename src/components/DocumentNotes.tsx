@@ -195,7 +195,7 @@ export function DocumentNotes({
           if (!page) continue;
           const { error } = await supabase
             .from("notebook_pages")
-            .update({ strokes: page.strokes as unknown as never })
+            .update({ strokes: page.strokes as unknown as never, text: page.text })
             .eq("id", id);
           if (error) toast.error("Notiz konnte nicht gespeichert werden");
         }
@@ -213,6 +213,16 @@ export function DocumentNotes({
     },
     [current],
   );
+
+  const updateText = useCallback(
+    (next: string) => {
+      if (!current) return;
+      dirty.current.add(current.id);
+      setPages((prev) => prev.map((p) => (p.id === current.id ? { ...p, text: next } : p)));
+    },
+    [current],
+  );
+
 
   const addPage = async () => {
     if (!notebookId) return;
