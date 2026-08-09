@@ -61,6 +61,17 @@ function SettingsPage() {
       </div>
 
       <section className="glass space-y-3 rounded-3xl p-5">
+        <div>
+          <h2 className="font-semibold">Profil</h2>
+          <p className="text-sm text-muted-foreground">
+            Name, E-Mail-Adresse und Passwort deines Accounts.
+          </p>
+        </div>
+        <ProfilePanel />
+      </section>
+
+
+      <section className="glass space-y-3 rounded-3xl p-5">
         <Label className="text-xs text-muted-foreground">Modus</Label>
         <div className="flex gap-2">
           {(
