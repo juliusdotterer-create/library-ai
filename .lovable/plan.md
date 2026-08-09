@@ -30,3 +30,5 @@ Ein neuer Abschnitt "Profil" ganz oben auf der Einstellungsseite, mit dem du Anz
 - Passwort: `supabase.auth.updateUser({ password })`.
 - Validierung mit `zod`, Feedback über `sonner`-Toasts.
 - Keine Datenbank-Migration nötig - `profiles.display_name` existiert bereits.
+- In `src/components/AppShell.tsx` wird das `Settings2`-Icon durch `CircleUserRound` (lucide-react) ersetzt.
+
