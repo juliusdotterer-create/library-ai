@@ -109,11 +109,11 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
           <Link
             to="/einstellungen"
-            title="Design"
-            aria-label="Design-Einstellungen"
+            title="Profil & Einstellungen"
+            aria-label="Profil & Einstellungen"
             className="rounded-2xl p-2 text-muted-foreground/40 transition-colors hover:text-foreground"
           >
-            <Settings2 className="size-4" />
+            <CircleUserRound className="size-4" />
           </Link>
           <Button
             variant="ghost"
