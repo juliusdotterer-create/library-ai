@@ -7,6 +7,7 @@ import { Slider } from "@/components/ui/slider";
 import { TrashPanel } from "@/components/TrashPanel";
 import { TransferPanel } from "@/components/TransferPanel";
 import { WhitelistPanel } from "@/components/WhitelistPanel";
+import { ProfilePanel } from "@/components/ProfilePanel";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useTheme, ACCENT_PRESETS } from "@/lib/theme";
