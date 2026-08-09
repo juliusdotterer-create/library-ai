@@ -5,7 +5,7 @@ import {
   CalendarDays,
   ListChecks,
   LinkIcon,
-  Settings2,
+  CircleUserRound,
   Bot,
   Moon,
   Sun,
