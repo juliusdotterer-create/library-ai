@@ -7,6 +7,7 @@ import { Slider } from "@/components/ui/slider";
 import { TrashPanel } from "@/components/TrashPanel";
 import { TransferPanel } from "@/components/TransferPanel";
 import { WhitelistPanel } from "@/components/WhitelistPanel";
+import { ProfilePanel } from "@/components/ProfilePanel";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useTheme, ACCENT_PRESETS } from "@/lib/theme";
@@ -58,6 +59,17 @@ function SettingsPage() {
           Liquid Glass trifft auf ruhiges Off-White. Alles lässt sich anpassen.
         </p>
       </div>
+
+      <section className="glass space-y-3 rounded-3xl p-5">
+        <div>
+          <h2 className="font-semibold">Profil</h2>
+          <p className="text-sm text-muted-foreground">
+            Name, E-Mail-Adresse und Passwort deines Accounts.
+          </p>
+        </div>
+        <ProfilePanel />
+      </section>
+
 
       <section className="glass space-y-3 rounded-3xl p-5">
         <Label className="text-xs text-muted-foreground">Modus</Label>
