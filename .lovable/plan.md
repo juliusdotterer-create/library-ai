@@ -18,6 +18,11 @@ Ein neuer Abschnitt "Profil" ganz oben auf der Einstellungsseite, mit dem du Anz
 - Mindestens 8 Zeichen, beide Felder müssen übereinstimmen.
 - Nach Erfolg werden die Felder geleert und eine Bestätigung angezeigt.
 
+## Icon in der Kopfleiste
+- Das Zahnrad-Symbol, das zu den Einstellungen führt, wird durch ein typisches Profil-Icon (Person im Kreis) ersetzt - in Kopfleiste und Mobilansicht identisch.
+- Tooltip/Beschriftung wird zu "Profil & Einstellungen".
+
+
 ## Technische Umsetzung
 - Neue Komponente `src/components/ProfilePanel.tsx`, eingebunden in `src/routes/_authenticated/einstellungen.tsx` als erste Sektion (gleicher Glass-Card-Stil wie die übrigen Bereiche).
 - Anzeigename: Lesen/Schreiben auf `public.profiles` (`display_name`) per Upsert über den Browser-Client; RLS deckt das bereits ab (eigene Zeile). Zusätzlich wird `display_name` in den Auth-Metadaten aktualisiert, damit neue Sessions konsistent sind.
