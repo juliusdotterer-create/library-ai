@@ -557,6 +557,7 @@ export function PdfAnnotator({
             title="Alle Markierungen löschen"
             disabled={annos.length === 0}
             onClick={() => {
+              pendingRedraw.current = -1;
               commit([]);
               toast.success("Markierungen gelöscht");
             }}
