@@ -70,6 +70,8 @@ type RequestRow = {
   to_profile?: { display_name: string | null } | null;
 };
 
+type JsonValue = string | number | boolean | null | { [key: string]: JsonValue } | JsonValue[];
+
 /**
  * Startet eine Übertragungs-Anfrage. Gibt immer eine nicht aufschlussreiche
  * Erfolgsmeldung zurück, damit nicht enumeriert werden kann, welche E-Mail-Adressen
