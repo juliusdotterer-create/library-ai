@@ -154,10 +154,10 @@ function LibraryPage() {
 
   const createFolder = useMutation({
     mutationFn: async (name: string) => {
-      const { data: auth } = await supabase.auth.getUser();
+      if (!uid) throw new Error("Nicht angemeldet");
       const { error } = await supabase
         .from("folders")
-        .insert({ name, parent_id: current.id, user_id: auth.user!.id });
+        .insert({ name, parent_id: current.id, user_id: uid });
       if (error) throw error;
     },
     onSuccess: () => {
