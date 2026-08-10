@@ -3,6 +3,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { checkAccess } from "@/lib/access.functions";
 
+function isNetworkError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  const msg = err.message.toLowerCase();
+  return (
+    msg.includes("fetch") ||
+    msg.includes("network") ||
+    msg.includes("timeout") ||
+    msg.includes("abort") ||
+    msg.includes("failed to fetch")
+  );
+}
+
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
@@ -10,11 +22,16 @@ export const Route = createFileRoute("/_authenticated")({
     if (error || !data.user) throw redirect({ to: "/auth" });
 
     // Zugangs-Whitelist: nur freigeschaltete E-Mail-Adressen dürfen die App nutzen.
-    // Netzwerkfehler dürfen die App nicht blockieren (Blank Screen) – dann wird nicht ausgesperrt.
+    // Nur bei echten Netzwerk-/Timeout-Fehlern fail-open, sonst fail-closed.
     let allowed = true;
     try {
       allowed = (await checkAccess()).allowed;
-    } catch {
+    } catch (err) {
+      if (!isNetworkError(err)) {
+        await supabase.auth.signOut();
+        throw redirect({ to: "/auth" });
+      }
+      // Bei Netzwerkproblemen vorübergehend durchlassen, damit die App nicht hängt.
       allowed = true;
     }
     if (!allowed) {
@@ -22,8 +39,6 @@ export const Route = createFileRoute("/_authenticated")({
       await supabase.auth.signOut();
       throw redirect({ to: "/auth" });
     }
-
-
 
     return { user: data.user };
   },
