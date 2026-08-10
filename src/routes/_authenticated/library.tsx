@@ -200,8 +200,10 @@ function LibraryPage() {
       toast.info("Nur Systemdateien (z. B. desktop.ini) – nichts importiert");
       return;
     }
-    const { data: auth } = await supabase.auth.getUser();
-    const uid = auth.user!.id;
+    if (!uid) {
+      toast.error("Nicht angemeldet");
+      return;
+    }
     const cache = new Map<string, string | null>([["", current.id]]);
 
 
