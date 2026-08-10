@@ -78,8 +78,6 @@ export function DocumentNotes({
     setSavedDocId(null);
     dirty.current.clear();
     void (async () => {
-      const { data: auth } = await supabase.auth.getUser();
-      const userId = auth.user?.id;
       if (!userId) return;
 
       let nb: { id: string } | null = fixedNotebookId ? { id: fixedNotebookId } : null;
