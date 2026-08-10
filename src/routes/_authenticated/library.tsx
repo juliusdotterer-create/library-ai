@@ -68,6 +68,8 @@ const isJunk = (name: string) => JUNK.test(name) || name.startsWith("._");
 
 function LibraryPage() {
   const qc = useQueryClient();
+  const { user } = useAuth();
+  const uid = user?.id;
   const { folder: folderParam } = Route.useSearch();
   const [path, setPath] = useState<Crumb[]>([{ id: null, name: "Library" }]);
   const current = path[path.length - 1];
