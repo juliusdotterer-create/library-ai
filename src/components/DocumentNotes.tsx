@@ -228,10 +228,7 @@ export function DocumentNotes({
 
 
   const addPage = async () => {
-    if (!notebookId) return;
-    const { data: auth } = await supabase.auth.getUser();
-    const userId = auth.user?.id;
-    if (!userId) return;
+    if (!notebookId || !userId) return;
     const position = pages.length;
     const { data, error } = await supabase
       .from("notebook_pages")
