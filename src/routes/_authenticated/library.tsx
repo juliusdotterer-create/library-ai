@@ -177,7 +177,8 @@ function LibraryPage() {
     name: string;
   } | null>(null);
 
-  const uploadFile = async (file: File, uid: string, folderId: string | null) => {
+  const uploadFile = async (file: File, folderId: string | null) => {
+    if (!uid) throw new Error("Nicht angemeldet");
     const storagePath = `${uid}/${crypto.randomUUID()}-${file.name.replace(/[^\w.\-]/g, "_")}`;
     const { error: upErr } = await supabase.storage
       .from("documents")
