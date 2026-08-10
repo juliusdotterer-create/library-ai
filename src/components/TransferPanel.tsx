@@ -20,6 +20,7 @@ type Request = {
   scopes: Scopes;
   status: "pending" | "accepted" | "rejected" | "expired";
   created_at: string;
+  updated_at: string;
   expires_at: string;
   from_profile?: { display_name: string | null } | null;
   to_profile?: { display_name: string | null } | null;
