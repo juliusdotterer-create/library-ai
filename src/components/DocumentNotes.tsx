@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -52,6 +53,8 @@ export function DocumentNotes({
   saveFolderId?: string | null;
   suggestedName?: string;
 }) {
+  const { user } = useAuth();
+  const userId = user?.id;
   const [notebookId, setNotebookId] = useState<string | null>(null);
   const [pages, setPages] = useState<Page[]>([]);
   const [index, setIndex] = useState(0);
@@ -75,8 +78,6 @@ export function DocumentNotes({
     setSavedDocId(null);
     dirty.current.clear();
     void (async () => {
-      const { data: auth } = await supabase.auth.getUser();
-      const userId = auth.user?.id;
       if (!userId) return;
 
       let nb: { id: string } | null = fixedNotebookId ? { id: fixedNotebookId } : null;
@@ -227,10 +228,7 @@ export function DocumentNotes({
 
 
   const addPage = async () => {
-    if (!notebookId) return;
-    const { data: auth } = await supabase.auth.getUser();
-    const userId = auth.user?.id;
-    if (!userId) return;
+    if (!notebookId || !userId) return;
     const position = pages.length;
     const { data, error } = await supabase
       .from("notebook_pages")
@@ -259,12 +257,9 @@ export function DocumentNotes({
 
   /** Notiz als eigenen Library-Eintrag anlegen bzw. umbenennen. */
   const saveAsNote = async (name: string) => {
-    if (!notebookId) return;
+    if (!notebookId || !userId) return;
     setBusy(true);
     try {
-      const { data: auth } = await supabase.auth.getUser();
-      const userId = auth.user?.id;
-      if (!userId) return;
 
       if (savedDocId) {
         const { error } = await supabase.from("documents").update({ name }).eq("id", savedDocId);
@@ -306,8 +301,6 @@ export function DocumentNotes({
         downloadBlob(blob, filename);
         return;
       }
-      const { data: auth } = await supabase.auth.getUser();
-      const userId = auth.user?.id;
       if (!userId) return;
       const storagePath = `${userId}/${crypto.randomUUID()}-notiz.pdf`;
       const up = await supabase.storage

@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { softDeleteFolder } from "@/lib/tree";
 import { Progress } from "@/components/ui/progress";
@@ -67,6 +68,8 @@ const isJunk = (name: string) => JUNK.test(name) || name.startsWith("._");
 
 function LibraryPage() {
   const qc = useQueryClient();
+  const { user } = useAuth();
+  const uid = user?.id;
   const { folder: folderParam } = Route.useSearch();
   const [path, setPath] = useState<Crumb[]>([{ id: null, name: "Library" }]);
   const current = path[path.length - 1];
@@ -151,10 +154,10 @@ function LibraryPage() {
 
   const createFolder = useMutation({
     mutationFn: async (name: string) => {
-      const { data: auth } = await supabase.auth.getUser();
+      if (!uid) throw new Error("Nicht angemeldet");
       const { error } = await supabase
         .from("folders")
-        .insert({ name, parent_id: current.id, user_id: auth.user!.id });
+        .insert({ name, parent_id: current.id, user_id: uid });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -174,7 +177,8 @@ function LibraryPage() {
     name: string;
   } | null>(null);
 
-  const uploadFile = async (file: File, uid: string, folderId: string | null) => {
+  const uploadFile = async (file: File, folderId: string | null) => {
+    if (!uid) throw new Error("Nicht angemeldet");
     const storagePath = `${uid}/${crypto.randomUUID()}-${file.name.replace(/[^\w.\-]/g, "_")}`;
     const { error: upErr } = await supabase.storage
       .from("documents")
@@ -197,8 +201,10 @@ function LibraryPage() {
       toast.info("Nur Systemdateien (z. B. desktop.ini) – nichts importiert");
       return;
     }
-    const { data: auth } = await supabase.auth.getUser();
-    const uid = auth.user!.id;
+    if (!uid) {
+      toast.error("Nicht angemeldet");
+      return;
+    }
     const cache = new Map<string, string | null>([["", current.id]]);
 
 
@@ -238,7 +244,7 @@ function LibraryPage() {
       for (let attempt = 1; attempt <= 3; attempt++) {
         try {
           const folderId = await ensureFolder(segments);
-          await uploadFile(file, uid, folderId);
+          await uploadFile(file, folderId);
           break;
         } catch (err) {
           if (attempt === 3) {

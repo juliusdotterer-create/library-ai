@@ -4,6 +4,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ConfirmDelete } from "@/components/ConfirmDelete";
 
 type Row = { id: string; email: string; note: string | null; created_at: string };
 
@@ -41,9 +42,11 @@ export function WhitelistPanel() {
   };
 
   const remove = async (row: Row) => {
-    if (!window.confirm(`${row.email} wirklich von der Whitelist entfernen?`)) return;
     const { error } = await supabase.from("allowed_emails").delete().eq("id", row.id);
-    if (error) return toast.error(error.message);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     void load();
   };
 
@@ -77,15 +80,17 @@ export function WhitelistPanel() {
               <p className="truncate font-medium">{r.email}</p>
               {r.note ? <p className="truncate text-xs text-muted-foreground">{r.note}</p> : null}
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-xl"
-              onClick={() => remove(r)}
-              aria-label="Entfernen"
+            <ConfirmDelete
+              name={r.email}
+              title="Von Whitelist entfernen"
+              description={`„${r.email}“ wird aus der Zugangsliste entfernt. Bereits registrierte Nutzer bleiben aktiv.`}
+              confirmLabel="Entfernen"
+              onConfirm={() => remove(r)}
             >
-              <Trash2 className="size-4" />
-            </Button>
+              <Button variant="ghost" size="icon" className="rounded-xl" aria-label="Entfernen">
+                <Trash2 className="size-4" />
+              </Button>
+            </ConfirmDelete>
           </li>
         ))}
         {rows.length === 0 ? (

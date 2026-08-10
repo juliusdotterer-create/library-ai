@@ -1,11 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const OWNER_EMAIL = "julius.dotterer@gmail.com";
+const OWNER_EMAIL = process.env["OWNER_EMAIL"] ?? "julius.dotterer@gmail.com";
 
 /**
  * Prüft serverseitig, ob der angemeldete Nutzer freigeschaltet ist,
- * und legt für den Eigentümer-Account die Admin-Rolle an.
+ * und legt für den Eigentümer-Account die Admin-Rolle an (nur wenn noch nicht vorhanden).
  */
 export const checkAccess = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -16,9 +16,17 @@ export const checkAccess = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     if (email === OWNER_EMAIL) {
-      await supabaseAdmin
+      const { data: existingRole } = await supabaseAdmin
         .from("user_roles")
-        .upsert({ user_id: context.userId, role: "admin" }, { onConflict: "user_id,role" });
+        .select("id")
+        .eq("user_id", context.userId)
+        .eq("role", "admin")
+        .maybeSingle();
+      if (!existingRole) {
+        await supabaseAdmin
+          .from("user_roles")
+          .upsert({ user_id: context.userId, role: "admin" }, { onConflict: "user_id,role" });
+      }
     }
 
     const { data: allowedRow } = await supabaseAdmin

@@ -211,11 +211,15 @@ export function PdfAnnotator({
   }, [annos, loaded, documentId]);
 
   /* ---------------- draw overlays ---------------- */
-  const redraw = useCallback(() => {
+  const pendingRedraw = useRef<number | null>(null);
+
+  const drawPages = useCallback((indices?: number[]) => {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    view.forEach((dim, i) => {
+    const pageList = indices ?? view.map((_, i) => i);
+    pageList.forEach((i) => {
+      const dim = view[i];
       const canvas = overlayRefs.current[i];
-      if (!canvas) return;
+      if (!canvas || !dim) return;
       if (canvas.width !== Math.round(dim.w * dpr)) {
         canvas.width = Math.round(dim.w * dpr);
         canvas.height = Math.round(dim.h * dpr);
@@ -228,6 +232,7 @@ export function PdfAnnotator({
         ...annos.filter((a): a is Stroke => a.kind === "stroke" && a.page === i),
         ...(drawing.current && drawing.current.page === i ? [drawing.current] : []),
       ];
+      if (items.length === 0) return;
       for (const s of items) {
         if (s.pts.length === 0) continue;
         ctx.save();
@@ -250,9 +255,19 @@ export function PdfAnnotator({
     });
   }, [annos, view, zoom]);
 
+  const drawPagesRef = useRef(drawPages);
+  drawPagesRef.current = drawPages;
+
   useEffect(() => {
-    redraw();
-  }, [redraw]);
+    drawPagesRef.current();
+  }, [view, zoom]);
+
+  useEffect(() => {
+    if (pendingRedraw.current === null) return;
+    if (pendingRedraw.current === -1) drawPagesRef.current();
+    else drawPagesRef.current([pendingRedraw.current]);
+    pendingRedraw.current = null;
+  }, [annos]);
 
   /* ---------------- zoom (buttons + ctrl/pinch wheel) ---------------- */
   const zoomAt = useCallback((factor: number, clientY?: number) => {
@@ -294,6 +309,7 @@ export function PdfAnnotator({
   };
 
   const undo = () => {
+    pendingRedraw.current = -1;
     setPast((p) => {
       if (p.length === 0) return p;
       const prev = p[p.length - 1]!;
@@ -304,6 +320,7 @@ export function PdfAnnotator({
   };
 
   const redo = () => {
+    pendingRedraw.current = -1;
     setFuture((f) => {
       if (f.length === 0) return f;
       const next = f[0]!;
@@ -333,7 +350,10 @@ export function PdfAnnotator({
           tol + (a.tool === "marker" ? a.width * 3 : a.width),
       );
     });
-    if (hit) commit(annos.filter((a) => a.id !== hit.id));
+    if (hit) {
+      pendingRedraw.current = i;
+      commit(annos.filter((a) => a.id !== hit.id));
+    }
   };
 
   /** Apple Pencil: Radierspitze bzw. Doppeltipp schaltet auf den Radiergummi. */
@@ -368,6 +388,7 @@ export function PdfAnnotator({
     if (tool === "none") return;
     const p = pointFor(e);
     if (tool === "note") {
+      pendingRedraw.current = i;
       const note: Note = { id: uid(), kind: "note", page: i, x: p[0], y: p[1], text: "" };
       commit([...annos, note]);
       setEditNote(note.id);
@@ -388,7 +409,7 @@ export function PdfAnnotator({
       width: tool === "marker" ? 3 : penWidth,
       pts: [p],
     };
-    redraw();
+    drawPagesRef.current([i]);
   };
 
   const onPointerMove = (e: React.PointerEvent, i: number) => {
@@ -402,14 +423,18 @@ export function PdfAnnotator({
     }
     if (!drawing.current || drawing.current.page !== i) return;
     drawing.current.pts.push(pointFor(e));
-    redraw();
+    drawPagesRef.current([i]);
   };
 
   const onPointerUp = () => {
     const s = drawing.current;
     drawing.current = null;
-    if (s && s.pts.length > 0) commit([...annos, s]);
-    else redraw();
+    if (s && s.pts.length > 0) {
+      pendingRedraw.current = s.page;
+      commit([...annos, s]);
+    } else if (s) {
+      drawPagesRef.current([s.page]);
+    }
   };
 
   const notes = useMemo(() => annos.filter((a): a is Note => a.kind === "note"), [annos]);
@@ -532,6 +557,7 @@ export function PdfAnnotator({
             title="Alle Markierungen löschen"
             disabled={annos.length === 0}
             onClick={() => {
+              pendingRedraw.current = -1;
               commit([]);
               toast.success("Markierungen gelöscht");
             }}
@@ -612,7 +638,10 @@ export function PdfAnnotator({
                           size="sm"
                           variant="ghost"
                           className="h-7 rounded-xl text-xs"
-                          onClick={() => commit(annos.filter((a) => a.id !== n.id))}
+                          onClick={() => {
+                            pendingRedraw.current = n.page;
+                            commit(annos.filter((a) => a.id !== n.id));
+                          }}
                         >
                           Löschen
                         </Button>
