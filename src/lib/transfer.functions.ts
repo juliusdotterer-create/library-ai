@@ -108,7 +108,7 @@ export const createTransferRequest = createServerFn({ method: "POST" })
     const { error } = await supabaseAdmin.from("transfer_requests").insert({
       from_user_id: context.userId,
       to_user_id: target.id,
-      scopes: data.scopes as unknown as Record<string, unknown>,
+      scopes: data.scopes as unknown as JsonValue,
       status: "pending",
       expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
     });
