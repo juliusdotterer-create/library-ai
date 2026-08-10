@@ -333,9 +333,7 @@ async function executeTransfer(fromUserId: string, toUserId: string, scopes: Sco
     user_id: string;
   };
   const events = scopes.calendar
-    ? (await grab<E>(src, "events", "id,title,notes,start_at,end_at,all_day,color,document_id,user_id")).filter(
-        (e) => e.user_id === fromUserId,
-      )
+    ? await grab<E>(src, "events", "id,title,notes,start_at,end_at,all_day,color,document_id,user_id", undefined, fromUserId)
     : [];
   await upsertAll(
     "events",
