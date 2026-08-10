@@ -348,7 +348,10 @@ export function PdfAnnotator({
           tol + (a.tool === "marker" ? a.width * 3 : a.width),
       );
     });
-    if (hit) commit(annos.filter((a) => a.id !== hit.id));
+    if (hit) {
+      pendingRedraw.current = i;
+      commit(annos.filter((a) => a.id !== hit.id));
+    }
   };
 
   /** Apple Pencil: Radierspitze bzw. Doppeltipp schaltet auf den Radiergummi. */
