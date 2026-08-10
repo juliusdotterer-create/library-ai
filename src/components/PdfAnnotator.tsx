@@ -638,7 +638,10 @@ export function PdfAnnotator({
                           size="sm"
                           variant="ghost"
                           className="h-7 rounded-xl text-xs"
-                          onClick={() => commit(annos.filter((a) => a.id !== n.id))}
+                          onClick={() => {
+                            pendingRedraw.current = n.page;
+                            commit(annos.filter((a) => a.id !== n.id));
+                          }}
                         >
                           Löschen
                         </Button>
