@@ -43,7 +43,10 @@ export function WhitelistPanel() {
 
   const remove = async (row: Row) => {
     const { error } = await supabase.from("allowed_emails").delete().eq("id", row.id);
-    if (error) return toast.error(error.message);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     void load();
   };
 
