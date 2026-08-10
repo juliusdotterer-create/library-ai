@@ -244,7 +244,7 @@ function LibraryPage() {
       for (let attempt = 1; attempt <= 3; attempt++) {
         try {
           const folderId = await ensureFolder(segments);
-          await uploadFile(file, uid, folderId);
+          await uploadFile(file, folderId);
           break;
         } catch (err) {
           if (attempt === 3) {
