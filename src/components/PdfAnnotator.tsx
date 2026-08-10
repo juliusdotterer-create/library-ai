@@ -386,6 +386,7 @@ export function PdfAnnotator({
     if (tool === "none") return;
     const p = pointFor(e);
     if (tool === "note") {
+      pendingRedraw.current = i;
       const note: Note = { id: uid(), kind: "note", page: i, x: p[0], y: p[1], text: "" };
       commit([...annos, note]);
       setEditNote(note.id);
@@ -406,7 +407,7 @@ export function PdfAnnotator({
       width: tool === "marker" ? 3 : penWidth,
       pts: [p],
     };
-    redraw();
+    drawPagesRef.current([i]);
   };
 
   const onPointerMove = (e: React.PointerEvent, i: number) => {
@@ -420,14 +421,18 @@ export function PdfAnnotator({
     }
     if (!drawing.current || drawing.current.page !== i) return;
     drawing.current.pts.push(pointFor(e));
-    redraw();
+    drawPagesRef.current([i]);
   };
 
   const onPointerUp = () => {
     const s = drawing.current;
     drawing.current = null;
-    if (s && s.pts.length > 0) commit([...annos, s]);
-    else redraw();
+    if (s && s.pts.length > 0) {
+      pendingRedraw.current = s.page;
+      commit([...annos, s]);
+    } else if (s) {
+      drawPagesRef.current([s.page]);
+    }
   };
 
   const notes = useMemo(() => annos.filter((a): a is Note => a.kind === "note"), [annos]);
