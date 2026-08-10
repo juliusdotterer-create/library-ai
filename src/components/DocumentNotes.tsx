@@ -53,6 +53,8 @@ export function DocumentNotes({
   saveFolderId?: string | null;
   suggestedName?: string;
 }) {
+  const { user } = useAuth();
+  const userId = user?.id;
   const [notebookId, setNotebookId] = useState<string | null>(null);
   const [pages, setPages] = useState<Page[]>([]);
   const [index, setIndex] = useState(0);
