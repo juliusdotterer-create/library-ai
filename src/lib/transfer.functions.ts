@@ -198,10 +198,11 @@ async function executeTransfer(fromUserId: string, toUserId: string, scopes: Sco
 
   // Quelldaten müssen mit Service-Role gelesen werden, da der Empfänger sonst
   // keine Leserechte auf die Daten des Initiators hat.
-  const src = supabaseAdmin.rpc as never as Client;
+  const src = supabaseAdmin as unknown as Client;
 
   type F = {
     id: string;
+    user_id: string;
     parent_id: string | null;
     name: string;
     color: string | null;
@@ -214,7 +215,7 @@ async function executeTransfer(fromUserId: string, toUserId: string, scopes: Sco
 
   if (scopes.library) {
     const folderRows = (
-      await grab<F>(src, "folders", "id,parent_id,name,color,deleted_at")
+      await grab<F>(src, "folders", "id,user_id,parent_id,name,color,deleted_at")
     ).filter((f) => !f.deleted_at && f.user_id === fromUserId);
 
     const map = new Map<string, string>();
