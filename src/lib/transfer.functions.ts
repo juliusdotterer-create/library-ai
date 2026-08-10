@@ -361,9 +361,7 @@ async function executeTransfer(fromUserId: string, toUserId: string, scopes: Sco
     user_id: string;
   };
   const plans = scopes.plans
-    ? (
-        await grab<P>(src, "study_plans", "id,title,description,start_date,end_date,user_id")
-      ).filter((p) => p.user_id === fromUserId)
+    ? await grab<P>(src, "study_plans", "id,title,description,start_date,end_date,user_id", undefined, fromUserId)
     : [];
   await upsertAll(
     "study_plans",
