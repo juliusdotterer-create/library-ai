@@ -257,12 +257,9 @@ export function DocumentNotes({
 
   /** Notiz als eigenen Library-Eintrag anlegen bzw. umbenennen. */
   const saveAsNote = async (name: string) => {
-    if (!notebookId) return;
+    if (!notebookId || !userId) return;
     setBusy(true);
     try {
-      const { data: auth } = await supabase.auth.getUser();
-      const userId = auth.user?.id;
-      if (!userId) return;
 
       if (savedDocId) {
         const { error } = await supabase.from("documents").update({ name }).eq("id", savedDocId);
