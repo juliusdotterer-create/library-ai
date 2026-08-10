@@ -301,8 +301,6 @@ export function DocumentNotes({
         downloadBlob(blob, filename);
         return;
       }
-      const { data: auth } = await supabase.auth.getUser();
-      const userId = auth.user?.id;
       if (!userId) return;
       const storagePath = `${userId}/${crypto.randomUUID()}-notiz.pdf`;
       const up = await supabase.storage
