@@ -309,6 +309,7 @@ export function PdfAnnotator({
   };
 
   const undo = () => {
+    pendingRedraw.current = -1;
     setPast((p) => {
       if (p.length === 0) return p;
       const prev = p[p.length - 1]!;
@@ -319,6 +320,7 @@ export function PdfAnnotator({
   };
 
   const redo = () => {
+    pendingRedraw.current = -1;
     setFuture((f) => {
       if (f.length === 0) return f;
       const next = f[0]!;
