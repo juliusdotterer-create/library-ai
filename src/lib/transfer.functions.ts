@@ -213,9 +213,9 @@ async function executeTransfer(fromUserId: string, toUserId: string, scopes: Sco
   let failed = 0;
 
   if (scopes.library) {
-    const folderRows = (
-      await grab<F>(src, "folders", "id,user_id,parent_id,name,color,deleted_at")
-    ).filter((f) => !f.deleted_at && f.user_id === fromUserId);
+    const folderRows = (await grab<F>(src, "folders", "id,user_id,parent_id,name,color,deleted_at", undefined, fromUserId)).filter(
+      (f) => !f.deleted_at,
+    );
 
     const map = new Map<string, string>();
     for (const f of folderRows) map.set(f.id, await detUuid(`${toUserId}:folder:${f.id}`));
