@@ -211,11 +211,15 @@ export function PdfAnnotator({
   }, [annos, loaded, documentId]);
 
   /* ---------------- draw overlays ---------------- */
-  const redraw = useCallback(() => {
+  const pendingRedraw = useRef<number | null>(null);
+
+  const drawPages = useCallback((indices?: number[]) => {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    view.forEach((dim, i) => {
+    const pageList = indices ?? view.map((_, i) => i);
+    pageList.forEach((i) => {
+      const dim = view[i];
       const canvas = overlayRefs.current[i];
-      if (!canvas) return;
+      if (!canvas || !dim) return;
       if (canvas.width !== Math.round(dim.w * dpr)) {
         canvas.width = Math.round(dim.w * dpr);
         canvas.height = Math.round(dim.h * dpr);
@@ -228,6 +232,7 @@ export function PdfAnnotator({
         ...annos.filter((a): a is Stroke => a.kind === "stroke" && a.page === i),
         ...(drawing.current && drawing.current.page === i ? [drawing.current] : []),
       ];
+      if (items.length === 0) return;
       for (const s of items) {
         if (s.pts.length === 0) continue;
         ctx.save();
@@ -250,9 +255,19 @@ export function PdfAnnotator({
     });
   }, [annos, view, zoom]);
 
+  const drawPagesRef = useRef(drawPages);
+  drawPagesRef.current = drawPages;
+
   useEffect(() => {
-    redraw();
-  }, [redraw]);
+    drawPagesRef.current();
+  }, [view, zoom]);
+
+  useEffect(() => {
+    if (pendingRedraw.current === null) return;
+    if (pendingRedraw.current === -1) drawPagesRef.current();
+    else drawPagesRef.current([pendingRedraw.current]);
+    pendingRedraw.current = null;
+  }, [annos]);
 
   /* ---------------- zoom (buttons + ctrl/pinch wheel) ---------------- */
   const zoomAt = useCallback((factor: number, clientY?: number) => {
