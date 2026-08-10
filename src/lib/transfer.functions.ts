@@ -26,14 +26,13 @@ async function detUuid(seed: string) {
 
 type Client = { from: (t: never) => any };
 
-async function grab<T>(src: Client, table: string, cols: string, order?: string) {
+async function grab<T>(src: Client, table: string, cols: string, order?: string, userId?: string) {
   const page = 1000;
   const all: T[] = [];
   for (let from = 0; ; from += page) {
-    let q = src
-      .from(table as never)
-      .select(cols)
-      .range(from, from + page - 1);
+    let q = src.from(table as never).select(cols);
+    if (userId) q = q.eq("user_id", userId);
+    q = q.range(from, from + page - 1);
     if (order) q = q.order(order, { ascending: true });
     const { data: rows, error } = await q;
     if (error) throw new Error(`${table}: ${error.message}`);
