@@ -61,7 +61,10 @@ export function PdfAnnotator({
   url: string;
   documentId: string;
 }) {
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
   const wrapRef = useRef<HTMLDivElement>(null);
+
   const docRef = useRef<{ numPages: number; getPage: (n: number) => Promise<any> } | null>(null);
   const canvasRefs = useRef<(HTMLCanvasElement | null)[]>([]);
   const overlayRefs = useRef<(HTMLCanvasElement | null)[]>([]);
