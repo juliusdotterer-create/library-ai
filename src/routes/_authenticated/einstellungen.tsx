@@ -10,6 +10,7 @@ import { WhitelistPanel } from "@/components/WhitelistPanel";
 import { ProfilePanel } from "@/components/ProfilePanel";
 
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { useTheme, ACCENT_PRESETS } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -31,22 +32,22 @@ export const Route = createFileRoute("/_authenticated/einstellungen")({
 });
 
 function SettingsPage() {
+  const { user } = useAuth();
   const { mode, hue, chroma, setTheme } = useTheme();
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     void (async () => {
-      const { data } = await supabase.auth.getUser();
-      if (!data.user) return;
+      if (!user) return;
       const { data: roles } = await supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", data.user.id)
+        .eq("user_id", user.id)
         .eq("role", "admin")
         .maybeSingle();
       setIsAdmin(Boolean(roles));
     })();
-  }, []);
+  }, [user]);
 
 
 

@@ -16,6 +16,7 @@ import {
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -55,6 +56,7 @@ export const Route = createFileRoute("/_authenticated/lehrplaene")({
 });
 
 function LehrplanPage() {
+  const { user } = useAuth();
   const qc = useQueryClient();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [planForm, setPlanForm] = useState({ title: "", description: "" });
@@ -199,9 +201,9 @@ function LehrplanPage() {
 
   const createPlan = useMutation({
     mutationFn: async () => {
-      const { data: auth } = await supabase.auth.getUser();
+      if (!user) throw new Error("Nicht angemeldet");
       const { error } = await supabase.from("study_plans").insert({
-        user_id: auth.user!.id,
+        user_id: user.id,
         title: planForm.title,
         description: planForm.description || null,
       });
@@ -229,9 +231,9 @@ function LehrplanPage() {
 
   const addTask = useMutation({
     mutationFn: async () => {
-      const { data: auth } = await supabase.auth.getUser();
+      if (!user) throw new Error("Nicht angemeldet");
       const { error } = await supabase.from("study_tasks").insert({
-        user_id: auth.user!.id,
+        user_id: user.id,
         plan_id: activeId!,
         title: task.title,
         due_date: task.due || null,
@@ -250,7 +252,7 @@ function LehrplanPage() {
 
   const addFolderTasks = useMutation({
     mutationFn: async (folder: PickedFolder) => {
-      const { data: auth } = await supabase.auth.getUser();
+      if (!user) throw new Error("Nicht angemeldet");
       const { data: folderDocs, error: docErr } = await supabase
         .from("documents")
         .select("id,name")
@@ -262,7 +264,7 @@ function LehrplanPage() {
       if (!folderDocs.length) throw new Error("Dieser Ordner enthält keine Dokumente.");
       const { error } = await supabase.from("study_tasks").insert(
         folderDocs.map((d) => ({
-          user_id: auth.user!.id,
+          user_id: user.id,
           plan_id: activeId!,
           title: `${d.name} lernen`,
           due_date: task.due || null,
