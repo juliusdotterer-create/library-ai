@@ -16,6 +16,7 @@ import { de } from "date-fns/locale";
 import { CalendarPlus, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,6 +48,7 @@ export const Route = createFileRoute("/_authenticated/kalender")({
 });
 
 function KalenderPage() {
+  const { user } = useAuth();
   const qc = useQueryClient();
   const [month, setMonth] = useState(new Date());
   const [selected, setSelected] = useState(new Date());
@@ -78,12 +80,12 @@ function KalenderPage() {
 
   const create = useMutation({
     mutationFn: async () => {
-      const { data: auth } = await supabase.auth.getUser();
+      if (!user) throw new Error("Nicht angemeldet");
       const [h, m] = form.time.split(":").map(Number);
       const start = new Date(selected);
       start.setHours(h || 0, m || 0, 0, 0);
       const { error } = await supabase.from("events").insert({
-        user_id: auth.user!.id,
+        user_id: user.id,
         title: form.title,
         notes: form.notes || null,
         start_at: start.toISOString(),

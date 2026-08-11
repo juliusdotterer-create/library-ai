@@ -4,6 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Link2, Pencil, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,6 +41,7 @@ function domainOf(url: string) {
 }
 
 function LinksPage() {
+  const { user } = useAuth();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<{ id?: string; title: string; url: string }>({
@@ -69,10 +71,10 @@ function LinksPage() {
           .eq("id", form.id);
         if (error) throw error;
       } else {
-        const { data: auth } = await supabase.auth.getUser();
+        if (!user) throw new Error("Nicht angemeldet");
         const { error } = await supabase
           .from("links")
-          .insert({ user_id: auth.user!.id, title: form.title, url });
+          .insert({ user_id: user.id, title: form.title, url });
         if (error) throw error;
       }
     },

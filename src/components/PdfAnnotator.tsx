@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -60,7 +61,10 @@ export function PdfAnnotator({
   url: string;
   documentId: string;
 }) {
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
   const wrapRef = useRef<HTMLDivElement>(null);
+
   const docRef = useRef<{ numPages: number; getPage: (n: number) => Promise<any> } | null>(null);
   const canvasRefs = useRef<(HTMLCanvasElement | null)[]>([]);
   const overlayRefs = useRef<(HTMLCanvasElement | null)[]>([]);
@@ -196,8 +200,6 @@ export function PdfAnnotator({
     if (!loaded) return;
     const t = setTimeout(() => {
       void (async () => {
-        const { data: auth } = await supabase.auth.getUser();
-        const userId = auth.user?.id;
         if (!userId) return;
         await supabase
           .from("document_annotations")
@@ -208,7 +210,7 @@ export function PdfAnnotator({
       })();
     }, 900);
     return () => clearTimeout(t);
-  }, [annos, loaded, documentId]);
+  }, [annos, loaded, documentId, userId]);
 
   /* ---------------- draw overlays ---------------- */
   const pendingRedraw = useRef<number | null>(null);
