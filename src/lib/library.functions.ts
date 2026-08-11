@@ -16,23 +16,48 @@ function folderPath(folderId: string | null, folders: FolderNode[]): string {
   return parts.join(" -- ");
 }
 
-async function fetchAllFolders(supabase: { from: (t: never) => any }) {
+type FolderQueryClient = {
+  from: (table: "folders") => {
+    select: (cols: string) => {
+      eq: (
+        col: string,
+        val: string,
+      ) => {
+        is: (
+          col: string,
+          val: null,
+        ) => {
+          order: (col: string) => {
+            range: (
+              from: number,
+              to: number,
+            ) => PromiseLike<{ data: FolderNode[] | null; error: { message: string } | null }>;
+          };
+        };
+      };
+    };
+  };
+};
+
+async function fetchAllFolders(supabase: FolderQueryClient, userId: string) {
   const page = 1000;
   const all: FolderNode[] = [];
   for (let from = 0; ; from += page) {
     const { data: rows, error } = await supabase
-      .from("folders" as never)
+      .from("folders")
       .select("id,name,parent_id")
+      .eq("user_id", userId)
       .is("deleted_at", null)
       .order("id")
       .range(from, from + page - 1);
     if (error) throw new Error(error.message);
-    const batch = (rows ?? []) as FolderNode[];
+    const batch = rows ?? [];
     all.push(...batch);
     if (batch.length < page) break;
   }
   return all;
 }
+
 
 export const searchLibrary = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
