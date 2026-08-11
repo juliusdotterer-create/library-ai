@@ -90,7 +90,11 @@ export const searchLibrary = createServerFn({ method: "POST" })
       .limit(50);
     if (foldersErr) throw new Error(foldersErr.message);
 
-    const allFolders = await fetchAllFolders(context.supabase as unknown as { from: (t: never) => any });
+    const allFolders = await fetchAllFolders(
+      context.supabase as unknown as FolderQueryClient,
+      context.userId,
+    );
+
 
     return {
       docs: (docs ?? []).map((d) => ({
