@@ -118,12 +118,17 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Button
             variant="ghost"
             size="icon"
-            className="hidden rounded-2xl md:inline-flex"
+            className="hidden rounded-2xl text-muted-foreground/40 hover:text-foreground md:inline-flex"
             onClick={toggleMode}
           >
             {mode === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
           </Button>
-          <Button variant="ghost" size="icon" className="rounded-2xl" onClick={signOut}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-2xl text-muted-foreground/40 hover:text-foreground"
+            onClick={signOut}
+          >
             <LogOut className="size-4" />
           </Button>
 
