@@ -326,10 +326,12 @@ export function DocumentNotes({
 
   if (loading)
     return (
-      <div className="flex size-full items-center justify-center p-6">
+      <div className="flex size-full flex-col items-center justify-center gap-2 p-6">
+        <Loader2 className="size-5 animate-spin text-muted-foreground" />
         <p className="text-sm text-muted-foreground">Notizen werden geladen…</p>
       </div>
     );
+
 
   return (
     <div className="flex size-full min-h-0 flex-col">
