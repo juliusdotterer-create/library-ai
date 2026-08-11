@@ -6,8 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { isEmailAllowed } from "@/lib/access.functions";
+import { useAuth } from "@/hooks/useAuth";
 
 export function ProfilePanel() {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [currentEmail, setCurrentEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -22,8 +24,6 @@ export function ProfilePanel() {
 
   useEffect(() => {
     void (async () => {
-      const { data } = await supabase.auth.getUser();
-      const user = data.user;
       if (!user) {
         setLoading(false);
         return;
@@ -37,7 +37,7 @@ export function ProfilePanel() {
       setDisplayName(profile?.display_name ?? (user.email ?? "").split("@")[0] ?? "");
       setLoading(false);
     })();
-  }, []);
+  }, [user]);
 
   const saveName = async () => {
     const name = displayName.trim();
@@ -47,8 +47,7 @@ export function ProfilePanel() {
     }
     setSavingName(true);
     try {
-      const { data } = await supabase.auth.getUser();
-      const uid = data.user?.id;
+      const uid = user?.id;
       if (!uid) throw new Error("Nicht angemeldet");
       const { error } = await supabase
         .from("profiles")
