@@ -122,13 +122,27 @@ export const listTransferRequests = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: rows, error } = await supabaseAdmin
       .from("transfer_requests")
-      .select(
-        "id, from_user_id, to_user_id, scopes, status, created_at, updated_at, expires_at, from_profile:profiles!transfer_requests_from_user_id_fkey(display_name), to_profile:profiles!transfer_requests_to_user_id_fkey(display_name)",
-      )
+      .select("id, from_user_id, to_user_id, scopes, status, created_at, updated_at, expires_at")
       .or(`from_user_id.eq.${context.userId},to_user_id.eq.${context.userId}`)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
-    return { requests: (rows ?? []) as unknown as RequestRow[] };
+
+    const list = (rows ?? []) as unknown as RequestRow[];
+    const ids = Array.from(new Set(list.flatMap((r) => [r.from_user_id, r.to_user_id])));
+    const names = new Map<string, string | null>();
+    if (ids.length > 0) {
+      const { data: profiles } = await supabaseAdmin
+        .from("profiles")
+        .select("id, display_name")
+        .in("id", ids);
+      for (const p of profiles ?? []) names.set(p.id, p.display_name);
+    }
+    for (const r of list) {
+      r.from_profile = { display_name: names.get(r.from_user_id) ?? null };
+      r.to_profile = { display_name: names.get(r.to_user_id) ?? null };
+    }
+    return { requests: list };
+
   });
 
 export const cancelTransferRequest = createServerFn({ method: "POST" })
