@@ -112,8 +112,12 @@ export function TransferPanel() {
     }
   };
 
-  const incoming = requests.filter((r) => r.status === "pending");
-  const outgoing = requests.filter((r) => r.status === "pending");
+  const incoming = userId
+    ? requests.filter((r) => r.status === "pending" && r.to_user_id === userId)
+    : [];
+  const outgoing = userId
+    ? requests.filter((r) => r.status === "pending" && r.from_user_id === userId)
+    : [];
   const history = requests.filter((r) => r.status !== "pending");
 
   return (
