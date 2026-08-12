@@ -1,8 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { FileText, Folder, Loader2, RotateCcw, Trash2 } from "lucide-react";
 import { useRef, useState, type ReactNode } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useTrash } from "@/hooks/useLibrary";
 import { purgeDocuments, purgeFolder, restoreFolder, type PurgeProgress } from "@/lib/tree";
 
 import { Button } from "@/components/ui/button";
@@ -11,19 +12,10 @@ import { ConfirmDelete } from "@/components/ConfirmDelete";
 
 export function TrashPanel() {
   const qc = useQueryClient();
+  const { user } = useAuth();
+  const uid = user?.id;
+  const trash = useTrash();
 
-  const trash = useQuery({
-    queryKey: ["trash"],
-    queryFn: async () => {
-      const [f, d] = await Promise.all([
-        supabase.from("folders").select("*").not("deleted_at", "is", null),
-        supabase.from("documents").select("*").not("deleted_at", "is", null),
-      ]);
-      if (f.error) throw f.error;
-      if (d.error) throw d.error;
-      return { folders: f.data, documents: d.data };
-    },
-  });
 
   const invalidate = () => {
     void qc.invalidateQueries({ queryKey: ["trash"] });
