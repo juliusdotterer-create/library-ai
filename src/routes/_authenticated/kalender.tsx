@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import {
   addMonths,
@@ -17,6 +17,7 @@ import { CalendarPlus, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useEvents } from "@/hooks/useLibrary";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,6 +50,7 @@ export const Route = createFileRoute("/_authenticated/kalender")({
 
 function KalenderPage() {
   const { user } = useAuth();
+  const uid = user?.id;
   const qc = useQueryClient();
   const [month, setMonth] = useState(new Date());
   const [selected, setSelected] = useState(new Date());
@@ -64,19 +66,8 @@ function KalenderPage() {
     return { start, end, days };
   }, [month]);
 
-  const events = useQuery({
-    queryKey: ["events", range.start.toISOString()],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("events")
-        .select("*")
-        .gte("start_at", range.start.toISOString())
-        .lte("start_at", range.end.toISOString())
-        .order("start_at");
-      if (error) throw error;
-      return data;
-    },
-  });
+  const events = useEvents(range.start.toISOString(), range.end.toISOString());
+
 
   const create = useMutation({
     mutationFn: async () => {
@@ -103,7 +94,8 @@ function KalenderPage() {
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("events").delete().eq("id", id);
+      if (!uid) throw new Error("Nicht angemeldet");
+      const { error } = await supabase.from("events").delete().eq("id", id).eq("user_id", uid);
       if (error) throw error;
     },
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["events"] }),

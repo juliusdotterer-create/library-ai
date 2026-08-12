@@ -1,8 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { FileText, Folder, Loader2, RotateCcw, Trash2 } from "lucide-react";
 import { useRef, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useTrash } from "@/hooks/useLibrary";
 import { purgeDocuments, purgeFolder, restoreFolder, type PurgeProgress } from "@/lib/tree";
 
 import { Button } from "@/components/ui/button";
@@ -11,19 +13,9 @@ import { ConfirmDelete } from "@/components/ConfirmDelete";
 
 export function TrashPanel() {
   const qc = useQueryClient();
-
-  const trash = useQuery({
-    queryKey: ["trash"],
-    queryFn: async () => {
-      const [f, d] = await Promise.all([
-        supabase.from("folders").select("*").not("deleted_at", "is", null),
-        supabase.from("documents").select("*").not("deleted_at", "is", null),
-      ]);
-      if (f.error) throw f.error;
-      if (d.error) throw d.error;
-      return { folders: f.data, documents: d.data };
-    },
-  });
+  const { user } = useAuth();
+  const uid = user?.id;
+  const trash = useTrash();
 
   const invalidate = () => {
     void qc.invalidateQueries({ queryKey: ["trash"] });
@@ -33,11 +25,12 @@ export function TrashPanel() {
 
   const restore = useMutation({
     mutationFn: async ({ table, id }: { table: "folders" | "documents"; id: string }) => {
+      if (!uid) throw new Error("Nicht angemeldet");
       if (table === "folders") {
-        await restoreFolder(id);
+        await restoreFolder(id, uid);
         return;
       }
-      const { error } = await supabase.from("documents").update({ deleted_at: null }).eq("id", id);
+      const { error } = await supabase.from("documents").update({ deleted_at: null }).eq("id", id).eq("user_id", uid);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -66,12 +59,13 @@ export function TrashPanel() {
       id: string;
       storagePath?: string | null;
     }) => {
+      if (!uid) throw new Error("Nicht angemeldet");
       begin();
       if (table === "folders") {
-        await purgeFolder(id, track);
+        await purgeFolder(id, uid, track);
         return;
       }
-      await purgeDocuments([{ id, storage_path: storagePath }], track);
+      await purgeDocuments(uid, [{ id, storage_path: storagePath }], track);
     },
     onSuccess: () => {
       invalidate();
@@ -84,16 +78,17 @@ export function TrashPanel() {
 
   const purgeAll = useMutation({
     mutationFn: async () => {
+      if (!uid) throw new Error("Nicht angemeldet");
       begin();
       const docs = trash.data?.documents ?? [];
       const folders = trash.data?.folders ?? [];
       const total = docs.length + folders.length;
-      await purgeDocuments(docs, track, 0, total);
+      await purgeDocuments(uid, docs, track, 0, total);
       // Unterordner zuerst löschen, damit Verweise nicht blockieren
       const byDepth = [...folders].sort((a, b) => depth(b, folders) - depth(a, folders));
       let done = docs.length;
       for (const f of byDepth) {
-        const { error } = await supabase.from("folders").delete().eq("id", f.id);
+        const { error } = await supabase.from("folders").delete().eq("id", f.id).eq("user_id", uid);
         if (error) throw error;
         done++;
         track({ done, total, label: `Ordner werden gelöscht (${done}/${total})` });

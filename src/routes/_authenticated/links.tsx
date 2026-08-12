@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Link2, Pencil, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useLinks } from "@/hooks/useLibrary";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,6 +43,7 @@ function domainOf(url: string) {
 
 function LinksPage() {
   const { user } = useAuth();
+  const uid = user?.id;
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<{ id?: string; title: string; url: string }>({
@@ -49,32 +51,24 @@ function LinksPage() {
     url: "",
   });
 
-  const links = useQuery({
-    queryKey: ["links"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("links")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-  });
+  const links = useLinks();
+
 
   const save = useMutation({
     mutationFn: async () => {
+      if (!uid) throw new Error("Nicht angemeldet");
       const url = form.url.startsWith("http") ? form.url : `https://${form.url}`;
       if (form.id) {
         const { error } = await supabase
           .from("links")
           .update({ title: form.title, url })
-          .eq("id", form.id);
+          .eq("id", form.id)
+          .eq("user_id", uid);
         if (error) throw error;
       } else {
-        if (!user) throw new Error("Nicht angemeldet");
         const { error } = await supabase
           .from("links")
-          .insert({ user_id: user.id, title: form.title, url });
+          .insert({ user_id: uid, title: form.title, url });
         if (error) throw error;
       }
     },
@@ -89,7 +83,8 @@ function LinksPage() {
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("links").delete().eq("id", id);
+      if (!uid) throw new Error("Nicht angemeldet");
+      const { error } = await supabase.from("links").delete().eq("id", id).eq("user_id", uid);
       if (error) throw error;
     },
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["links"] }),

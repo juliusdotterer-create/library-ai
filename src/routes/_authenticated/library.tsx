@@ -20,6 +20,7 @@ import {
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDocuments, useFolders, queryKeys } from "@/hooks/useLibrary";
 import { cn } from "@/lib/utils";
 import { softDeleteFolder } from "@/lib/tree";
 import { Progress } from "@/components/ui/progress";
@@ -93,7 +94,7 @@ function LibraryPage() {
     (async () => {
       const crumbs: Crumb[] = [];
       let id: string | null = folderParam;
-      while (id) {
+      while (id && uid) {
         const res: {
           data: { id: string; name: string; parent_id: string | null } | null;
           error: unknown;
@@ -101,51 +102,22 @@ function LibraryPage() {
           .from("folders")
           .select("id,name,parent_id")
           .eq("id", id)
+          .eq("user_id", uid)
           .maybeSingle();
         if (res.error || !res.data) break;
         crumbs.unshift({ id: res.data.id, name: res.data.name });
         id = res.data.parent_id;
-
       }
       if (!cancelled) setPath([{ id: null, name: "Library" }, ...crumbs]);
     })();
     return () => {
       cancelled = true;
     };
-  }, [folderParam]);
+  }, [folderParam, uid]);
 
 
-  const folders = useQuery({
-    queryKey: ["folders", current.id],
-    queryFn: async () => {
-      let q = supabase
-        .from("folders")
-        .select("*")
-        .is("deleted_at", null)
-        .order("is_favorite", { ascending: false })
-        .order("name");
-      q = current.id ? q.eq("parent_id", current.id) : q.is("parent_id", null);
-      const { data, error } = await q;
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const docs = useQuery({
-    queryKey: ["documents", current.id],
-    queryFn: async () => {
-      let q = supabase
-        .from("documents")
-        .select("*")
-        .is("deleted_at", null)
-        .not("name", "ilike", "desktop.ini")
-        .order("created_at", { ascending: false });
-      q = current.id ? q.eq("folder_id", current.id) : q.is("folder_id", null);
-      const { data, error } = await q;
-      if (error) throw error;
-      return data;
-    },
-  });
+  const folders = useFolders(current.id);
+  const docs = useDocuments(current.id);
 
   const invalidate = () => {
     void qc.invalidateQueries({ queryKey: ["folders"] });
@@ -344,14 +316,16 @@ function LibraryPage() {
 
   const softDelete = useMutation({
     mutationFn: async ({ table, id }: { table: "folders" | "documents"; id: string }) => {
+      if (!uid) throw new Error("Nicht angemeldet");
       if (table === "folders") {
-        await softDeleteFolder(id);
+        await softDeleteFolder(id, uid);
         return;
       }
       const { error } = await supabase
         .from("documents")
         .update({ deleted_at: new Date().toISOString() })
-        .eq("id", id);
+        .eq("id", id)
+        .eq("user_id", uid);
       if (error) throw error;
     },
 
@@ -364,7 +338,12 @@ function LibraryPage() {
 
   const doRename = useMutation({
     mutationFn: async (r: { table: "folders" | "documents"; id: string; name: string }) => {
-      const { error } = await supabase.from(r.table).update({ name: r.name }).eq("id", r.id);
+      if (!uid) throw new Error("Nicht angemeldet");
+      const { error } = await supabase
+        .from(r.table)
+        .update({ name: r.name })
+        .eq("id", r.id)
+        .eq("user_id", uid);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -375,11 +354,14 @@ function LibraryPage() {
   });
 
   const favorites = useQuery({
-    queryKey: ["favorite-folders"],
+    queryKey: ["favorite-folders", uid],
+    enabled: !!uid,
     queryFn: async () => {
+      if (!uid) return [];
       const { data, error } = await supabase
         .from("folders")
         .select("id,name")
+        .eq("user_id", uid)
         .is("deleted_at", null)
         .eq("is_favorite", true)
         .order("name");
@@ -390,23 +372,34 @@ function LibraryPage() {
 
   const toggleFavorite = useMutation({
     mutationFn: async ({ id, value }: { id: string; value: boolean }) => {
-      const { error } = await supabase.from("folders").update({ is_favorite: value }).eq("id", id);
+      if (!uid) throw new Error("Nicht angemeldet");
+      const { error } = await supabase
+        .from("folders")
+        .update({ is_favorite: value })
+        .eq("id", id)
+        .eq("user_id", uid);
       if (error) throw error;
     },
     onSuccess: (_d, v) => {
       invalidate();
-      void qc.invalidateQueries({ queryKey: ["favorite-folders"] });
+      void qc.invalidateQueries({ queryKey: ["favorite-folders", uid] });
       toast.success(v.value ? "Zu Favoriten hinzugefügt" : "Aus Favoriten entfernt");
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const openFolder = async (id: string, name: string) => {
+    if (!uid) return;
     const crumbs: Crumb[] = [];
     let cur: string | null = id;
     while (cur) {
       const res: { data: { id: string; name: string; parent_id: string | null } | null } =
-        await supabase.from("folders").select("id,name,parent_id").eq("id", cur).maybeSingle();
+        await supabase
+          .from("folders")
+          .select("id,name,parent_id")
+          .eq("id", cur)
+          .eq("user_id", uid)
+          .maybeSingle();
       const data = res.data;
       if (!data) break;
       crumbs.unshift({ id: data.id, name: data.name });

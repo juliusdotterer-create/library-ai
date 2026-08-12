@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAuth } from "@/hooks/useAuth";
 import {
   createTransferRequest,
   listTransferRequests,
@@ -29,7 +30,10 @@ type Request = {
 const fmtDate = (s: string) =>
   new Date(s).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
 
+
 export function TransferPanel() {
+  const { user } = useAuth();
+  const userId = user?.id;
   const createReq = useServerFn(createTransferRequest);
   const listReq = useServerFn(listTransferRequests);
   const respond = useServerFn(respondToTransferRequest);
@@ -45,6 +49,9 @@ export function TransferPanel() {
   const [busy, setBusy] = useState(false);
   const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState(true);
+  const [actingId, setActingId] = useState<string | null>(null);
+
+
 
   const load = async () => {
     const { requests } = await listReq();
@@ -75,7 +82,7 @@ export function TransferPanel() {
   };
 
   const answer = async (id: string, action: "accept" | "reject") => {
-    setBusy(true);
+    setActingId(id);
     try {
       const res = await respond({ data: { requestId: id, action } });
       if (action === "accept" && res.accepted) {
@@ -90,12 +97,12 @@ export function TransferPanel() {
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Antwort fehlgeschlagen");
     } finally {
-      setBusy(false);
+      setActingId(null);
     }
   };
 
   const remove = async (id: string) => {
-    setBusy(true);
+    setActingId(id);
     try {
       await cancel({ data: { requestId: id } });
       toast.success("Anfrage zurückgezogen.");
@@ -103,12 +110,16 @@ export function TransferPanel() {
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Zurückziehen fehlgeschlagen");
     } finally {
-      setBusy(false);
+      setActingId(null);
     }
   };
 
-  const incoming = requests.filter((r) => r.status === "pending");
-  const outgoing = requests.filter((r) => r.status === "pending");
+  const incoming = userId
+    ? requests.filter((r) => r.status === "pending" && r.to_user_id === userId)
+    : [];
+  const outgoing = userId
+    ? requests.filter((r) => r.status === "pending" && r.from_user_id === userId)
+    : [];
   const history = requests.filter((r) => r.status !== "pending");
 
   return (
@@ -183,12 +194,12 @@ export function TransferPanel() {
                         size="sm"
                         className="rounded-2xl"
                         onClick={() => answer(r.id, "reject")}
-                        disabled={busy}
+                        disabled={actingId !== null}
                       >
                         <X className="size-4" /> Ablehnen
                       </Button>
-                      <Button size="sm" className="rounded-2xl" onClick={() => answer(r.id, "accept")} disabled={busy}>
-                        {busy ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
+                      <Button size="sm" className="rounded-2xl" onClick={() => answer(r.id, "accept")} disabled={actingId !== null}>
+                        {actingId === r.id ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
                         Annehmen
                       </Button>
                     </div>
@@ -218,10 +229,10 @@ export function TransferPanel() {
                       size="icon"
                       className="rounded-xl"
                       onClick={() => remove(r.id)}
-                      disabled={busy}
+                      disabled={actingId !== null}
                       aria-label="Zurückziehen"
                     >
-                      <Trash2 className="size-4" />
+                      {actingId === r.id ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
                     </Button>
                   </li>
                 ))}
