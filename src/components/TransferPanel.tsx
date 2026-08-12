@@ -229,10 +229,10 @@ export function TransferPanel() {
                       size="icon"
                       className="rounded-xl"
                       onClick={() => remove(r.id)}
-                      disabled={busy}
+                      disabled={actingId !== null}
                       aria-label="Zurückziehen"
                     >
-                      <Trash2 className="size-4" />
+                      {actingId === r.id ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
                     </Button>
                   </li>
                 ))}
