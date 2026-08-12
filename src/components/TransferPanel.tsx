@@ -49,6 +49,8 @@ export function TransferPanel() {
   const [busy, setBusy] = useState(false);
   const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState(true);
+  const [actingId, setActingId] = useState<string | null>(null);
+
 
 
   const load = async () => {
