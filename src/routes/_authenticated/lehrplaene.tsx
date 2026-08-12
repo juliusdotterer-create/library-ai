@@ -17,6 +17,7 @@ import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useAllDocuments, useAllFolders, useStudyPlans, useStudyTasks } from "@/hooks/useLibrary";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -57,6 +58,7 @@ export const Route = createFileRoute("/_authenticated/lehrplaene")({
 
 function LehrplanPage() {
   const { user } = useAuth();
+  const uid = user?.id;
   const qc = useQueryClient();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [planForm, setPlanForm] = useState({ title: "", description: "" });
@@ -70,58 +72,11 @@ function LehrplanPage() {
 
 
 
-  const plans = useQuery({
-    queryKey: ["study_plans"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("study_plans")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      if (data.length && !activeId) setActiveId(data[0].id);
-      return data;
-    },
-  });
+  const plans = useStudyPlans();
+  const tasks = useStudyTasks(activeId);
+  const docs = useAllDocuments();
+  const folders = useAllFolders();
 
-  const tasks = useQuery({
-    queryKey: ["study_tasks", activeId],
-    enabled: !!activeId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("study_tasks")
-        .select("*")
-        .eq("plan_id", activeId!)
-        .order("due_date", { nullsFirst: false });
-      if (error) throw error;
-      return data;
-    },
-  });
-  const docs = useQuery({
-    queryKey: ["all-docs"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("documents")
-        .select("id,name,storage_path,folder_id,mime_type")
-        .is("deleted_at", null)
-        .not("name", "ilike", "desktop.ini")
-        .order("name");
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const folders = useQuery({
-    queryKey: ["all-folders"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("folders")
-        .select("id,name,parent_id")
-        .is("deleted_at", null)
-        .order("name");
-      if (error) throw error;
-      return data;
-    },
-  });
 
   const folderPath = (id: string | null): string => {
     const list = folders.data ?? [];
