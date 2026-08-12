@@ -32,6 +32,8 @@ const fmtDate = (s: string) =>
 
 
 export function TransferPanel() {
+  const { user } = useAuth();
+  const userId = user?.id;
   const createReq = useServerFn(createTransferRequest);
   const listReq = useServerFn(listTransferRequests);
   const respond = useServerFn(respondToTransferRequest);
@@ -47,6 +49,7 @@ export function TransferPanel() {
   const [busy, setBusy] = useState(false);
   const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState(true);
+
 
   const load = async () => {
     const { requests } = await listReq();
