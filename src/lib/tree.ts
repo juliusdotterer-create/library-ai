@@ -11,8 +11,12 @@ function chunk<T>(list: T[], size = ID_CHUNK): T[][] {
   return out;
 }
 
-async function allFolders(): Promise<FolderRow[]> {
-  const { data, error } = await supabase.from("folders").select("id,parent_id");
+async function allFolders(userId: string): Promise<FolderRow[]> {
+  const { data, error } = await supabase
+    .from("folders")
+    .select("id,parent_id")
+    .eq("user_id", userId)
+    .is("deleted_at", null);
   if (error) throw error;
   return data ?? [];
 }
@@ -26,27 +30,35 @@ export function descendantIds(rootId: string, folders: FolderRow[]): string[] {
   return ids;
 }
 
-export async function folderTreeIds(rootId: string): Promise<string[]> {
-  return descendantIds(rootId, await allFolders());
+export async function folderTreeIds(rootId: string, userId: string): Promise<string[]> {
+  return descendantIds(rootId, await allFolders(userId));
 }
 
-async function stampTree(ids: string[], stamp: string | null) {
+async function stampTree(userId: string, ids: string[], stamp: string | null) {
   for (const part of chunk(ids)) {
-    const d1 = await supabase.from("documents").update({ deleted_at: stamp }).in("folder_id", part);
+    const d1 = await supabase
+      .from("documents")
+      .update({ deleted_at: stamp })
+      .eq("user_id", userId)
+      .in("folder_id", part);
     if (d1.error) throw d1.error;
-    const f1 = await supabase.from("folders").update({ deleted_at: stamp }).in("id", part);
+    const f1 = await supabase
+      .from("folders")
+      .update({ deleted_at: stamp })
+      .eq("user_id", userId)
+      .in("id", part);
     if (f1.error) throw f1.error;
   }
 }
 
 /** Ordner samt Unterordnern und allen enthaltenen Dateien in den Papierkorb. */
-export async function softDeleteFolder(rootId: string) {
-  await stampTree(await folderTreeIds(rootId), new Date().toISOString());
+export async function softDeleteFolder(rootId: string, userId: string) {
+  await stampTree(userId, await folderTreeIds(rootId, userId), new Date().toISOString());
 }
 
 /** Ordner samt Inhalt wiederherstellen. */
-export async function restoreFolder(rootId: string) {
-  await stampTree(await folderTreeIds(rootId), null);
+export async function restoreFolder(rootId: string, userId: string) {
+  await stampTree(userId, await folderTreeIds(rootId, userId), null);
 }
 
 export type PurgeProgress = { done: number; total: number; label: string };
@@ -54,6 +66,7 @@ type OnProgress = (p: PurgeProgress) => void;
 
 /** Dateien endgültig löschen: Speicher leeren, Verweise lösen, Zeilen entfernen. */
 export async function purgeDocuments(
+  userId: string,
   docs: { id: string; storage_path?: string | null; name?: string }[],
   onProgress?: OnProgress,
   offset = 0,
@@ -80,35 +93,40 @@ export async function purgeDocuments(
   const ids = docs.map((d) => d.id);
   for (const part of chunk(ids)) {
     for (const table of ["study_tasks", "events"] as const) {
-      const ref = await supabase.from(table).update({ document_id: null }).in("document_id", part);
+      const ref = await supabase
+        .from(table)
+        .update({ document_id: null })
+        .eq("user_id", userId)
+        .in("document_id", part);
       if (ref.error) throw ref.error;
     }
-    const del = await supabase.from("documents").delete().in("id", part);
+    const del = await supabase.from("documents").delete().eq("user_id", userId).in("id", part);
     if (del.error) throw del.error;
   }
   onProgress?.({ done: offset + docs.length, total, label: "Dateien gelöscht" });
 }
 
 /** Ordner samt Inhalt endgültig löschen (inkl. Dateien im Speicher). */
-export async function purgeFolder(rootId: string, onProgress?: OnProgress) {
-  const ids = await folderTreeIds(rootId);
+export async function purgeFolder(rootId: string, userId: string, onProgress?: OnProgress) {
+  const ids = await folderTreeIds(rootId, userId);
 
   const list: { id: string; storage_path: string | null }[] = [];
   for (const part of chunk(ids)) {
     const { data, error } = await supabase
       .from("documents")
       .select("id,storage_path")
+      .eq("user_id", userId)
       .in("folder_id", part);
     if (error) throw error;
     list.push(...(data ?? []));
   }
 
   const total = list.length + ids.length;
-  await purgeDocuments(list, onProgress, 0, total);
+  await purgeDocuments(userId, list, onProgress, 0, total);
   // Kinder zuerst löschen, damit Fremdschlüssel nicht blockieren
   let done = list.length;
   for (const id of [...ids].reverse()) {
-    const del = await supabase.from("folders").delete().eq("id", id);
+    const del = await supabase.from("folders").delete().eq("user_id", userId).eq("id", id);
     if (del.error) throw del.error;
     done++;
     onProgress?.({ done, total, label: `Ordner werden gelöscht (${done}/${total})` });
