@@ -194,12 +194,12 @@ export function TransferPanel() {
                         size="sm"
                         className="rounded-2xl"
                         onClick={() => answer(r.id, "reject")}
-                        disabled={busy}
+                        disabled={actingId !== null}
                       >
                         <X className="size-4" /> Ablehnen
                       </Button>
-                      <Button size="sm" className="rounded-2xl" onClick={() => answer(r.id, "accept")} disabled={busy}>
-                        {busy ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
+                      <Button size="sm" className="rounded-2xl" onClick={() => answer(r.id, "accept")} disabled={actingId !== null}>
+                        {actingId === r.id ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
                         Annehmen
                       </Button>
                     </div>
