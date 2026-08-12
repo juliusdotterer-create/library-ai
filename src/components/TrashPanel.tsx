@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { FileText, Folder, Loader2, RotateCcw, Trash2 } from "lucide-react";
 import { useRef, useState, type ReactNode } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useTrash } from "@/hooks/useLibrary";
 import { purgeDocuments, purgeFolder, restoreFolder, type PurgeProgress } from "@/lib/tree";
@@ -15,9 +16,6 @@ export function TrashPanel() {
   const { user } = useAuth();
   const uid = user?.id;
   const trash = useTrash();
-
-
-import { supabase } from "@/integrations/supabase/client";
 
   const invalidate = () => {
     void qc.invalidateQueries({ queryKey: ["trash"] });
