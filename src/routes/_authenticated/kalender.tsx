@@ -94,7 +94,8 @@ function KalenderPage() {
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("events").delete().eq("id", id);
+      if (!uid) throw new Error("Nicht angemeldet");
+      const { error } = await supabase.from("events").delete().eq("id", id).eq("user_id", uid);
       if (error) throw error;
     },
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["events"] }),
