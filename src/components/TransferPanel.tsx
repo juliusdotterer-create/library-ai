@@ -82,7 +82,7 @@ export function TransferPanel() {
   };
 
   const answer = async (id: string, action: "accept" | "reject") => {
-    setBusy(true);
+    setActingId(id);
     try {
       const res = await respond({ data: { requestId: id, action } });
       if (action === "accept" && res.accepted) {
@@ -97,12 +97,12 @@ export function TransferPanel() {
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Antwort fehlgeschlagen");
     } finally {
-      setBusy(false);
+      setActingId(null);
     }
   };
 
   const remove = async (id: string) => {
-    setBusy(true);
+    setActingId(id);
     try {
       await cancel({ data: { requestId: id } });
       toast.success("Anfrage zurückgezogen.");
@@ -110,7 +110,7 @@ export function TransferPanel() {
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Zurückziehen fehlgeschlagen");
     } finally {
-      setBusy(false);
+      setActingId(null);
     }
   };
 
