@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Link2, Pencil, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useLinks } from "@/hooks/useLibrary";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,6 +43,7 @@ function domainOf(url: string) {
 
 function LinksPage() {
   const { user } = useAuth();
+  const uid = user?.id;
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<{ id?: string; title: string; url: string }>({
@@ -49,17 +51,8 @@ function LinksPage() {
     url: "",
   });
 
-  const links = useQuery({
-    queryKey: ["links"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("links")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-  });
+  const links = useLinks();
+
 
   const save = useMutation({
     mutationFn: async () => {
