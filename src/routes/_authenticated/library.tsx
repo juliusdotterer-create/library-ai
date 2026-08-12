@@ -344,14 +344,16 @@ function LibraryPage() {
 
   const softDelete = useMutation({
     mutationFn: async ({ table, id }: { table: "folders" | "documents"; id: string }) => {
+      if (!uid) throw new Error("Nicht angemeldet");
       if (table === "folders") {
-        await softDeleteFolder(id);
+        await softDeleteFolder(id, uid);
         return;
       }
       const { error } = await supabase
         .from("documents")
         .update({ deleted_at: new Date().toISOString() })
-        .eq("id", id);
+        .eq("id", id)
+        .eq("user_id", uid);
       if (error) throw error;
     },
 
