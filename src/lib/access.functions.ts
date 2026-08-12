@@ -1,11 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const OWNER_EMAIL = process.env["OWNER_EMAIL"] ?? "julius.dotterer@gmail.com";
+const OWNER_EMAIL = process.env["OWNER_EMAIL"];
 
 /**
- * Prüft serverseitig, ob der angemeldete Nutzer freigeschaltet ist,
- * und legt für den Eigentümer-Account die Admin-Rolle an (nur wenn noch nicht vorhanden).
+ * Prüft serverseitig, ob der angemeldete Nutzer freigeschaltet ist.
+ * Die Owner-E-Mail wird ausschließlich aus der Umgebungsvariable gelesen;
+ * ohne gesetzte Variable gibt es keinen Fallback-Admin.
  */
 export const checkAccess = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -15,7 +16,7 @@ export const checkAccess = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    if (email === OWNER_EMAIL) {
+    if (OWNER_EMAIL && email === OWNER_EMAIL) {
       const { data: existingRole } = await supabaseAdmin
         .from("user_roles")
         .select("id")
@@ -61,7 +62,7 @@ export const isEmailAllowed = createServerFn({ method: "POST" })
     return { email };
   })
   .handler(async ({ data }) => {
-    if (data.email === OWNER_EMAIL) return { allowed: true };
+    if (OWNER_EMAIL && data.email === OWNER_EMAIL) return { allowed: true };
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: row } = await supabaseAdmin
       .from("allowed_emails")
