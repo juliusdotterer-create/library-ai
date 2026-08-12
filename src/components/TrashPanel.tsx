@@ -17,6 +17,8 @@ export function TrashPanel() {
   const trash = useTrash();
 
 
+import { supabase } from "@/integrations/supabase/client";
+
   const invalidate = () => {
     void qc.invalidateQueries({ queryKey: ["trash"] });
     void qc.invalidateQueries({ queryKey: ["folders"] });
@@ -25,11 +27,12 @@ export function TrashPanel() {
 
   const restore = useMutation({
     mutationFn: async ({ table, id }: { table: "folders" | "documents"; id: string }) => {
+      if (!uid) throw new Error("Nicht angemeldet");
       if (table === "folders") {
-        await restoreFolder(id);
+        await restoreFolder(id, uid);
         return;
       }
-      const { error } = await supabase.from("documents").update({ deleted_at: null }).eq("id", id);
+      const { error } = await supabase.from("documents").update({ deleted_at: null }).eq("id", id).eq("user_id", uid);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -58,12 +61,13 @@ export function TrashPanel() {
       id: string;
       storagePath?: string | null;
     }) => {
+      if (!uid) throw new Error("Nicht angemeldet");
       begin();
       if (table === "folders") {
-        await purgeFolder(id, track);
+        await purgeFolder(id, uid, track);
         return;
       }
-      await purgeDocuments([{ id, storage_path: storagePath }], track);
+      await purgeDocuments(uid, [{ id, storage_path: storagePath }], track);
     },
     onSuccess: () => {
       invalidate();
@@ -76,16 +80,17 @@ export function TrashPanel() {
 
   const purgeAll = useMutation({
     mutationFn: async () => {
+      if (!uid) throw new Error("Nicht angemeldet");
       begin();
       const docs = trash.data?.documents ?? [];
       const folders = trash.data?.folders ?? [];
       const total = docs.length + folders.length;
-      await purgeDocuments(docs, track, 0, total);
+      await purgeDocuments(uid, docs, track, 0, total);
       // Unterordner zuerst löschen, damit Verweise nicht blockieren
       const byDepth = [...folders].sort((a, b) => depth(b, folders) - depth(a, folders));
       let done = docs.length;
       for (const f of byDepth) {
-        const { error } = await supabase.from("folders").delete().eq("id", f.id);
+        const { error } = await supabase.from("folders").delete().eq("id", f.id).eq("user_id", uid);
         if (error) throw error;
         done++;
         track({ done, total, label: `Ordner werden gelöscht (${done}/${total})` });
