@@ -94,7 +94,7 @@ function LibraryPage() {
     (async () => {
       const crumbs: Crumb[] = [];
       let id: string | null = folderParam;
-      while (id) {
+      while (id && uid) {
         const res: {
           data: { id: string; name: string; parent_id: string | null } | null;
           error: unknown;
@@ -102,51 +102,22 @@ function LibraryPage() {
           .from("folders")
           .select("id,name,parent_id")
           .eq("id", id)
+          .eq("user_id", uid)
           .maybeSingle();
         if (res.error || !res.data) break;
         crumbs.unshift({ id: res.data.id, name: res.data.name });
         id = res.data.parent_id;
-
       }
       if (!cancelled) setPath([{ id: null, name: "Library" }, ...crumbs]);
     })();
     return () => {
       cancelled = true;
     };
-  }, [folderParam]);
+  }, [folderParam, uid]);
 
 
-  const folders = useQuery({
-    queryKey: ["folders", current.id],
-    queryFn: async () => {
-      let q = supabase
-        .from("folders")
-        .select("*")
-        .is("deleted_at", null)
-        .order("is_favorite", { ascending: false })
-        .order("name");
-      q = current.id ? q.eq("parent_id", current.id) : q.is("parent_id", null);
-      const { data, error } = await q;
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const docs = useQuery({
-    queryKey: ["documents", current.id],
-    queryFn: async () => {
-      let q = supabase
-        .from("documents")
-        .select("*")
-        .is("deleted_at", null)
-        .not("name", "ilike", "desktop.ini")
-        .order("created_at", { ascending: false });
-      q = current.id ? q.eq("folder_id", current.id) : q.is("folder_id", null);
-      const { data, error } = await q;
-      if (error) throw error;
-      return data;
-    },
-  });
+  const folders = useFolders(current.id);
+  const docs = useDocuments(current.id);
 
   const invalidate = () => {
     void qc.invalidateQueries({ queryKey: ["folders"] });
