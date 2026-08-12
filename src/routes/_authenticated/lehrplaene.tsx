@@ -77,6 +77,9 @@ function LehrplanPage() {
   const docs = useAllDocuments();
   const folders = useAllFolders();
 
+  useEffect(() => {
+    if (plans.data?.length && !activeId) setActiveId(plans.data[0].id);
+  }, [plans.data, activeId]);
 
   const folderPath = (id: string | null): string => {
     const list = folders.data ?? [];
