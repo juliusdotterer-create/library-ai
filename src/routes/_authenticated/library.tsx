@@ -338,7 +338,12 @@ function LibraryPage() {
 
   const doRename = useMutation({
     mutationFn: async (r: { table: "folders" | "documents"; id: string; name: string }) => {
-      const { error } = await supabase.from(r.table).update({ name: r.name }).eq("id", r.id);
+      if (!uid) throw new Error("Nicht angemeldet");
+      const { error } = await supabase
+        .from(r.table)
+        .update({ name: r.name })
+        .eq("id", r.id)
+        .eq("user_id", uid);
       if (error) throw error;
     },
     onSuccess: () => {
