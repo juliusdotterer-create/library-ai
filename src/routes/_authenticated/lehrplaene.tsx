@@ -210,10 +210,11 @@ function LehrplanPage() {
 
   const addFolderTasks = useMutation({
     mutationFn: async (folder: PickedFolder) => {
-      if (!user) throw new Error("Nicht angemeldet");
+      if (!uid) throw new Error("Nicht angemeldet");
       const { data: folderDocs, error: docErr } = await supabase
         .from("documents")
         .select("id,name")
+        .eq("user_id", uid)
         .eq("folder_id", folder.id)
         .is("deleted_at", null)
         .not("name", "ilike", "desktop.ini")
@@ -222,7 +223,7 @@ function LehrplanPage() {
       if (!folderDocs.length) throw new Error("Dieser Ordner enthält keine Dokumente.");
       const { error } = await supabase.from("study_tasks").insert(
         folderDocs.map((d) => ({
-          user_id: user.id,
+          user_id: uid,
           plan_id: activeId!,
           title: `${d.name} lernen`,
           due_date: task.due || null,
@@ -244,10 +245,12 @@ function LehrplanPage() {
 
   const toggleTask = useMutation({
     mutationFn: async (t: { id: string; done: boolean }) => {
+      if (!uid) throw new Error("Nicht angemeldet");
       const { error } = await supabase
         .from("study_tasks")
         .update({ status: t.done ? "open" : "done" })
-        .eq("id", t.id);
+        .eq("id", t.id)
+        .eq("user_id", uid);
       if (error) throw error;
     },
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["study_tasks"] }),
@@ -255,7 +258,8 @@ function LehrplanPage() {
 
   const removeTask = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("study_tasks").delete().eq("id", id);
+      if (!uid) throw new Error("Nicht angemeldet");
+      const { error } = await supabase.from("study_tasks").delete().eq("id", id).eq("user_id", uid);
       if (error) throw error;
     },
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["study_tasks"] }),
