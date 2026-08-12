@@ -56,18 +56,19 @@ function LinksPage() {
 
   const save = useMutation({
     mutationFn: async () => {
+      if (!uid) throw new Error("Nicht angemeldet");
       const url = form.url.startsWith("http") ? form.url : `https://${form.url}`;
       if (form.id) {
         const { error } = await supabase
           .from("links")
           .update({ title: form.title, url })
-          .eq("id", form.id);
+          .eq("id", form.id)
+          .eq("user_id", uid);
         if (error) throw error;
       } else {
-        if (!user) throw new Error("Nicht angemeldet");
         const { error } = await supabase
           .from("links")
-          .insert({ user_id: user.id, title: form.title, url });
+          .insert({ user_id: uid, title: form.title, url });
         if (error) throw error;
       }
     },
@@ -82,7 +83,8 @@ function LinksPage() {
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("links").delete().eq("id", id);
+      if (!uid) throw new Error("Nicht angemeldet");
+      const { error } = await supabase.from("links").delete().eq("id", id).eq("user_id", uid);
       if (error) throw error;
     },
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["links"] }),
