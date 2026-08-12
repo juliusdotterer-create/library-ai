@@ -354,11 +354,14 @@ function LibraryPage() {
   });
 
   const favorites = useQuery({
-    queryKey: ["favorite-folders"],
+    queryKey: ["favorite-folders", uid],
+    enabled: !!uid,
     queryFn: async () => {
+      if (!uid) return [];
       const { data, error } = await supabase
         .from("folders")
         .select("id,name")
+        .eq("user_id", uid)
         .is("deleted_at", null)
         .eq("is_favorite", true)
         .order("name");
@@ -369,23 +372,34 @@ function LibraryPage() {
 
   const toggleFavorite = useMutation({
     mutationFn: async ({ id, value }: { id: string; value: boolean }) => {
-      const { error } = await supabase.from("folders").update({ is_favorite: value }).eq("id", id);
+      if (!uid) throw new Error("Nicht angemeldet");
+      const { error } = await supabase
+        .from("folders")
+        .update({ is_favorite: value })
+        .eq("id", id)
+        .eq("user_id", uid);
       if (error) throw error;
     },
     onSuccess: (_d, v) => {
       invalidate();
-      void qc.invalidateQueries({ queryKey: ["favorite-folders"] });
+      void qc.invalidateQueries({ queryKey: ["favorite-folders", uid] });
       toast.success(v.value ? "Zu Favoriten hinzugefügt" : "Aus Favoriten entfernt");
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const openFolder = async (id: string, name: string) => {
+    if (!uid) return;
     const crumbs: Crumb[] = [];
     let cur: string | null = id;
     while (cur) {
       const res: { data: { id: string; name: string; parent_id: string | null } | null } =
-        await supabase.from("folders").select("id,name,parent_id").eq("id", cur).maybeSingle();
+        await supabase
+          .from("folders")
+          .select("id,name,parent_id")
+          .eq("id", cur)
+          .eq("user_id", uid)
+          .maybeSingle();
       const data = res.data;
       if (!data) break;
       crumbs.unshift({ id: data.id, name: data.name });
