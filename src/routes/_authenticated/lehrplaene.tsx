@@ -178,7 +178,7 @@ function LehrplanPage() {
 
   const deletePlan = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("study_plans").delete().eq("id", id);
+      const { error } = await supabase.from("study_plans").delete().eq("id", id).eq("user_id", uid);
       if (error) throw error;
     },
     onSuccess: () => {
