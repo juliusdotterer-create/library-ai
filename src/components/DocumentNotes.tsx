@@ -263,7 +263,11 @@ export function DocumentNotes({
     try {
 
       if (savedDocId) {
-        const { error } = await supabase.from("documents").update({ name }).eq("id", savedDocId);
+        const { error } = await supabase
+          .from("documents")
+          .update({ name })
+          .eq("id", savedDocId)
+          .eq("user_id", userId);
         if (error) throw error;
         toast.success("Notiz aktualisiert");
       } else {
