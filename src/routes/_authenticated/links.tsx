@@ -154,20 +154,9 @@ function LinksPage() {
               className="glass group flex items-center gap-3 rounded-3xl p-4 transition-transform hover:-translate-y-0.5"
             >
               <span className="bg-primary-soft flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl">
-                {host ? (
-                  <img
-                    src={`https://www.google.com/s2/favicons?sz=128&domain=${host}`}
-                    alt={`${host} Logo`}
-                    loading="lazy"
-                    className="size-7 rounded-md"
-                    onError={(e) => {
-                      e.currentTarget.style.display = "none";
-                    }}
-                  />
-                ) : (
-                  <Link2 className="size-5 text-primary" />
-                )}
+                <LinkLogo host={host} title={l.title} />
               </span>
+
               <a
                 href={l.url}
                 target="_blank"
