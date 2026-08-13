@@ -178,6 +178,7 @@ function LehrplanPage() {
 
   const deletePlan = useMutation({
     mutationFn: async (id: string) => {
+      if (!uid) throw new Error("Nicht angemeldet");
       const { error } = await supabase.from("study_plans").delete().eq("id", id).eq("user_id", uid);
       if (error) throw error;
     },
