@@ -30,6 +30,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { TimetableGrid } from "@/components/TimetableGrid";
 import { cn } from "@/lib/utils";
 
 
