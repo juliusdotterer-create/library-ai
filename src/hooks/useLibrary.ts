@@ -14,7 +14,27 @@ export const queryKeys = {
   links: ["links"],
   favoriteFolders: ["favorite-folders"],
   folderPath: (folderId: string) => ["folder", folderId],
+  timetable: ["timetable"],
 };
+
+/** Lädt Stundenplan-Einträge des Nutzers (Wochentag, Startzeit). */
+export function useTimetable() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: queryKeys.timetable,
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("timetable_entries")
+        .select("*")
+        .eq("user_id", user!.id)
+        .order("weekday")
+        .order("start_time");
+      if (error) throw error;
+      return data;
+    },
+  });
+}
 
 /** Lädt Ordner eines Eltern-Ordners (nur des aktuellen Nutzers). */
 export function useFolders(parentId: string | null) {
