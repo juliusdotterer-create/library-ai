@@ -261,8 +261,9 @@ function KalenderPage() {
           )}
         </div>
       </aside>
+        </div>
+      )}
     </div>
-
   );
-
 }
+
