@@ -1,6 +1,6 @@
-# Stundenplan-Rubrik im Kalender
+## Stundenplan-Rubrik im Kalender
 
-Der Kalender bekommt zwei Ansichten: "Monat" (wie bisher) und "Stundenplan" – ein Wochenraster für feste, wiederkehrende Termine wie Vorlesungen.
+Der Kalender bekommt zwei Ansichten: "Monat" (wie bisher) und "Stundenplan" – ein Wochenraster für feste, wiederkehrende Termine wie Vorlesungen welchen man über einen zusätzlichen Button erreicht.
 
 ## Was entsteht
 
