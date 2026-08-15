@@ -34,15 +34,19 @@ import { cn } from "@/lib/utils";
 
 
 export const Route = createFileRoute("/_authenticated/kalender")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    view: search.view === "stundenplan" ? ("stundenplan" as const) : ("monat" as const),
+  }),
   head: () => ({
     meta: [
-      { title: "Kalender – Termine & Lernblöcke" },
+      { title: "Kalender – Termine & Stundenpläne" },
       {
         name: "description",
-        content: "Trage Termine, Klausuren und Lernblöcke in deinen integrierten Kalender ein.",
+        content:
+          "Trage Termine, Klausuren und Lernblöcke ein und pflege deinen wöchentlichen Stundenplan.",
       },
-      { property: "og:title", content: "Kalender – Termine & Lernblöcke" },
-      { property: "og:description", content: "Alle Termine deines Studienarchivs im Monatsblick." },
+      { property: "og:title", content: "Kalender – Termine & Stundenpläne" },
+      { property: "og:description", content: "Monatsansicht und Stundenplan deines Studienarchivs." },
     ],
   }),
   component: KalenderPage,
@@ -52,10 +56,13 @@ function KalenderPage() {
   const { user } = useAuth();
   const uid = user?.id;
   const qc = useQueryClient();
+  const { view } = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
   const [month, setMonth] = useState(new Date());
   const [selected, setSelected] = useState(new Date());
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ title: "", notes: "", time: "09:00" });
+
 
 
   const range = useMemo(() => {
