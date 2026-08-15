@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import {
@@ -30,19 +30,24 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { TimetableGrid } from "@/components/TimetableGrid";
 import { cn } from "@/lib/utils";
 
 
 export const Route = createFileRoute("/_authenticated/kalender")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    view: search.view === "stundenplan" ? ("stundenplan" as const) : ("monat" as const),
+  }),
   head: () => ({
     meta: [
-      { title: "Kalender – Termine & Lernblöcke" },
+      { title: "Kalender – Termine & Stundenpläne" },
       {
         name: "description",
-        content: "Trage Termine, Klausuren und Lernblöcke in deinen integrierten Kalender ein.",
+        content:
+          "Trage Termine, Klausuren und Lernblöcke ein und pflege deinen wöchentlichen Stundenplan.",
       },
-      { property: "og:title", content: "Kalender – Termine & Lernblöcke" },
-      { property: "og:description", content: "Alle Termine deines Studienarchivs im Monatsblick." },
+      { property: "og:title", content: "Kalender – Termine & Stundenpläne" },
+      { property: "og:description", content: "Monatsansicht und Stundenplan deines Studienarchivs." },
     ],
   }),
   component: KalenderPage,
@@ -52,10 +57,13 @@ function KalenderPage() {
   const { user } = useAuth();
   const uid = user?.id;
   const qc = useQueryClient();
+  const { view } = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
   const [month, setMonth] = useState(new Date());
   const [selected, setSelected] = useState(new Date());
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ title: "", notes: "", time: "09:00" });
+
 
 
   const range = useMemo(() => {
@@ -105,8 +113,28 @@ function KalenderPage() {
     (events.data ?? []).filter((e) => isSameDay(new Date(e.start_at), d));
 
   return (
-    <div className="grid gap-3 sm:gap-5 lg:grid-cols-[1fr_20rem]">
+    <div className="space-y-3 sm:space-y-4">
+      <div className="glass inline-flex gap-1 rounded-2xl p-1">
+        {(["monat", "stundenplan"] as const).map((v) => (
+          <button
+            key={v}
+            onClick={() => void navigate({ search: { view: v } })}
+            className={cn(
+              "rounded-xl px-3 py-1.5 text-xs font-medium transition-colors sm:text-sm",
+              view === v ? "bg-primary text-primary-foreground" : "text-muted-foreground",
+            )}
+          >
+            {v === "monat" ? "Monat" : "Stundenplan"}
+          </button>
+        ))}
+      </div>
+
+      {view === "stundenplan" ? (
+        <TimetableGrid />
+      ) : (
+        <div className="grid gap-3 sm:gap-5 lg:grid-cols-[1fr_20rem]">
       <div className="glass rounded-3xl p-2 sm:p-4">
+
 
         <div className="mb-2 flex items-center justify-between sm:mb-4">
           <h1 className="text-base font-semibold capitalize sm:text-lg">
@@ -254,8 +282,9 @@ function KalenderPage() {
           )}
         </div>
       </aside>
+        </div>
+      )}
     </div>
-
   );
-
 }
+
