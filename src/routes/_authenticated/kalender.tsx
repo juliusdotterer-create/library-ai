@@ -112,8 +112,28 @@ function KalenderPage() {
     (events.data ?? []).filter((e) => isSameDay(new Date(e.start_at), d));
 
   return (
-    <div className="grid gap-3 sm:gap-5 lg:grid-cols-[1fr_20rem]">
+    <div className="space-y-3 sm:space-y-4">
+      <div className="glass inline-flex gap-1 rounded-2xl p-1">
+        {(["monat", "stundenplan"] as const).map((v) => (
+          <button
+            key={v}
+            onClick={() => void navigate({ search: { view: v } })}
+            className={cn(
+              "rounded-xl px-3 py-1.5 text-xs font-medium transition-colors sm:text-sm",
+              view === v ? "bg-primary text-primary-foreground" : "text-muted-foreground",
+            )}
+          >
+            {v === "monat" ? "Monat" : "Stundenplan"}
+          </button>
+        ))}
+      </div>
+
+      {view === "stundenplan" ? (
+        <TimetableGrid />
+      ) : (
+        <div className="grid gap-3 sm:gap-5 lg:grid-cols-[1fr_20rem]">
       <div className="glass rounded-3xl p-2 sm:p-4">
+
 
         <div className="mb-2 flex items-center justify-between sm:mb-4">
           <h1 className="text-base font-semibold capitalize sm:text-lg">
