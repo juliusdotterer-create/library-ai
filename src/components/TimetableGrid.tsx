@@ -191,7 +191,11 @@ function TimetableWeek() {
             <button
               key={e.id}
               onClick={() => openEdit(e)}
-              className={cn("w-full rounded-2xl p-3 text-left", colorBlockClass(e.color))}
+              className={cn(
+                "w-full rounded-2xl p-3 text-left",
+                colorBlockClass(e.color),
+                isCurrent(e) && "ring-2 ring-primary",
+              )}
             >
               <p className="truncate text-sm font-medium">{e.title}</p>
               <p className="text-[11px] opacity-80">
