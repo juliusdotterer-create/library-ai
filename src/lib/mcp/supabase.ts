@@ -67,3 +67,23 @@ export function notAuthenticated() {
     isError: true,
   };
 }
+
+export function notWhitelisted() {
+  return {
+    content: [
+      { type: "text" as const, text: "Dieser Account ist nicht freigeschaltet." },
+    ],
+    isError: true,
+  };
+}
+
+/**
+ * Liefert einen Supabase-Client nur, wenn der Nutzer auf der Whitelist steht.
+ * Gibt sonst `null` zurück, damit das Tool mit `notWhitelisted()` antworten kann.
+ */
+export async function supabaseForWhitelistedUser(ctx: ToolContext) {
+  const supabase = supabaseForUser(ctx);
+  const { data, error } = await supabase.rpc("is_whitelisted");
+  if (error || data !== true) return null;
+  return supabase;
+}
