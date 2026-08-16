@@ -1,8 +1,11 @@
-import { useMemo, useState } from "react";
-import { CalendarDays, Plus } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { CalendarDays, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { addWeeks, format, getISOWeek, startOfWeek, isSameDay } from "date-fns";
+import { de } from "date-fns/locale";
 import { useTimetable } from "@/hooks/useLibrary";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
+import { TimetableDoc } from "@/components/TimetableDoc";
 import { cn } from "@/lib/utils";
 import {
   TimetableDialog,
@@ -23,17 +26,42 @@ const hhmm = (t: string) => t.slice(0, 5);
 
 const PX_PER_MIN = 1;
 
-export function TimetableGrid() {
+function TimetableWeek() {
   const isMobile = useIsMobile();
   const { data, isLoading } = useTimetable();
   const entries = (data ?? []) as TimetableEntry[];
   const [open, setOpen] = useState(false);
   const [entry, setEntry] = useState<TimetableEntry | null>(null);
   const [draft, setDraft] = useState<TimetableDraft | null>(null);
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [now, setNow] = useState(() => new Date());
   const [day, setDay] = useState(() => {
     const js = new Date().getDay();
     return js === 0 ? 7 : js;
   });
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(t);
+  }, []);
+
+  const weekStart = useMemo(
+    () => addWeeks(startOfWeek(now, { weekStartsOn: 1 }), weekOffset),
+    [now, weekOffset],
+  );
+  const dateOf = (weekday: number) => {
+    const d = new Date(weekStart);
+    d.setDate(d.getDate() + (weekday - 1));
+    return d;
+  };
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const todayWeekday = now.getDay() === 0 ? 7 : now.getDay();
+  const isCurrent = (e: TimetableEntry) =>
+    weekOffset === 0 &&
+    e.weekday === todayWeekday &&
+    toMin(e.start_time) <= nowMin &&
+    nowMin < toMin(e.end_time);
+
 
   const days = useMemo(() => {
     const base = [1, 2, 3, 4, 5];
@@ -100,6 +128,40 @@ export function TimetableGrid() {
     const dayEntries = entries.filter((e) => e.weekday === day);
     return (
       <div className="glass rounded-3xl p-3">
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-xs font-semibold">
+            KW {getISOWeek(weekStart)}
+            <span className="ml-1 font-normal text-muted-foreground">
+              {format(weekStart, "d.M.", { locale: de })}
+            </span>
+          </span>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7 rounded-2xl"
+              onClick={() => setWeekOffset((w) => w - 1)}
+            >
+              <ChevronLeft className="size-4" />
+            </Button>
+            <Button
+              variant={weekOffset === 0 ? "secondary" : "ghost"}
+              size="sm"
+              className="h-7 rounded-2xl text-[11px]"
+              onClick={() => setWeekOffset(0)}
+            >
+              Heute
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7 rounded-2xl"
+              onClick={() => setWeekOffset((w) => w + 1)}
+            >
+              <ChevronRight className="size-4" />
+            </Button>
+          </div>
+        </div>
         <div className="mb-3 flex items-center gap-2">
           <div className="flex flex-1 gap-1 overflow-x-auto">
             {days.map((d) => (
@@ -107,11 +169,12 @@ export function TimetableGrid() {
                 key={d}
                 onClick={() => setDay(d)}
                 className={cn(
-                  "rounded-2xl px-3 py-1.5 text-xs font-medium transition-colors",
+                  "shrink-0 rounded-2xl px-3 py-1.5 text-xs font-medium transition-colors",
                   d === day ? "bg-primary text-primary-foreground" : "bg-card/50",
+                  d !== day && isSameDay(dateOf(d), now) && "ring-1 ring-primary/50",
                 )}
               >
-                {WEEKDAYS[d - 1]}
+                {WEEKDAYS[d - 1]} {format(dateOf(d), "d.M.")}
               </button>
             ))}
           </div>
@@ -128,7 +191,11 @@ export function TimetableGrid() {
             <button
               key={e.id}
               onClick={() => openEdit(e)}
-              className={cn("w-full rounded-2xl p-3 text-left", colorBlockClass(e.color))}
+              className={cn(
+                "w-full rounded-2xl p-3 text-left",
+                colorBlockClass(e.color),
+                isCurrent(e) && "ring-2 ring-primary",
+              )}
             >
               <p className="truncate text-sm font-medium">{e.title}</p>
               <p className="text-[11px] opacity-80">
@@ -153,9 +220,41 @@ export function TimetableGrid() {
 
   return (
     <div className="glass rounded-3xl p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-base font-semibold">Wochenübersicht</h2>
-        <Button size="sm" className="rounded-2xl" onClick={() => openNew(1, 8 * 60)}>
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <h2 className="text-base font-semibold">
+          KW {getISOWeek(weekStart)}
+          <span className="ml-2 text-xs font-normal text-muted-foreground">
+            {format(weekStart, "d. MMM", { locale: de })} –{" "}
+            {format(dateOf(days[days.length - 1]!), "d. MMM yyyy", { locale: de })}
+          </span>
+        </h2>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8 rounded-2xl"
+            onClick={() => setWeekOffset((w) => w - 1)}
+          >
+            <ChevronLeft className="size-4" />
+          </Button>
+          <Button
+            variant={weekOffset === 0 ? "secondary" : "ghost"}
+            size="sm"
+            className="rounded-2xl"
+            onClick={() => setWeekOffset(0)}
+          >
+            Diese Woche
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8 rounded-2xl"
+            onClick={() => setWeekOffset((w) => w + 1)}
+          >
+            <ChevronRight className="size-4" />
+          </Button>
+        </div>
+        <Button size="sm" className="ml-auto rounded-2xl" onClick={() => openNew(1, 8 * 60)}>
           <Plus className="mr-2 size-4" /> Eintrag
         </Button>
       </div>
@@ -166,11 +265,22 @@ export function TimetableGrid() {
             style={{ gridTemplateColumns: `3.5rem repeat(${days.length}, minmax(0,1fr))` }}
           >
             <span />
-            {days.map((d) => (
-              <span key={d} className="pb-1 text-center text-xs font-medium text-muted-foreground">
-                {WEEKDAY_LONG[d - 1]}
-              </span>
-            ))}
+            {days.map((d) => {
+              const date = dateOf(d);
+              const today = isSameDay(date, now);
+              return (
+                <span
+                  key={d}
+                  className={cn(
+                    "pb-1 text-center text-xs font-medium",
+                    today ? "text-primary" : "text-muted-foreground",
+                  )}
+                >
+                  {WEEKDAY_LONG[d - 1]}
+                  <span className="ml-1 opacity-70">{format(date, "d.M.")}</span>
+                </span>
+              );
+            })}
           </div>
           <div
             className="grid gap-1"
@@ -190,7 +300,10 @@ export function TimetableGrid() {
             {days.map((d) => (
               <div
                 key={d}
-                className="relative rounded-2xl bg-card/40"
+                className={cn(
+                  "relative rounded-2xl bg-card/40",
+                  isSameDay(dateOf(d), now) && "bg-primary/10 ring-1 ring-primary/40",
+                )}
                 style={{ height }}
               >
                 {hours.map((m) => (
@@ -202,11 +315,21 @@ export function TimetableGrid() {
                     style={{ top: (m - bounds.start) * PX_PER_MIN, height: 60 * PX_PER_MIN }}
                   />
                 ))}
+                {weekOffset === 0 &&
+                  d === todayWeekday &&
+                  nowMin >= bounds.start &&
+                  nowMin <= bounds.end && (
+                    <div
+                      className="pointer-events-none absolute inset-x-0 z-10 border-t-2 border-primary"
+                      style={{ top: (nowMin - bounds.start) * PX_PER_MIN }}
+                    />
+                  )}
                 {entries
                   .filter((e) => e.weekday === d)
                   .map((e) => {
                     const top = (toMin(e.start_time) - bounds.start) * PX_PER_MIN;
                     const h = Math.max((toMin(e.end_time) - toMin(e.start_time)) * PX_PER_MIN, 24);
+                    const active = isCurrent(e);
                     return (
                       <button
                         key={e.id}
@@ -214,6 +337,9 @@ export function TimetableGrid() {
                         className={cn(
                           "absolute inset-x-1 overflow-hidden rounded-xl p-1.5 text-left text-[11px] shadow-sm",
                           colorBlockClass(e.color),
+                          active && "z-20 ring-2 ring-primary",
+                          !active && weekOffset === 0 && d === todayWeekday && "opacity-100",
+                          weekOffset === 0 && d !== todayWeekday && "opacity-90",
                         )}
                         style={{ top, height: h }}
                       >
@@ -235,6 +361,16 @@ export function TimetableGrid() {
         </div>
       </div>
       {dialog}
+    </div>
+  );
+}
+
+/** Stundenplan-Rubrik: dauerhaft eingeblendetes Dokument + Wochenraster. */
+export function TimetableGrid() {
+  return (
+    <div className="space-y-3 sm:space-y-4">
+      <TimetableDoc />
+      <TimetableWeek />
     </div>
   );
 }
