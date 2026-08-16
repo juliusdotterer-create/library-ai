@@ -1,6 +1,6 @@
 import { defineTool } from "@lovable.dev/mcp-js";
 import { z } from "zod";
-import { notAuthenticated, supabaseForUser } from "../supabase";
+import { notAuthenticated, notWhitelisted, supabaseForWhitelistedUser } from "../supabase";
 
 export default defineTool({
   name: "create_event",
@@ -16,7 +16,8 @@ export default defineTool({
   annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
   handler: async ({ title, start_at, end_at, notes, all_day }, ctx) => {
     if (!ctx.isAuthenticated()) return notAuthenticated();
-    const supabase = supabaseForUser(ctx);
+    const supabase = await supabaseForWhitelistedUser(ctx);
+    if (!supabase) return notWhitelisted();
     const { data, error } = await supabase
       .from("events")
       .insert({
