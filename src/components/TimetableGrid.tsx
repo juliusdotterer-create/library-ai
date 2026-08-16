@@ -181,9 +181,41 @@ function TimetableWeek() {
 
   return (
     <div className="glass rounded-3xl p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-base font-semibold">Wochenübersicht</h2>
-        <Button size="sm" className="rounded-2xl" onClick={() => openNew(1, 8 * 60)}>
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <h2 className="text-base font-semibold">
+          KW {getISOWeek(weekStart)}
+          <span className="ml-2 text-xs font-normal text-muted-foreground">
+            {format(weekStart, "d. MMM", { locale: de })} –{" "}
+            {format(dateOf(days[days.length - 1]!), "d. MMM yyyy", { locale: de })}
+          </span>
+        </h2>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8 rounded-2xl"
+            onClick={() => setWeekOffset((w) => w - 1)}
+          >
+            <ChevronLeft className="size-4" />
+          </Button>
+          <Button
+            variant={weekOffset === 0 ? "secondary" : "ghost"}
+            size="sm"
+            className="rounded-2xl"
+            onClick={() => setWeekOffset(0)}
+          >
+            Diese Woche
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8 rounded-2xl"
+            onClick={() => setWeekOffset((w) => w + 1)}
+          >
+            <ChevronRight className="size-4" />
+          </Button>
+        </div>
+        <Button size="sm" className="ml-auto rounded-2xl" onClick={() => openNew(1, 8 * 60)}>
           <Plus className="mr-2 size-4" /> Eintrag
         </Button>
       </div>
@@ -194,10 +226,22 @@ function TimetableWeek() {
             style={{ gridTemplateColumns: `3.5rem repeat(${days.length}, minmax(0,1fr))` }}
           >
             <span />
-            {days.map((d) => (
-              <span key={d} className="pb-1 text-center text-xs font-medium text-muted-foreground">
-                {WEEKDAY_LONG[d - 1]}
-              </span>
+            {days.map((d) => {
+              const date = dateOf(d);
+              const today = isSameDay(date, now);
+              return (
+                <span
+                  key={d}
+                  className={cn(
+                    "pb-1 text-center text-xs font-medium",
+                    today ? "text-primary" : "text-muted-foreground",
+                  )}
+                >
+                  {WEEKDAY_LONG[d - 1]}
+                  <span className="ml-1 opacity-70">{format(date, "d.M.")}</span>
+                </span>
+              );
+            })}
             ))}
           </div>
           <div
