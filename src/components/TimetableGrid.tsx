@@ -128,6 +128,40 @@ function TimetableWeek() {
     const dayEntries = entries.filter((e) => e.weekday === day);
     return (
       <div className="glass rounded-3xl p-3">
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-xs font-semibold">
+            KW {getISOWeek(weekStart)}
+            <span className="ml-1 font-normal text-muted-foreground">
+              {format(weekStart, "d.M.", { locale: de })}
+            </span>
+          </span>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7 rounded-2xl"
+              onClick={() => setWeekOffset((w) => w - 1)}
+            >
+              <ChevronLeft className="size-4" />
+            </Button>
+            <Button
+              variant={weekOffset === 0 ? "secondary" : "ghost"}
+              size="sm"
+              className="h-7 rounded-2xl text-[11px]"
+              onClick={() => setWeekOffset(0)}
+            >
+              Heute
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7 rounded-2xl"
+              onClick={() => setWeekOffset((w) => w + 1)}
+            >
+              <ChevronRight className="size-4" />
+            </Button>
+          </div>
+        </div>
         <div className="mb-3 flex items-center gap-2">
           <div className="flex flex-1 gap-1 overflow-x-auto">
             {days.map((d) => (
@@ -135,11 +169,12 @@ function TimetableWeek() {
                 key={d}
                 onClick={() => setDay(d)}
                 className={cn(
-                  "rounded-2xl px-3 py-1.5 text-xs font-medium transition-colors",
+                  "shrink-0 rounded-2xl px-3 py-1.5 text-xs font-medium transition-colors",
                   d === day ? "bg-primary text-primary-foreground" : "bg-card/50",
+                  d !== day && isSameDay(dateOf(d), now) && "ring-1 ring-primary/50",
                 )}
               >
-                {WEEKDAYS[d - 1]}
+                {WEEKDAYS[d - 1]} {format(dateOf(d), "d.M.")}
               </button>
             ))}
           </div>
