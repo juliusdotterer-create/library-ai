@@ -1,6 +1,6 @@
 import { defineTool } from "@lovable.dev/mcp-js";
 import { z } from "zod";
-import { notAuthenticated, supabaseForUser } from "../supabase";
+import { notAuthenticated, notWhitelisted, supabaseForWhitelistedUser } from "../supabase";
 
 export default defineTool({
   name: "list_study_tasks",
@@ -15,7 +15,8 @@ export default defineTool({
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ plan_id, status, limit }, ctx) => {
     if (!ctx.isAuthenticated()) return notAuthenticated();
-    const supabase = supabaseForUser(ctx);
+    const supabase = await supabaseForWhitelistedUser(ctx);
+    if (!supabase) return notWhitelisted();
     let query = supabase
       .from("study_tasks")
       .select("id, plan_id, title, notes, due_date, status, document_id, position")

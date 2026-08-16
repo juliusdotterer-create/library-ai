@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireWhitelisted } from "@/lib/require-whitelist";
 
 async function findUserByEmail(email: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -77,7 +77,7 @@ type JsonValue = string | number | boolean | null | { [key: string]: JsonValue }
  * registriert sind.
  */
 export const createTransferRequest = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireWhitelisted])
   .inputValidator((input: { email: string; scopes: Scopes }) => {
     const email = String(input?.email ?? "").trim().toLowerCase();
     if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || email.length > 255) {
@@ -117,7 +117,7 @@ export const createTransferRequest = createServerFn({ method: "POST" })
   });
 
 export const listTransferRequests = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireWhitelisted])
   .handler(async ({ context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: rows, error } = await supabaseAdmin
@@ -146,7 +146,7 @@ export const listTransferRequests = createServerFn({ method: "GET" })
   });
 
 export const cancelTransferRequest = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireWhitelisted])
   .inputValidator((input: { requestId: string }) => input)
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -166,7 +166,7 @@ export const cancelTransferRequest = createServerFn({ method: "POST" })
   });
 
 export const respondToTransferRequest = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireWhitelisted])
   .inputValidator((input: { requestId: string; action: "accept" | "reject" }) => input)
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
