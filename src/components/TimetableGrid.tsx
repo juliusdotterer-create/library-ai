@@ -26,7 +26,7 @@ const hhmm = (t: string) => t.slice(0, 5);
 
 const PX_PER_MIN = 1;
 
-export function TimetableGrid() {
+function TimetableWeek() {
   const isMobile = useIsMobile();
   const { data, isLoading } = useTimetable();
   const entries = (data ?? []) as TimetableEntry[];
@@ -263,6 +263,16 @@ export function TimetableGrid() {
         </div>
       </div>
       {dialog}
+    </div>
+  );
+}
+
+/** Stundenplan-Rubrik: dauerhaft eingeblendetes Dokument + Wochenraster. */
+export function TimetableGrid() {
+  return (
+    <div className="space-y-3 sm:space-y-4">
+      <TimetableDoc />
+      <TimetableWeek />
     </div>
   );
 }
