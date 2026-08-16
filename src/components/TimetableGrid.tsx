@@ -242,7 +242,6 @@ function TimetableWeek() {
                 </span>
               );
             })}
-            ))}
           </div>
           <div
             className="grid gap-1"
