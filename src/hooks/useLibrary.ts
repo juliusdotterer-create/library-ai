@@ -94,6 +94,7 @@ export function useDocuments(folderId: string | null) {
         .eq("user_id", user!.id)
         .is("deleted_at", null)
         .not("name", "ilike", "desktop.ini")
+        .neq("kind", "timetable")
         .order("created_at", { ascending: false });
       q = folderId ? q.eq("folder_id", folderId) : q.is("folder_id", null);
       const { data, error } = await q;
@@ -135,6 +136,7 @@ export function useAllDocuments() {
         .eq("user_id", user!.id)
         .is("deleted_at", null)
         .not("name", "ilike", "desktop.ini")
+        .neq("kind", "timetable")
         .order("name");
       if (error) throw error;
       return data;
