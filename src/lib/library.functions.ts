@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireWhitelisted } from "@/lib/require-whitelist";
 
 type FolderNode = { id: string; name: string; parent_id: string | null };
 
@@ -60,7 +60,7 @@ async function fetchAllFolders(supabase: FolderQueryClient, userId: string) {
 
 
 export const searchLibrary = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireWhitelisted])
   .inputValidator((input: { term: string }) => {
     const term = String(input?.term ?? "").trim();
     if (!term || term.length > 200) throw new Error("Ungültiger Suchbegriff");
