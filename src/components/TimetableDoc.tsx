@@ -169,20 +169,16 @@ export function TimetableDoc() {
             </a>
           </Button>
         )}
-        <ConfirmDelete
-          name={doc.name}
-          onConfirm={() => remove.mutate()}
-          trigger={
-            <Button
-              size="icon"
-              variant="ghost"
-              className="size-8 rounded-2xl text-destructive"
-              title="Entfernen"
-            >
-              <Trash2 className="size-4" />
-            </Button>
-          }
-        />
+        <ConfirmDelete name={doc.name} onConfirm={() => remove.mutate()}>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="size-8 rounded-2xl text-destructive"
+            title="Entfernen"
+          >
+            <Trash2 className="size-4" />
+          </Button>
+        </ConfirmDelete>
       </div>
 
       <div
