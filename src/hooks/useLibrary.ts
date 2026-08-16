@@ -15,7 +15,30 @@ export const queryKeys = {
   favoriteFolders: ["favorite-folders"],
   folderPath: (folderId: string) => ["folder", folderId],
   timetable: ["timetable"],
+  timetableDoc: ["timetable-doc"],
 };
+
+/** Lädt das hochgeladene Stundenplan-Dokument des Nutzers (falls vorhanden). */
+export function useTimetableDoc() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: queryKeys.timetableDoc,
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("documents")
+        .select("id,name,storage_path,mime_type")
+        .eq("user_id", user!.id)
+        .eq("kind", "timetable")
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+}
 
 /** Lädt Stundenplan-Einträge des Nutzers (Wochentag, Startzeit). */
 export function useTimetable() {
