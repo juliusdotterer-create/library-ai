@@ -261,7 +261,10 @@ function TimetableWeek() {
             {days.map((d) => (
               <div
                 key={d}
-                className="relative rounded-2xl bg-card/40"
+                className={cn(
+                  "relative rounded-2xl bg-card/40",
+                  isSameDay(dateOf(d), now) && "bg-primary/10 ring-1 ring-primary/40",
+                )}
                 style={{ height }}
               >
                 {hours.map((m) => (
@@ -273,11 +276,21 @@ function TimetableWeek() {
                     style={{ top: (m - bounds.start) * PX_PER_MIN, height: 60 * PX_PER_MIN }}
                   />
                 ))}
+                {weekOffset === 0 &&
+                  d === todayWeekday &&
+                  nowMin >= bounds.start &&
+                  nowMin <= bounds.end && (
+                    <div
+                      className="pointer-events-none absolute inset-x-0 z-10 border-t-2 border-primary"
+                      style={{ top: (nowMin - bounds.start) * PX_PER_MIN }}
+                    />
+                  )}
                 {entries
                   .filter((e) => e.weekday === d)
                   .map((e) => {
                     const top = (toMin(e.start_time) - bounds.start) * PX_PER_MIN;
                     const h = Math.max((toMin(e.end_time) - toMin(e.start_time)) * PX_PER_MIN, 24);
+                    const active = isCurrent(e);
                     return (
                       <button
                         key={e.id}
@@ -285,6 +298,9 @@ function TimetableWeek() {
                         className={cn(
                           "absolute inset-x-1 overflow-hidden rounded-xl p-1.5 text-left text-[11px] shadow-sm",
                           colorBlockClass(e.color),
+                          active && "z-20 ring-2 ring-primary",
+                          !active && weekOffset === 0 && d === todayWeekday && "opacity-100",
+                          weekOffset === 0 && d !== todayWeekday && "opacity-90",
                         )}
                         style={{ top, height: h }}
                       >
