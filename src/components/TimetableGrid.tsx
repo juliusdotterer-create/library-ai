@@ -1,8 +1,11 @@
-import { useMemo, useState } from "react";
-import { CalendarDays, Plus } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { CalendarDays, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { addWeeks, format, getISOWeek, startOfWeek, isSameDay } from "date-fns";
+import { de } from "date-fns/locale";
 import { useTimetable } from "@/hooks/useLibrary";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
+import { TimetableDoc } from "@/components/TimetableDoc";
 import { cn } from "@/lib/utils";
 import {
   TimetableDialog,
@@ -30,10 +33,35 @@ export function TimetableGrid() {
   const [open, setOpen] = useState(false);
   const [entry, setEntry] = useState<TimetableEntry | null>(null);
   const [draft, setDraft] = useState<TimetableDraft | null>(null);
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [now, setNow] = useState(() => new Date());
   const [day, setDay] = useState(() => {
     const js = new Date().getDay();
     return js === 0 ? 7 : js;
   });
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(t);
+  }, []);
+
+  const weekStart = useMemo(
+    () => addWeeks(startOfWeek(now, { weekStartsOn: 1 }), weekOffset),
+    [now, weekOffset],
+  );
+  const dateOf = (weekday: number) => {
+    const d = new Date(weekStart);
+    d.setDate(d.getDate() + (weekday - 1));
+    return d;
+  };
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const todayWeekday = now.getDay() === 0 ? 7 : now.getDay();
+  const isCurrent = (e: TimetableEntry) =>
+    weekOffset === 0 &&
+    e.weekday === todayWeekday &&
+    toMin(e.start_time) <= nowMin &&
+    nowMin < toMin(e.end_time);
+
 
   const days = useMemo(() => {
     const base = [1, 2, 3, 4, 5];
