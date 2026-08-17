@@ -79,11 +79,37 @@ export function notWhitelisted() {
 
 /**
  * Liefert einen Supabase-Client nur, wenn der Nutzer auf der Whitelist steht.
- * Gibt sonst `null` zurück, damit das Tool mit `notWhitelisted()` antworten kann.
+ * Die Prüfung läuft mit Service-Role serverseitig (die DB-Funktion ist für
+ * anon/authenticated nicht mehr aufrufbar). Gibt sonst `null` zurück.
  */
 export async function supabaseForWhitelistedUser(ctx: ToolContext) {
   const supabase = supabaseForUser(ctx);
-  const { data, error } = await supabase.rpc("is_whitelisted");
-  if (error || data !== true) return null;
-  return supabase;
+  const { data: userData, error: userErr } = await supabase.auth.getUser();
+  const user = userData?.user;
+  if (userErr || !user) return null;
+
+  const serviceKey = configuredEnv(["SUPABASE_SERVICE_ROLE_KEY"]);
+  if (!serviceKey) return null;
+  const admin = createClient(supabaseProjectUrl(), serviceKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+
+  const email = (user.email ?? "").trim().toLowerCase();
+  if (email) {
+    const { data: row } = await admin
+      .from("allowed_emails")
+      .select("id")
+      .ilike("email", email)
+      .maybeSingle();
+    if (row) return supabase;
+  }
+
+  const { data: roleRow } = await admin
+    .from("user_roles")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("role", "admin")
+    .maybeSingle();
+  return roleRow ? supabase : null;
 }
+
