@@ -260,7 +260,8 @@ function TimetableWeek() {
     const dayEntries = entries.filter((e) => e.weekday === day);
     return (
       <div className="glass rounded-3xl p-3">
-        <div className="mb-2 flex items-center justify-between">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          {toggle}
           <span className="text-xs font-semibold">
             KW {getISOWeek(weekStart)}
             <span className="ml-1 font-normal text-muted-foreground">
