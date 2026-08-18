@@ -45,6 +45,8 @@ function TimetableWeek() {
   const [entry, setEntry] = useState<TimetableEntry | null>(null);
   const [draft, setDraft] = useState<TimetableDraft | null>(null);
   const [weekOffset, setWeekOffset] = useState(0);
+  const [mode, setMode] = useState<"woche" | "monat">("woche");
+  const [month, setMonth] = useState(() => new Date());
   const [now, setNow] = useState(() => new Date());
   const [day, setDay] = useState(() => {
     const js = new Date().getDay();
