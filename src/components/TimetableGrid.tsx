@@ -47,6 +47,7 @@ function TimetableWeek() {
   const [weekOffset, setWeekOffset] = useState(0);
   const [mode, setMode] = useState<"woche" | "monat">("woche");
   const [month, setMonth] = useState(() => new Date());
+  const [selectedDay, setSelectedDay] = useState(() => new Date());
   const [now, setNow] = useState(() => new Date());
   const [day, setDay] = useState(() => {
     const js = new Date().getDay();
@@ -273,7 +274,6 @@ function TimetableWeek() {
                   <span className="block truncate text-xs font-medium sm:text-sm">{e.title}</span>
                   <span className="block text-[11px] text-muted-foreground">
                     {hhmm(e.start_time)} – {hhmm(e.end_time)}
-                    {e.location ? ` · ${e.location}` : ""}
                   </span>
                 </span>
               </button>
