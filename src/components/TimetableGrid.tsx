@@ -1,6 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight, Plus } from "lucide-react";
-import { addWeeks, format, getISOWeek, startOfWeek, isSameDay } from "date-fns";
+import {
+  addMonths,
+  addWeeks,
+  endOfMonth,
+  endOfWeek,
+  format,
+  getISOWeek,
+  isSameDay,
+  isSameMonth,
+  startOfMonth,
+  startOfWeek,
+} from "date-fns";
 import { de } from "date-fns/locale";
 import { useTimetable } from "@/hooks/useLibrary";
 import { useIsMobile } from "@/hooks/use-mobile";
