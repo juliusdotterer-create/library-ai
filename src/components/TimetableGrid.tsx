@@ -387,9 +387,12 @@ function TimetableWeek() {
             <ChevronRight className="size-4" />
           </Button>
         </div>
-        <Button size="sm" className="ml-auto rounded-2xl" onClick={() => openNew(1, 8 * 60)}>
-          <Plus className="mr-2 size-4" /> Eintrag
-        </Button>
+        <div className="ml-auto flex items-center gap-2">
+          {toggle}
+          <Button size="sm" className="rounded-2xl" onClick={() => openNew(1, 8 * 60)}>
+            <Plus className="mr-2 size-4" /> Eintrag
+          </Button>
+        </div>
       </div>
       <div className="overflow-x-auto">
         <div className="min-w-[42rem]">
