@@ -118,9 +118,27 @@ function TimetableWeek() {
     <TimetableDialog open={open} onOpenChange={setOpen} entry={entry} draft={draft} />
   );
 
+  const toggle = (
+    <div className="inline-flex gap-1 rounded-2xl bg-card/60 p-1">
+      {(["woche", "monat"] as const).map((m) => (
+        <button
+          key={m}
+          onClick={() => setMode(m)}
+          className={cn(
+            "rounded-xl px-2.5 py-1 text-[11px] font-medium capitalize transition-colors sm:text-xs",
+            mode === m ? "bg-primary text-primary-foreground" : "text-muted-foreground",
+          )}
+        >
+          {m}
+        </button>
+      ))}
+    </div>
+  );
+
   if (isLoading) {
     return <div className="glass rounded-3xl p-6 text-sm text-muted-foreground">Lädt …</div>;
   }
+
 
   if (!entries.length) {
     return (
