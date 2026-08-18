@@ -155,6 +155,107 @@ function TimetableWeek() {
     );
   }
 
+  if (mode === "monat") {
+    const gridStart = startOfWeek(startOfMonth(month), { weekStartsOn: 1 });
+    const gridEnd = endOfWeek(endOfMonth(month), { weekStartsOn: 1 });
+    const cells: Date[] = [];
+    for (const d = new Date(gridStart); d <= gridEnd; d.setDate(d.getDate() + 1))
+      cells.push(new Date(d));
+    const forDate = (d: Date) => {
+      const wd = d.getDay() === 0 ? 7 : d.getDay();
+      return entries.filter((e) => e.weekday === wd);
+    };
+
+    return (
+      <div className="glass rounded-3xl p-3 sm:p-4">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <h2 className="text-sm font-semibold capitalize sm:text-base">
+            {format(month, "LLLL yyyy", { locale: de })}
+          </h2>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8 rounded-2xl"
+              onClick={() => setMonth(addMonths(month, -1))}
+            >
+              <ChevronLeft className="size-4" />
+            </Button>
+            <Button
+              variant={isSameMonth(month, now) ? "secondary" : "ghost"}
+              size="sm"
+              className="rounded-2xl"
+              onClick={() => setMonth(new Date())}
+            >
+              Heute
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8 rounded-2xl"
+              onClick={() => setMonth(addMonths(month, 1))}
+            >
+              <ChevronRight className="size-4" />
+            </Button>
+          </div>
+          <div className="ml-auto flex items-center gap-2">
+            {toggle}
+            <Button size="sm" className="rounded-2xl" onClick={() => openNew(1, 8 * 60)}>
+              <Plus className="mr-2 size-4" /> Eintrag
+            </Button>
+          </div>
+        </div>
+
+        <div className="mb-1 grid grid-cols-7 text-center text-[10px] text-muted-foreground sm:text-xs">
+          {WEEKDAYS.map((d) => (
+            <span key={d} className="py-0.5 sm:py-1">
+              {d}
+            </span>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
+          {cells.map((d) => {
+            const list = forDate(d);
+            const wd = d.getDay() === 0 ? 7 : d.getDay();
+            return (
+              <button
+                key={d.toISOString()}
+                onClick={() => openNew(wd, 8 * 60)}
+                className={cn(
+                  "flex min-h-14 flex-col rounded-xl p-1 text-left transition-colors sm:min-h-24 sm:rounded-2xl sm:p-2",
+                  isSameMonth(d, month) ? "bg-card/50 hover:bg-primary/5" : "opacity-40",
+                  isSameDay(d, now) && "ring-1 ring-primary",
+                )}
+              >
+                <span className="text-[11px] font-medium sm:text-xs">{format(d, "d")}</span>
+                <span className="mt-0.5 flex flex-1 flex-col gap-0.5">
+                  {list.slice(0, 3).map((e) => (
+                    <span
+                      key={e.id}
+                      className={cn(
+                        "block truncate rounded px-0.5 text-[9px] sm:rounded-lg sm:px-1 sm:text-[11px]",
+                        colorBlockClass(e.color),
+                      )}
+                    >
+                      {hhmm(e.start_time)} {e.title}
+                    </span>
+                  ))}
+                  {list.length > 3 && (
+                    <span className="block text-[9px] opacity-70 sm:text-[11px]">
+                      +{list.length - 3}
+                    </span>
+                  )}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        {dialog}
+      </div>
+    );
+  }
+
   if (isMobile) {
     const dayEntries = entries.filter((e) => e.weekday === day);
     return (
