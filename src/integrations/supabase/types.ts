@@ -111,6 +111,53 @@ export type Database = {
           },
         ]
       }
+      document_text: {
+        Row: {
+          content: string
+          created_at: string
+          document_id: string
+          id: string
+          page_count: number
+          pages: Json
+          status: string
+          tsv: unknown
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          document_id: string
+          id?: string
+          page_count?: number
+          pages?: Json
+          status?: string
+          tsv?: unknown
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          document_id?: string
+          id?: string
+          page_count?: number
+          pages?: Json
+          status?: string
+          tsv?: unknown
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_text_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: true
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           created_at: string
