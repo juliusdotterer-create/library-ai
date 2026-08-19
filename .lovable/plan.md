@@ -1,43 +1,40 @@
-# Verbesserungsideen – Vergleich mit ähnlichen Produkten
+# Teil 1: Volltextsuche in PDFs
 
-Deine App vereint heute: Library (Ordner/Dateien, Upload, Papierkorb), PDF-Viewer mit Annotation und Apple-Pencil-Support, freie Notizen, Kalender + Stundenplan (inkl. KI-Import), Lehrpläne mit Timer, Linktree, Profil/Whitelist/Transfer.
+Heute durchsucht die Library nur Dateinamen. Künftig wird der Inhalt jeder hochgeladenen PDF durchsuchbar — inklusive Angabe, auf welcher Seite der Treffer steht.
 
-Verglichen mit Google Drive/Dropbox (Ablage), GoodNotes/Notability (Annotation), Notion/Obsidian (Wissen), Anki/RemNote (Wiederholung) fehlen vor allem drei Dinge: **Wiederfinden**, **Wiederholen**, **Fortschritt sehen**.
+## Was der Nutzer merkt
 
-## Vorschläge, nach Nutzen sortiert
+- In der Suche (Klick auf das Library-Logo oben links) gibt es zusätzlich zu Ordnern und Dateinamen einen Bereich **Im Inhalt gefunden**.
+- Jeder Treffer zeigt Dokumentname, Ordnerpfad, Seitenzahl und einen kurzen Textausschnitt mit hervorgehobenem Suchbegriff.
+- Klick auf den Treffer öffnet die Vorschau direkt auf der passenden Seite.
+- Beim Hochladen wird der Text im Hintergrund extrahiert; ein kleiner Statushinweis zeigt „wird indexiert“. Bestehende Dokumente lassen sich über einen Button in den Einstellungen nachträglich indexieren.
+- Nicht lesbare PDFs (reine Scans ohne Textebene) werden als „kein Text gefunden“ markiert und weiterhin über den Namen gefunden.
 
-### 1. Volltextsuche in PDFs statt nur Dateinamen
-Heute sucht die Library nur über Namen. Beim Upload den Text jeder PDF extrahieren und durchsuchbar ablegen, Treffer mit Seitenzahl und Sprungmarke im Viewer. Das ist der größte Alltagsgewinn bei vielen hundert Dokumenten (Drive/Dropbox-Standard).
+## Technische Umsetzung
 
-### 2. Lernkarten & Wiederholung (Anki/RemNote-Prinzip)
-Aus markierten Stellen im PDF oder aus Notizen direkt Karten erzeugen; ein einfacher Wiederholungs-Algorithmus (SM-2/FSRS-light) legt fällige Karten in den Tagesplan. Verbindet Library, Notizen und Lehrplan zu einem Kreislauf statt drei getrennten Bereichen.
+**Datenbank** (Migration, muss im Build-Modus bestätigt werden)
 
-### 3. Fortschritt & Statistik
-Dashboard auf der Startseite: gelernte Minuten pro Woche (Timer-Daten liegen schon vor), erledigte vs. offene Lehrplan-Aufgaben, Streak, Dokumente pro Ordner. Motivation und Planungsgrundlage.
+Neue Tabelle `document_text`:
+- `user_id`, `document_id` (eindeutig, löscht mit dem Dokument)
+- `content` (Gesamttext), `pages` (Text je Seite als JSON), `page_count`
+- `status`: `pending` | `done` | `failed` | `unsupported`
+- generierte `tsvector`-Spalte mit deutscher Textsuche-Konfiguration + GIN-Index
+- RLS: nur eigene Zeilen; GRANTs für `authenticated` und `service_role`; `updated_at`-Trigger
 
-### 4. Favoriten, Zuletzt geöffnet, Tags
-Schnellzugriff oben in der Library: die letzten 10 Dokumente, angeheftete Ordner, freie Schlagworte quer über Ordnergrenzen (z. B. „Klausur", „Lösung", „ESt").
+**Extraktion (Client)**
+- `src/lib/pdf-text.ts`: liest eine PDF mit dem bereits installierten `pdfjs-dist`, gibt Text pro Seite zurück, begrenzt auf sinnvolle Seitenanzahl und Zeichenlänge.
+- Läuft nach erfolgreichem Upload asynchron, mit kleiner Warteschlange (max. 2 parallel), damit der Upload nicht ausgebremst wird.
+- Ergebnis wird per Server Function gespeichert.
 
-### 5. Markierungen und Notizen zentral sammeln
-Eine Ansicht „Alle Highlights", gruppiert nach Dokument, exportierbar als PDF – so wird aus Annotationen eine Lernzusammenfassung.
+**Server Functions** (`src/lib/library.functions.ts`, Muster wie bisher: `createServerFn` + `requireWhitelisted`)
+- `saveDocumentText`: schreibt/aktualisiert den Text eines eigenen Dokuments (prüft Ownership).
+- `searchLibrary` wird erweitert um `contents`: Volltextsuche über `websearch_to_tsquery('german', …)`, `ts_headline` für den Ausschnitt, Ergebnis inklusive Ordnerpfad und Seitenzahl (aus `pages` ermittelt), Limit 50.
+- `listUnindexedDocuments`: liefert PDFs ohne Texteintrag für das Nachindexieren.
 
-### 6. KI-Assistent auf Dokumenten
-Die Gemini-Anbindung existiert schon für den Stundenplan-Import. Erweiterbar auf: Zusammenfassung eines PDFs, Fragen zum Dokument, automatischer Lehrplan-Vorschlag aus einem Ordner („verteile diese 12 PDFs auf 3 Wochen").
+**UI**
+- `src/components/LibrarySearch.tsx`: dritte Ergebnisgruppe „Im Inhalt“, Snippet-Darstellung, Seitenangabe.
+- `src/components/DocumentPreview.tsx` / `PdfCanvasViewer.tsx`: optionales `initialPage`, um direkt zur Trefferseite zu springen.
+- `src/routes/_authenticated/einstellungen.tsx`: Karte „Volltext-Index“ mit Anzahl noch nicht indexierter Dokumente und Button „Jetzt indexieren“ (Fortschrittsanzeige).
 
-### 7. Offline / PWA
-Manifest ist vorhanden; mit Service Worker und lokalem Cache der zuletzt geöffneten Dokumente wird die App unterwegs (Bahn, Bibliothek) nutzbar.
-
-### 8. Kleinere Politur
-- Stundenplan-Tagesspalte: Raum hinter der Uhrzeit anzeigen (offener Punkt aus dem letzten Umbau).
-- Kalender und Lehrplan verzahnen: geplante Lerneinheiten als Termine im Kalender sichtbar.
-- Papierkorb mit automatischer Löschfrist (z. B. 30 Tage).
-- Tastenkürzel für Suche (Cmd+K) und Notizen.
-
-## Technische Hinweise
-- Volltextsuche: Extraktion mit pdfjs beim Upload, Ablage in neuer Tabelle `document_text` (user-scoped, RLS + GRANTs), Suche über Postgres `tsvector`/`websearch_to_tsquery` in einer Server Function.
-- Lernkarten: Tabellen `flashcards` und `flashcard_reviews`, Fälligkeitsberechnung serverseitig; UI als eigene Rubrik neben Lehrpläne.
-- Statistik: Aggregation per Server Function über bestehende Timer-/Task-Tabellen, Darstellung mit Recharts.
-- Alles läuft über bestehende Muster: `createServerFn` + `requireWhitelisted`, Hooks in `useLibrary.ts`.
-
-## Vorschlag für den Start
-Reihenfolge 1 → 3 → 4 (größter Nutzen, kein neues Bedienkonzept), danach 2 und 6 als eigener Lern-Modus.
+## Nicht Teil dieses Schritts
+Lernkarten, Statistik, Favoriten/Tags, Highlights-Übersicht, KI-Zusammenfassung, Offline — bleiben für spätere Schritte.
