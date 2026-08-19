@@ -95,6 +95,56 @@ export const searchLibrary = createServerFn({ method: "POST" })
       context.userId,
     );
 
+    /* ---------- Volltextsuche im Dokumentinhalt ---------- */
+    const { data: hits } = await context.supabase
+      .from("document_text")
+      .select("document_id,pages")
+      .eq("user_id", context.userId)
+      .eq("status", "done")
+      .textSearch("tsv", data.term, { type: "websearch", config: "german" })
+      .limit(50);
+
+    const hitRows = hits ?? [];
+    const hitDocIds = hitRows.map((h) => h.document_id);
+    const nameHitIds = new Set((docs ?? []).map((d) => d.id));
+    const contentIds = hitDocIds.filter((id) => !nameHitIds.has(id));
+
+    let contents: {
+      id: string;
+      name: string;
+      storage_path: string;
+      mime_type: string | null;
+      folder_id: string | null;
+      path: string;
+      page: number | null;
+      snippet: string;
+    }[] = [];
+
+    if (contentIds.length) {
+      const { data: hitDocs } = await context.supabase
+        .from("documents")
+        .select("id,name,storage_path,mime_type,folder_id")
+        .eq("user_id", context.userId)
+        .is("deleted_at", null)
+        .in("id", contentIds.slice(0, 50));
+
+      const pagesById = new Map(hitRows.map((h) => [h.document_id, h.pages]));
+      contents = (hitDocs ?? []).map((d) => {
+        const raw = pagesById.get(d.id);
+        const pages: string[] = Array.isArray(raw) ? (raw as unknown[]).map((p) => String(p ?? "")) : [];
+        const { page, snippet } = locate(pages, data.term);
+        return {
+          id: d.id,
+          name: d.name,
+          storage_path: d.storage_path,
+          mime_type: d.mime_type,
+          folder_id: d.folder_id,
+          path: folderPath(d.folder_id, allFolders),
+          page,
+          snippet,
+        };
+      });
+    }
 
     return {
       docs: (docs ?? []).map((d) => ({
@@ -111,5 +161,31 @@ export const searchLibrary = createServerFn({ method: "POST" })
         parent_id: f.parent_id,
         path: folderPath(f.id, allFolders),
       })),
+      contents,
     };
   });
+
+/** Findet die erste Trefferseite und baut einen kurzen Textausschnitt. */
+function locate(pages: string[], term: string): { page: number | null; snippet: string } {
+  const tokens = term
+    .toLowerCase()
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter((t) => t.length > 2);
+  if (!tokens.length) return { page: pages.length ? 1 : null, snippet: (pages[0] ?? "").slice(0, 160) };
+
+  for (let i = 0; i < pages.length; i++) {
+    const text = pages[i] ?? "";
+    const lower = text.toLowerCase();
+    for (const token of tokens) {
+      const at = lower.indexOf(token);
+      if (at === -1) continue;
+      const start = Math.max(0, at - 70);
+      const end = Math.min(text.length, at + token.length + 90);
+      const snippet = `${start > 0 ? "… " : ""}${text.slice(start, end).trim()}${
+        end < text.length ? " …" : ""
+      }`;
+      return { page: i + 1, snippet };
+    }
+  }
+  return { page: null, snippet: (pages[0] ?? "").slice(0, 160) };
+}
