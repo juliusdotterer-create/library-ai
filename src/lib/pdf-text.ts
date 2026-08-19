@@ -60,7 +60,7 @@ export async function extractPdfText(source: Blob | string): Promise<ExtractedTe
     }
   }
 
-  void doc.destroy?.();
+  void (doc as unknown as { destroy?: () => Promise<void> }).destroy?.();
 
   const content = pages.join("\n\n").trim();
   return {
