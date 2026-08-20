@@ -57,9 +57,11 @@ const uid = () =>
 export function PdfAnnotator({
   url,
   documentId,
+  initialPage,
 }: {
   url: string;
   documentId: string;
+  initialPage?: number | null;
 }) {
   const { user } = useAuth();
   const userId = user?.id ?? null;
