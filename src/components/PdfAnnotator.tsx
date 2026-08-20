@@ -588,6 +588,7 @@ export function PdfAnnotator({
         {view.map((dim, i) => (
           <div
             key={i}
+            data-page={i + 1}
             className="relative mx-auto mb-2 overflow-hidden bg-white"
             style={{ width: dim.w, height: dim.h }}
           >
