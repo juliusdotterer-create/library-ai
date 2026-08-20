@@ -15,6 +15,8 @@ export type PreviewDoc = {
   storage_path: string;
   mime_type?: string | null;
   folder_id?: string | null;
+  /** Direkt zu dieser Seite springen (Treffer der Volltextsuche). */
+  page?: number | null;
 };
 
 /** In-app preview overlay for documents (no extra browser window). */
