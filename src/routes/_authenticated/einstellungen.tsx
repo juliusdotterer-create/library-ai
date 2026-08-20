@@ -8,6 +8,7 @@ import { TrashPanel } from "@/components/TrashPanel";
 import { TransferPanel } from "@/components/TransferPanel";
 import { WhitelistPanel } from "@/components/WhitelistPanel";
 import { ProfilePanel } from "@/components/ProfilePanel";
+import { TextIndexPanel } from "@/components/TextIndexPanel";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -162,6 +163,9 @@ function SettingsPage() {
         </div>
         <TrashPanel />
       </section>
+
+      <TextIndexPanel />
+
 
       <section className="glass space-y-3 rounded-3xl p-5">
         <div>

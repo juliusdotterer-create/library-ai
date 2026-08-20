@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
  * Renders every page of a PDF into canvases (scrollable).
  * Used on mobile where <iframe> only shows the first page.
  */
-export function PdfCanvasViewer({ url }: { url: string }) {
+export function PdfCanvasViewer({ url, initialPage }: { url: string; initialPage?: number | null }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [pages, setPages] = useState(0);
@@ -53,6 +53,9 @@ export function PdfCanvasViewer({ url }: { url: string }) {
           await page.render({ canvas, canvasContext: ctx, viewport }).promise;
           if (cancelled) return;
           if (i === 1) setStatus("ready");
+          if (initialPage && i === initialPage) {
+            canvas.scrollIntoView({ block: "start" });
+          }
         }
         setStatus("ready");
       } catch {
@@ -63,7 +66,7 @@ export function PdfCanvasViewer({ url }: { url: string }) {
     return () => {
       cancelled = true;
     };
-  }, [url]);
+  }, [url, initialPage]);
 
   return (
     <div className="size-full overflow-y-auto p-2">

@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Download,
   FilePlus2,
+  FileSearch,
   FileText,
   Folder,
   FolderPlus,
@@ -22,6 +23,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useDocuments, useFolders, queryKeys } from "@/hooks/useLibrary";
 import { cn } from "@/lib/utils";
+import { useServerFn } from "@tanstack/react-start";
+import { saveDocumentText } from "@/lib/document-text.functions";
+import { extractPdfText, isPdfFile, runQueue } from "@/lib/pdf-text";
 import { softDeleteFolder } from "@/lib/tree";
 import { Progress } from "@/components/ui/progress";
 import { ConfirmDelete } from "@/components/ConfirmDelete";
@@ -148,6 +152,9 @@ function LibraryPage() {
     started: number;
     name: string;
   } | null>(null);
+  const [indexing, setIndexing] = useState<{ done: number; total: number } | null>(null);
+  const saveText = useServerFn(saveDocumentText);
+
 
   const uploadFile = async (file: File, folderId: string | null) => {
     if (!uid) throw new Error("Nicht angemeldet");
@@ -156,15 +163,56 @@ function LibraryPage() {
       .from("documents")
       .upload(storagePath, file, { contentType: file.type || undefined });
     if (upErr) throw upErr;
-    const { error } = await supabase.from("documents").insert({
-      user_id: uid,
-      folder_id: folderId,
-      name: file.name,
-      storage_path: storagePath,
-      mime_type: file.type,
-      size_bytes: file.size,
-    });
+    const { data, error } = await supabase
+      .from("documents")
+      .insert({
+        user_id: uid,
+        folder_id: folderId,
+        name: file.name,
+        storage_path: storagePath,
+        mime_type: file.type,
+        size_bytes: file.size,
+      })
+      .select("id")
+      .single();
     if (error) throw error;
+    return data.id as string;
+  };
+
+  /** Extrahiert PDF-Text im Hintergrund, damit die Volltextsuche greift. */
+  const indexPdfs = async (items: { id: string; file: File }[]) => {
+    if (!items.length) return;
+    setIndexing({ done: 0, total: items.length });
+    await runQueue(
+      items,
+      async (item) => {
+        try {
+          const res = await extractPdfText(item.file);
+          await saveText({
+            data: {
+              documentId: item.id,
+              content: res.content,
+              pages: res.pages,
+              pageCount: res.pageCount,
+              status: res.status,
+            },
+          });
+        } catch {
+          await saveText({
+            data: {
+              documentId: item.id,
+              content: "",
+              pages: [],
+              pageCount: 0,
+              status: "failed",
+            },
+          }).catch(() => undefined);
+        }
+        setIndexing((p) => (p ? { ...p, done: p.done + 1 } : p));
+      },
+      2,
+    );
+    setIndexing(null);
   };
 
   const runUpload = async (all: { file: File; segments: string[] }[]) => {
@@ -208,6 +256,7 @@ function LibraryPage() {
     });
 
     const failed: { name: string; reason: string }[] = [];
+    const toIndex: { id: string; file: File }[] = [];
 
     for (let i = 0; i < entries.length; i++) {
       const { file, segments } = entries[i];
@@ -216,7 +265,8 @@ function LibraryPage() {
       for (let attempt = 1; attempt <= 3; attempt++) {
         try {
           const folderId = await ensureFolder(segments);
-          await uploadFile(file, folderId);
+          const docId = await uploadFile(file, folderId);
+          if (isPdfFile(file.name, file.type)) toIndex.push({ id: docId, file });
           break;
         } catch (err) {
           if (attempt === 3) {
@@ -231,6 +281,8 @@ function LibraryPage() {
       setProgress((p) => (p ? { ...p, done: doneCount, bytesDone } : p));
     }
     setProgress(null);
+    // Volltext-Indexierung läuft im Hintergrund weiter.
+    void indexPdfs(toIndex);
     return { total: entries.length, failed };
   };
 
@@ -567,6 +619,22 @@ function LibraryPage() {
           </p>
         </div>
       )}
+
+      {indexing && (
+        <div className="glass space-y-2 rounded-3xl p-4">
+          <div className="flex items-center justify-between gap-3 text-sm">
+            <span className="flex items-center gap-2">
+              <FileSearch className="size-4 shrink-0 animate-pulse text-primary" />
+              <span className="font-medium">Volltext wird erstellt</span>
+            </span>
+            <span className="shrink-0 text-muted-foreground">
+              {indexing.done}/{indexing.total}
+            </span>
+          </div>
+          <Progress value={(indexing.done / Math.max(indexing.total, 1)) * 100} />
+        </div>
+      )}
+
 
       {!current.id && !!favorites.data?.length && (
         <div className="glass flex flex-wrap items-center gap-2 rounded-3xl p-4">

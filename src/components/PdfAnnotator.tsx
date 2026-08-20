@@ -57,9 +57,11 @@ const uid = () =>
 export function PdfAnnotator({
   url,
   documentId,
+  initialPage,
 }: {
   url: string;
   documentId: string;
+  initialPage?: number | null;
 }) {
   const { user } = useAuth();
   const userId = user?.id ?? null;
@@ -100,6 +102,17 @@ export function PdfAnnotator({
     setWidth(el.clientWidth);
     return () => ro.disconnect();
   }, []);
+
+  /* ------- Sprung zur Trefferseite aus der Volltextsuche ------- */
+  const jumpedTo = useRef<number | null>(null);
+  useEffect(() => {
+    if (!initialPage || status !== "ready" || jumpedTo.current === initialPage) return;
+    const target = wrapRef.current?.querySelector(`[data-page="${initialPage}"]`);
+    if (!target) return;
+    jumpedTo.current = initialPage;
+    target.scrollIntoView({ block: "start" });
+  }, [initialPage, status, pages.length]);
+
 
   /* ---------------- load pdf ---------------- */
   useEffect(() => {
@@ -586,6 +599,7 @@ export function PdfAnnotator({
         {view.map((dim, i) => (
           <div
             key={i}
+            data-page={i + 1}
             className="relative mx-auto mb-2 overflow-hidden bg-white"
             style={{ width: dim.w, height: dim.h }}
           >

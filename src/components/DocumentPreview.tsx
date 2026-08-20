@@ -15,6 +15,8 @@ export type PreviewDoc = {
   storage_path: string;
   mime_type?: string | null;
   folder_id?: string | null;
+  /** Direkt zu dieser Seite springen (Treffer der Volltextsuche). */
+  page?: number | null;
 };
 
 /** In-app preview overlay for documents (no extra browser window). */
@@ -131,11 +133,15 @@ export function DocumentPreview({
           ) : isImage ? (
             <img src={url} alt={doc.name} className="max-h-full max-w-full object-contain" />
           ) : canAnnotate ? (
-            <PdfAnnotator url={url} documentId={doc.id!} />
+            <PdfAnnotator url={url} documentId={doc.id!} initialPage={doc.page ?? null} />
           ) : isPdf && useCanvas ? (
-            <PdfCanvasViewer url={url} />
+            <PdfCanvasViewer url={url} initialPage={doc.page ?? null} />
           ) : embeddable ? (
-            <iframe src={url} title={doc.name} className="size-full rounded-3xl bg-background" />
+            <iframe
+              src={doc.page && isPdf ? `${url}#page=${doc.page}` : url}
+              title={doc.name}
+              className="size-full rounded-3xl bg-background"
+            />
           ) : (
             <div className="space-y-3 p-8 text-center">
               <p className="text-sm text-muted-foreground">

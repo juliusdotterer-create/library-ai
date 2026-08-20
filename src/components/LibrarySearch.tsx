@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Eye, FileText, Folder, Loader2, Search } from "lucide-react";
+import { Eye, FileSearch, FileText, Folder, Loader2, Search } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { Input } from "@/components/ui/input";
 import { DocumentPreview, type PreviewDoc } from "@/components/DocumentPreview";
@@ -38,9 +38,23 @@ export function LibrarySearch({
     void navigate({ to: "/library", search: { folder: folderId ?? "root" } });
   };
 
-  const openDoc = (d: { id: string; name: string; storage_path: string; mime_type: string | null }) => {
+  const openDoc = (d: {
+    id: string;
+    name: string;
+    storage_path: string;
+    mime_type: string | null;
+    folder_id?: string | null;
+    page?: number | null;
+  }) => {
     onOpenChange(false);
-    setPreview({ id: d.id, name: d.name, storage_path: d.storage_path, mime_type: d.mime_type });
+    setPreview({
+      id: d.id,
+      name: d.name,
+      storage_path: d.storage_path,
+      mime_type: d.mime_type,
+      folder_id: d.folder_id ?? null,
+      page: d.page ?? null,
+    });
   };
 
   const results = library.data;
@@ -117,7 +131,41 @@ export function LibrarySearch({
                     </button>
                   </div>
                 ))}
-                {!results.folders.length && !results.docs.length && (
+                {!!results.contents.length && (
+                  <>
+                    <p className="px-1 pt-3 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                      Im Inhalt gefunden
+                    </p>
+                    {results.contents.map((c) => (
+                      <button
+                        key={`c-${c.id}`}
+                        onClick={() => openDoc(c)}
+                        className="glass-soft hover:bg-primary-soft flex w-full items-start gap-3 rounded-2xl p-3 text-left"
+                      >
+                        <FileSearch className="mt-0.5 size-4 shrink-0 text-primary" />
+                        <span className="min-w-0 flex-1">
+                          <span className="flex items-baseline gap-2">
+                            <span className="min-w-0 truncate text-sm font-medium">{c.name}</span>
+                            {c.page && (
+                              <span className="shrink-0 text-[11px] text-muted-foreground">
+                                Seite {c.page}
+                              </span>
+                            )}
+                          </span>
+                          {c.path && (
+                            <span className="block truncate text-xs text-muted-foreground">{c.path}</span>
+                          )}
+                          {c.snippet && (
+                            <span className="mt-1 block line-clamp-2 text-xs text-muted-foreground">
+                              {c.snippet}
+                            </span>
+                          )}
+                        </span>
+                      </button>
+                    ))}
+                  </>
+                )}
+                {!results.folders.length && !results.docs.length && !results.contents.length && (
                   <p className="py-8 text-center text-sm text-muted-foreground">Nichts gefunden.</p>
                 )}
               </>
