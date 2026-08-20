@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Eye, FileText, Folder, Loader2, Search } from "lucide-react";
+import { Eye, FileSearch, FileText, Folder, Loader2, Search } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { Input } from "@/components/ui/input";
 import { DocumentPreview, type PreviewDoc } from "@/components/DocumentPreview";
