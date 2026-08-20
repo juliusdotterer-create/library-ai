@@ -255,6 +255,7 @@ function LibraryPage() {
     });
 
     const failed: { name: string; reason: string }[] = [];
+    const toIndex: { id: string; file: File }[] = [];
 
     for (let i = 0; i < entries.length; i++) {
       const { file, segments } = entries[i];
@@ -263,7 +264,8 @@ function LibraryPage() {
       for (let attempt = 1; attempt <= 3; attempt++) {
         try {
           const folderId = await ensureFolder(segments);
-          await uploadFile(file, folderId);
+          const docId = await uploadFile(file, folderId);
+          if (isPdfFile(file.name, file.type)) toIndex.push({ id: docId, file });
           break;
         } catch (err) {
           if (attempt === 3) {
@@ -278,6 +280,8 @@ function LibraryPage() {
       setProgress((p) => (p ? { ...p, done: doneCount, bytesDone } : p));
     }
     setProgress(null);
+    // Volltext-Indexierung läuft im Hintergrund weiter.
+    void indexPdfs(toIndex);
     return { total: entries.length, failed };
   };
 
