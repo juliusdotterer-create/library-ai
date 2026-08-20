@@ -619,6 +619,22 @@ function LibraryPage() {
         </div>
       )}
 
+      {indexing && (
+        <div className="glass space-y-2 rounded-3xl p-4">
+          <div className="flex items-center justify-between gap-3 text-sm">
+            <span className="flex items-center gap-2">
+              <FileSearch className="size-4 shrink-0 animate-pulse text-primary" />
+              <span className="font-medium">Volltext wird erstellt</span>
+            </span>
+            <span className="shrink-0 text-muted-foreground">
+              {indexing.done}/{indexing.total}
+            </span>
+          </div>
+          <Progress value={(indexing.done / Math.max(indexing.total, 1)) * 100} />
+        </div>
+      )}
+
+
       {!current.id && !!favorites.data?.length && (
         <div className="glass flex flex-wrap items-center gap-2 rounded-3xl p-4">
           <span className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
