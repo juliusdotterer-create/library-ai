@@ -131,7 +131,41 @@ export function LibrarySearch({
                     </button>
                   </div>
                 ))}
-                {!results.folders.length && !results.docs.length && (
+                {!!results.contents.length && (
+                  <>
+                    <p className="px-1 pt-3 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                      Im Inhalt gefunden
+                    </p>
+                    {results.contents.map((c) => (
+                      <button
+                        key={`c-${c.id}`}
+                        onClick={() => openDoc(c)}
+                        className="glass-soft hover:bg-primary-soft flex w-full items-start gap-3 rounded-2xl p-3 text-left"
+                      >
+                        <FileSearch className="mt-0.5 size-4 shrink-0 text-primary" />
+                        <span className="min-w-0 flex-1">
+                          <span className="flex items-baseline gap-2">
+                            <span className="min-w-0 truncate text-sm font-medium">{c.name}</span>
+                            {c.page && (
+                              <span className="shrink-0 text-[11px] text-muted-foreground">
+                                Seite {c.page}
+                              </span>
+                            )}
+                          </span>
+                          {c.path && (
+                            <span className="block truncate text-xs text-muted-foreground">{c.path}</span>
+                          )}
+                          {c.snippet && (
+                            <span className="mt-1 block line-clamp-2 text-xs text-muted-foreground">
+                              {c.snippet}
+                            </span>
+                          )}
+                        </span>
+                      </button>
+                    ))}
+                  </>
+                )}
+                {!results.folders.length && !results.docs.length && !results.contents.length && (
                   <p className="py-8 text-center text-sm text-muted-foreground">Nichts gefunden.</p>
                 )}
               </>
