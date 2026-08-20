@@ -156,15 +156,56 @@ function LibraryPage() {
       .from("documents")
       .upload(storagePath, file, { contentType: file.type || undefined });
     if (upErr) throw upErr;
-    const { error } = await supabase.from("documents").insert({
-      user_id: uid,
-      folder_id: folderId,
-      name: file.name,
-      storage_path: storagePath,
-      mime_type: file.type,
-      size_bytes: file.size,
-    });
+    const { data, error } = await supabase
+      .from("documents")
+      .insert({
+        user_id: uid,
+        folder_id: folderId,
+        name: file.name,
+        storage_path: storagePath,
+        mime_type: file.type,
+        size_bytes: file.size,
+      })
+      .select("id")
+      .single();
     if (error) throw error;
+    return data.id as string;
+  };
+
+  /** Extrahiert PDF-Text im Hintergrund, damit die Volltextsuche greift. */
+  const indexPdfs = async (items: { id: string; file: File }[]) => {
+    if (!items.length) return;
+    setIndexing({ done: 0, total: items.length });
+    await runQueue(
+      items,
+      async (item) => {
+        try {
+          const res = await extractPdfText(item.file);
+          await saveText({
+            data: {
+              documentId: item.id,
+              content: res.content,
+              pages: res.pages,
+              pageCount: res.pageCount,
+              status: res.status,
+            },
+          });
+        } catch {
+          await saveText({
+            data: {
+              documentId: item.id,
+              content: "",
+              pages: [],
+              pageCount: 0,
+              status: "failed",
+            },
+          }).catch(() => undefined);
+        }
+        setIndexing((p) => (p ? { ...p, done: p.done + 1 } : p));
+      },
+      2,
+    );
+    setIndexing(null);
   };
 
   const runUpload = async (all: { file: File; segments: string[] }[]) => {
