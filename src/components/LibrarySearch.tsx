@@ -38,9 +38,23 @@ export function LibrarySearch({
     void navigate({ to: "/library", search: { folder: folderId ?? "root" } });
   };
 
-  const openDoc = (d: { id: string; name: string; storage_path: string; mime_type: string | null }) => {
+  const openDoc = (d: {
+    id: string;
+    name: string;
+    storage_path: string;
+    mime_type: string | null;
+    folder_id?: string | null;
+    page?: number | null;
+  }) => {
     onOpenChange(false);
-    setPreview({ id: d.id, name: d.name, storage_path: d.storage_path, mime_type: d.mime_type });
+    setPreview({
+      id: d.id,
+      name: d.name,
+      storage_path: d.storage_path,
+      mime_type: d.mime_type,
+      folder_id: d.folder_id ?? null,
+      page: d.page ?? null,
+    });
   };
 
   const results = library.data;
