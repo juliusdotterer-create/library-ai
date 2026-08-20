@@ -164,6 +164,9 @@ function SettingsPage() {
         <TrashPanel />
       </section>
 
+      <TextIndexPanel />
+
+
       <section className="glass space-y-3 rounded-3xl p-5">
         <div>
           <h2 className="font-semibold">Daten an anderen Account übertragen</h2>
