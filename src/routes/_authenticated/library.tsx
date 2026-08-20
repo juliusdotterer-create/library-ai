@@ -148,6 +148,9 @@ function LibraryPage() {
     started: number;
     name: string;
   } | null>(null);
+  const [indexing, setIndexing] = useState<{ done: number; total: number } | null>(null);
+  const saveText = useServerFn(saveDocumentText);
+
 
   const uploadFile = async (file: File, folderId: string | null) => {
     if (!uid) throw new Error("Nicht angemeldet");
