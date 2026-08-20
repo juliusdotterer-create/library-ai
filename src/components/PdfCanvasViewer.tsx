@@ -66,7 +66,7 @@ export function PdfCanvasViewer({ url, initialPage }: { url: string; initialPage
     return () => {
       cancelled = true;
     };
-  }, [url]);
+  }, [url, initialPage]);
 
   return (
     <div className="size-full overflow-y-auto p-2">
