@@ -53,6 +53,9 @@ export function PdfCanvasViewer({ url, initialPage }: { url: string; initialPage
           await page.render({ canvas, canvasContext: ctx, viewport }).promise;
           if (cancelled) return;
           if (i === 1) setStatus("ready");
+          if (initialPage && i === initialPage) {
+            canvas.scrollIntoView({ block: "start" });
+          }
         }
         setStatus("ready");
       } catch {
