@@ -103,6 +103,17 @@ export function PdfAnnotator({
     return () => ro.disconnect();
   }, []);
 
+  /* ------- Sprung zur Trefferseite aus der Volltextsuche ------- */
+  const jumpedTo = useRef<number | null>(null);
+  useEffect(() => {
+    if (!initialPage || status !== "ready" || jumpedTo.current === initialPage) return;
+    const target = wrapRef.current?.querySelector(`[data-page="${initialPage}"]`);
+    if (!target) return;
+    jumpedTo.current = initialPage;
+    target.scrollIntoView({ block: "start" });
+  }, [initialPage, status, pages.length]);
+
+
   /* ---------------- load pdf ---------------- */
   useEffect(() => {
     if (!width) return;
