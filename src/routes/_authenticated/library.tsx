@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Download,
   FilePlus2,
+  FileSearch,
   FileText,
   Folder,
   FolderPlus,
