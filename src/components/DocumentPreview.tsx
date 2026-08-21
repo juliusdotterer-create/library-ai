@@ -7,6 +7,7 @@ import { HeaderTimers } from "@/components/GlobalTimer";
 import { PdfCanvasViewer } from "@/components/PdfCanvasViewer";
 import { PdfAnnotator } from "@/components/PdfAnnotator";
 import { DocumentNotes } from "@/components/DocumentNotes";
+import { DocxViewer } from "@/components/DocxViewer";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export type PreviewDoc = {
