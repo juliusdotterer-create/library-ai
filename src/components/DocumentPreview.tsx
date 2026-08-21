@@ -74,6 +74,11 @@ export function DocumentPreview({
   const mime = doc.mime_type ?? "";
   const isImage = mime.startsWith("image/");
   const isPdf = mime === "application/pdf" || doc.name.toLowerCase().endsWith(".pdf");
+  const lower = doc.name.toLowerCase();
+  const isDocx =
+    lower.endsWith(".docx") ||
+    mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  const isLegacyDoc = lower.endsWith(".doc") || mime === "application/msword";
   const embeddable = isImage || isPdf || mime.startsWith("text/");
 
   const canAnnotate = isPdf && !!doc.id;
