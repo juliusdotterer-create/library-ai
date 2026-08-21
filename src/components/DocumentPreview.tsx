@@ -145,17 +145,7 @@ export function DocumentPreview({
           ) : isDocx ? (
             <DocxViewer url={url} name={doc.name} />
           ) : isLegacyDoc ? (
-            <div className="space-y-3 p-8 text-center">
-              <p className="text-sm text-muted-foreground">
-                Ältere Word-Dateien (.doc) können nicht direkt angezeigt werden. Speichere sie als
-                .docx oder PDF – oder lade sie hier herunter.
-              </p>
-              <Button asChild className="rounded-2xl">
-                <a href={url} download={doc.name}>
-                  <Download className="size-4" /> Herunterladen
-                </a>
-              </Button>
-            </div>
+            <DocxViewer url={url} name={doc.name} legacy />
           ) : embeddable ? (
             <iframe
               src={doc.page && isPdf ? `${url}#page=${doc.page}` : url}
