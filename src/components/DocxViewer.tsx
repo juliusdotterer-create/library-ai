@@ -2,8 +2,20 @@ import { useEffect, useState } from "react";
 import { Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-/** Zeigt Word-Dateien (.docx) direkt als formatierten Text an. */
-export function DocxViewer({ url, name }: { url: string; name: string }) {
+function escapeHtml(value: string) {
+  return value.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c] ?? c);
+}
+
+/** Zeigt Word-Dateien (.docx und alte .doc) direkt als formatierten Text an. */
+export function DocxViewer({
+  url,
+  name,
+  legacy = false,
+}: {
+  url: string;
+  name: string;
+  legacy?: boolean;
+}) {
   const [html, setHtml] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -16,6 +28,20 @@ export function DocxViewer({ url, name }: { url: string; name: string }) {
         const res = await fetch(url);
         if (!res.ok) throw new Error("Download fehlgeschlagen");
         const buffer = await res.arrayBuffer();
+        if (legacy) {
+          const { extractLegacyDocText } = await import("@/lib/doc-legacy");
+          const text = extractLegacyDocText(buffer);
+          if (cancelled) return;
+          setHtml(
+            text
+              ? text
+                  .split(/\n+/)
+                  .map((p) => `<p>${escapeHtml(p)}</p>`)
+                  .join("")
+              : "<p><em>Dieses Dokument enthält keinen lesbaren Text.</em></p>",
+          );
+          return;
+        }
         const mammoth = await import("mammoth");
         const convert = (mammoth as unknown as {
           default?: { convertToHtml: (i: { arrayBuffer: ArrayBuffer }) => Promise<{ value: string }> };
