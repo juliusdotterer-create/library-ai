@@ -2,8 +2,20 @@ import { useEffect, useState } from "react";
 import { Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-/** Zeigt Word-Dateien (.docx) direkt als formatierten Text an. */
-export function DocxViewer({ url, name }: { url: string; name: string }) {
+function escapeHtml(value: string) {
+  return value.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c] ?? c);
+}
+
+/** Zeigt Word-Dateien (.docx und alte .doc) direkt als formatierten Text an. */
+export function DocxViewer({
+  url,
+  name,
+  legacy = false,
+}: {
+  url: string;
+  name: string;
+  legacy?: boolean;
+}) {
   const [html, setHtml] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
