@@ -141,6 +141,20 @@ export function DocumentPreview({
             <PdfAnnotator url={url} documentId={doc.id!} initialPage={doc.page ?? null} />
           ) : isPdf && useCanvas ? (
             <PdfCanvasViewer url={url} initialPage={doc.page ?? null} />
+          ) : isDocx ? (
+            <DocxViewer url={url} name={doc.name} />
+          ) : isLegacyDoc ? (
+            <div className="space-y-3 p-8 text-center">
+              <p className="text-sm text-muted-foreground">
+                Ältere Word-Dateien (.doc) können nicht direkt angezeigt werden. Speichere sie als
+                .docx oder PDF – oder lade sie hier herunter.
+              </p>
+              <Button asChild className="rounded-2xl">
+                <a href={url} download={doc.name}>
+                  <Download className="size-4" /> Herunterladen
+                </a>
+              </Button>
+            </div>
           ) : embeddable ? (
             <iframe
               src={doc.page && isPdf ? `${url}#page=${doc.page}` : url}
