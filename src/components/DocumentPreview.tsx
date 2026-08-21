@@ -7,6 +7,7 @@ import { HeaderTimers } from "@/components/GlobalTimer";
 import { PdfCanvasViewer } from "@/components/PdfCanvasViewer";
 import { PdfAnnotator } from "@/components/PdfAnnotator";
 import { DocumentNotes } from "@/components/DocumentNotes";
+import { DocxViewer } from "@/components/DocxViewer";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export type PreviewDoc = {
@@ -74,6 +75,11 @@ export function DocumentPreview({
   const mime = doc.mime_type ?? "";
   const isImage = mime.startsWith("image/");
   const isPdf = mime === "application/pdf" || doc.name.toLowerCase().endsWith(".pdf");
+  const lower = doc.name.toLowerCase();
+  const isDocx =
+    lower.endsWith(".docx") ||
+    mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  const isLegacyDoc = lower.endsWith(".doc") || mime === "application/msword";
   const embeddable = isImage || isPdf || mime.startsWith("text/");
 
   const canAnnotate = isPdf && !!doc.id;
@@ -136,6 +142,20 @@ export function DocumentPreview({
             <PdfAnnotator url={url} documentId={doc.id!} initialPage={doc.page ?? null} />
           ) : isPdf && useCanvas ? (
             <PdfCanvasViewer url={url} initialPage={doc.page ?? null} />
+          ) : isDocx ? (
+            <DocxViewer url={url} name={doc.name} />
+          ) : isLegacyDoc ? (
+            <div className="space-y-3 p-8 text-center">
+              <p className="text-sm text-muted-foreground">
+                Ältere Word-Dateien (.doc) können nicht direkt angezeigt werden. Speichere sie als
+                .docx oder PDF – oder lade sie hier herunter.
+              </p>
+              <Button asChild className="rounded-2xl">
+                <a href={url} download={doc.name}>
+                  <Download className="size-4" /> Herunterladen
+                </a>
+              </Button>
+            </div>
           ) : embeddable ? (
             <iframe
               src={doc.page && isPdf ? `${url}#page=${doc.page}` : url}
