@@ -16,10 +16,14 @@ export function DocxViewer({ url, name }: { url: string; name: string }) {
         const res = await fetch(url);
         if (!res.ok) throw new Error("Download fehlgeschlagen");
         const buffer = await res.arrayBuffer();
-        const mammoth = await import("mammoth/mammoth.browser");
-        const result = await (mammoth as unknown as {
-          convertToHtml: (input: { arrayBuffer: ArrayBuffer }) => Promise<{ value: string }>;
-        }).convertToHtml({ arrayBuffer: buffer });
+        const mammoth = await import("mammoth");
+        const convert = (mammoth as unknown as {
+          default?: { convertToHtml: (i: { arrayBuffer: ArrayBuffer }) => Promise<{ value: string }> };
+          convertToHtml?: (i: { arrayBuffer: ArrayBuffer }) => Promise<{ value: string }>;
+        });
+        const fn = convert.convertToHtml ?? convert.default?.convertToHtml;
+        if (!fn) throw new Error("mammoth");
+        const result = await fn({ arrayBuffer: buffer });
         if (cancelled) return;
         setHtml(result.value || "<p><em>Dieses Dokument enthält keinen lesbaren Text.</em></p>");
       } catch {
