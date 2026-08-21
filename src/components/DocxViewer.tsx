@@ -28,6 +28,20 @@ export function DocxViewer({
         const res = await fetch(url);
         if (!res.ok) throw new Error("Download fehlgeschlagen");
         const buffer = await res.arrayBuffer();
+        if (legacy) {
+          const { extractLegacyDocText } = await import("@/lib/doc-legacy");
+          const text = extractLegacyDocText(buffer);
+          if (cancelled) return;
+          setHtml(
+            text
+              ? text
+                  .split(/\n+/)
+                  .map((p) => `<p>${escapeHtml(p)}</p>`)
+                  .join("")
+              : "<p><em>Dieses Dokument enthält keinen lesbaren Text.</em></p>",
+          );
+          return;
+        }
         const mammoth = await import("mammoth");
         const convert = (mammoth as unknown as {
           default?: { convertToHtml: (i: { arrayBuffer: ArrayBuffer }) => Promise<{ value: string }> };
