@@ -49,8 +49,14 @@ export function DocxViewer({
         const result = await fn({ arrayBuffer: buffer });
         if (cancelled) return;
         setHtml(result.value || "<p><em>Dieses Dokument enthält keinen lesbaren Text.</em></p>");
-      } catch {
-        if (!cancelled) setError("Dokument konnte nicht gelesen werden.");
+      } catch (err) {
+        const message = (err as Error)?.message ?? "";
+        if (!cancelled)
+          setError(
+            message.includes("verschlüsselt")
+              ? "Das Dokument ist verschlüsselt und kann nicht angezeigt werden."
+              : "Dokument konnte nicht gelesen werden.",
+          );
       }
     })();
     return () => {
