@@ -2,10 +2,6 @@ import { useEffect, useState } from "react";
 import { Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-function escapeHtml(value: string) {
-  return value.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c] ?? c);
-}
-
 /** Zeigt Word-Dateien (.docx und alte .doc) direkt als formatierten Text an. */
 export function DocxViewer({
   url,
@@ -28,20 +24,21 @@ export function DocxViewer({
         const res = await fetch(url);
         if (!res.ok) throw new Error("Download fehlgeschlagen");
         const buffer = await res.arrayBuffer();
+        let isDocxInDisguise = false;
         if (legacy) {
-          const { extractLegacyDocText } = await import("@/lib/doc-legacy");
-          const text = extractLegacyDocText(buffer);
-          if (cancelled) return;
-          setHtml(
-            text
-              ? text
-                  .split(/\n+/)
-                  .map((p) => `<p>${escapeHtml(p)}</p>`)
-                  .join("")
-              : "<p><em>Dieses Dokument enthält keinen lesbaren Text.</em></p>",
-          );
-          return;
+          const { extractLegacyDocHtml } = await import("@/lib/doc-legacy");
+          try {
+            const result = extractLegacyDocHtml(buffer);
+            if (cancelled) return;
+            setHtml(result);
+            return;
+          } catch (err) {
+            // Eine „.doc", die in Wahrheit eine .docx ist -> mammoth versuchen
+            if ((err as Error)?.message === "DOCX") isDocxInDisguise = true;
+            else throw err;
+          }
         }
+        if (legacy && !isDocxInDisguise) return;
         const mammoth = await import("mammoth");
         const convert = (mammoth as unknown as {
           default?: { convertToHtml: (i: { arrayBuffer: ArrayBuffer }) => Promise<{ value: string }> };
@@ -52,8 +49,14 @@ export function DocxViewer({
         const result = await fn({ arrayBuffer: buffer });
         if (cancelled) return;
         setHtml(result.value || "<p><em>Dieses Dokument enthält keinen lesbaren Text.</em></p>");
-      } catch {
-        if (!cancelled) setError("Dokument konnte nicht gelesen werden.");
+      } catch (err) {
+        const message = (err as Error)?.message ?? "";
+        if (!cancelled)
+          setError(
+            message.includes("verschlüsselt")
+              ? "Das Dokument ist verschlüsselt und kann nicht angezeigt werden."
+              : "Dokument konnte nicht gelesen werden.",
+          );
       }
     })();
     return () => {
