@@ -484,7 +484,7 @@ function buildParagraphs(doc: Doc97): Para[] {
       continue;
     }
     if (code === 0x01 || code === 0x08) {
-      pushChar("\u2b1a", {}); // Platzhalter für Bild
+      pushChar("[Bild]", {}); // Platzhalter für Bild
       continue;
     }
     if (code === 0x02 || code === 0x05 || code === 0x1f) continue;
