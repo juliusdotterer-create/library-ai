@@ -24,20 +24,21 @@ export function DocxViewer({
         const res = await fetch(url);
         if (!res.ok) throw new Error("Download fehlgeschlagen");
         const buffer = await res.arrayBuffer();
+        let isDocxInDisguise = false;
         if (legacy) {
-          const { extractLegacyDocText } = await import("@/lib/doc-legacy");
-          const text = extractLegacyDocText(buffer);
-          if (cancelled) return;
-          setHtml(
-            text
-              ? text
-                  .split(/\n+/)
-                  .map((p) => `<p>${escapeHtml(p)}</p>`)
-                  .join("")
-              : "<p><em>Dieses Dokument enthält keinen lesbaren Text.</em></p>",
-          );
-          return;
+          const { extractLegacyDocHtml } = await import("@/lib/doc-legacy");
+          try {
+            const result = extractLegacyDocHtml(buffer);
+            if (cancelled) return;
+            setHtml(result);
+            return;
+          } catch (err) {
+            // Eine „.doc", die in Wahrheit eine .docx ist -> mammoth versuchen
+            if ((err as Error)?.message === "DOCX") isDocxInDisguise = true;
+            else throw err;
+          }
         }
+        if (legacy && !isDocxInDisguise) return;
         const mammoth = await import("mammoth");
         const convert = (mammoth as unknown as {
           default?: { convertToHtml: (i: { arrayBuffer: ArrayBuffer }) => Promise<{ value: string }> };
