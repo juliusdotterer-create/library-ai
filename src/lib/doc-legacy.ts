@@ -608,8 +608,29 @@ function rtfToHtml(buffer: ArrayBuffer): string {
   let italic = false;
   const paras: string[] = [];
   let line = "";
+  let pending = "";
+  let pendingB = false;
+  let pendingI = false;
+
+  /** Sammelt gleich formatierte Zeichen zu einem Run zusammen. */
+  const flushRun = () => {
+    if (!pending) return;
+    let html = pending;
+    if (pendingB) html = `<strong>${html}</strong>`;
+    if (pendingI) html = `<em>${html}</em>`;
+    line += html;
+    pending = "";
+  };
+
+  const append = (text: string) => {
+    if (pending && (pendingB !== bold || pendingI !== italic)) flushRun();
+    pendingB = bold;
+    pendingI = italic;
+    pending += text;
+  };
 
   const endPara = () => {
+    flushRun();
     if (line.trim()) paras.push(`<p>${line}</p>`);
     line = "";
   };
@@ -631,14 +652,14 @@ function rtfToHtml(buffer: ArrayBuffer): string {
       if (hex) {
         if (!skipGroups.length) {
           const bytes = new Uint8Array([parseInt(hex[1], 16)]);
-          line += escapeHtml(new TextDecoder("windows-1252").decode(bytes));
+          append(escapeHtml(new TextDecoder("windows-1252").decode(bytes)));
         }
         i += 3;
         continue;
       }
       const word = /^([a-zA-Z]+)(-?\d+)?[ ]?/.exec(rest);
       if (!word) {
-        if (!skipGroups.length) line += escapeHtml(rest[0] ?? "");
+        if (!skipGroups.length) append(escapeHtml(rest[0] ?? ""));
         i += 1;
         continue;
       }
@@ -654,21 +675,21 @@ function rtfToHtml(buffer: ArrayBuffer): string {
         if (name !== "pard") endPara();
         continue;
       }
-      if (name === "line") line += "<br />";
+      if (name === "line") {
+        flushRun();
+        line += "<br />";
+      }
       else if (name === "b") bold = num !== 0;
       else if (name === "i") italic = num !== 0;
-      else if (name === "tab") line += "&nbsp;&nbsp;&nbsp;&nbsp;";
+      else if (name === "tab") append("&nbsp;&nbsp;&nbsp;&nbsp;");
       else if (name === "u" && num !== undefined) {
-        line += escapeHtml(String.fromCharCode(num < 0 ? num + 65536 : num));
+        append(escapeHtml(String.fromCharCode(num < 0 ? num + 65536 : num)));
       }
       continue;
     }
     if (ch === "\r" || ch === "\n") continue;
     if (skipGroups.length) continue;
-    let text = escapeHtml(ch);
-    if (bold) text = `<strong>${text}</strong>`;
-    if (italic) text = `<em>${text}</em>`;
-    line += text;
+    append(escapeHtml(ch));
   }
   endPara();
   out = paras.join("");
