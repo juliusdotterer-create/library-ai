@@ -82,9 +82,9 @@ export function SheetViewer({ url, name }: { url: string; name: string }) {
   const [head, ...body] = sheet.rows;
 
   return (
-    <div className="flex size-full min-h-0 flex-col">
+    <div className="flex size-full min-h-0 flex-col bg-background/95">
       {sheets.length > 1 && (
-        <div className="flex shrink-0 gap-1 overflow-x-auto border-b border-border/40 px-2 py-1.5">
+        <div className="flex shrink-0 gap-1 overflow-x-auto border-b border-border px-2 py-1.5 bg-background">
           {sheets.map((s, i) => (
             <button
               key={s.name + i}
@@ -101,14 +101,14 @@ export function SheetViewer({ url, name }: { url: string; name: string }) {
           ))}
         </div>
       )}
-      <div className="min-h-0 flex-1 overflow-auto">
+      <div className="min-h-0 flex-1 overflow-auto bg-background p-2">
         <table className="w-full border-collapse text-xs">
-          <thead className="sticky top-0 z-10 bg-background/95 backdrop-blur">
+          <thead className="sticky top-0 z-10 bg-background">
             <tr>
               {head.map((c, i) => (
                 <th
                   key={i}
-                  className="whitespace-nowrap border border-border/40 px-2 py-1.5 text-left font-semibold"
+                  className="whitespace-nowrap border border-border px-2 py-1.5 text-left font-semibold bg-muted"
                 >
                   {c}
                 </th>
@@ -117,9 +117,9 @@ export function SheetViewer({ url, name }: { url: string; name: string }) {
           </thead>
           <tbody>
             {body.map((row, r) => (
-              <tr key={r} className="odd:bg-muted/20">
+              <tr key={r} className="odd:bg-muted/40">
                 {head.map((_, c) => (
-                  <td key={c} className="whitespace-pre-wrap border border-border/30 px-2 py-1 align-top">
+                  <td key={c} className="whitespace-pre-wrap border border-border px-2 py-1 align-top">
                     {row[c] ?? ""}
                   </td>
                 ))}
