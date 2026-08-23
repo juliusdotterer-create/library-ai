@@ -8,6 +8,9 @@ import { PdfCanvasViewer } from "@/components/PdfCanvasViewer";
 import { PdfAnnotator } from "@/components/PdfAnnotator";
 import { DocumentNotes } from "@/components/DocumentNotes";
 import { DocxViewer } from "@/components/DocxViewer";
+import { ImageViewer } from "@/components/ImageViewer";
+import { SheetViewer } from "@/components/SheetViewer";
+
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export type PreviewDoc = {
