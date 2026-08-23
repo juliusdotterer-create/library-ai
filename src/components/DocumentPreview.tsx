@@ -73,14 +73,23 @@ export function DocumentPreview({
   if (!doc) return null;
 
   const mime = doc.mime_type ?? "";
-  const isImage = mime.startsWith("image/");
-  const isPdf = mime === "application/pdf" || doc.name.toLowerCase().endsWith(".pdf");
   const lower = doc.name.toLowerCase();
+  const ext = lower.split(".").pop() ?? "";
+  const isImage =
+    mime.startsWith("image/") ||
+    ["jpg", "jpeg", "png", "gif", "webp", "avif", "bmp", "svg", "heic", "heif"].includes(ext);
+  const isPdf = mime === "application/pdf" || lower.endsWith(".pdf");
+  const isSheet =
+    ["xlsx", "xlsm", "xlsb", "xls", "csv"].includes(ext) ||
+    mime === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+    mime === "application/vnd.ms-excel" ||
+    mime === "text/csv";
   const isDocx =
     lower.endsWith(".docx") ||
     mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
   const isLegacyDoc = lower.endsWith(".doc") || mime === "application/msword";
-  const embeddable = isImage || isPdf || mime.startsWith("text/");
+  const embeddable = isPdf || (mime.startsWith("text/") && !isSheet);
+
 
   const canAnnotate = isPdf && !!doc.id;
 
