@@ -608,8 +608,29 @@ function rtfToHtml(buffer: ArrayBuffer): string {
   let italic = false;
   const paras: string[] = [];
   let line = "";
+  let pending = "";
+  let pendingB = false;
+  let pendingI = false;
+
+  /** Sammelt gleich formatierte Zeichen zu einem Run zusammen. */
+  const flushRun = () => {
+    if (!pending) return;
+    let html = pending;
+    if (pendingB) html = `<strong>${html}</strong>`;
+    if (pendingI) html = `<em>${html}</em>`;
+    line += html;
+    pending = "";
+  };
+
+  const append = (text: string) => {
+    if (pending && (pendingB !== bold || pendingI !== italic)) flushRun();
+    pendingB = bold;
+    pendingI = italic;
+    pending += text;
+  };
 
   const endPara = () => {
+    flushRun();
     if (line.trim()) paras.push(`<p>${line}</p>`);
     line = "";
   };
