@@ -146,12 +146,15 @@ export function DocumentPreview({
           {!url ? (
             <p className="text-sm text-muted-foreground">Wird geladen…</p>
           ) : isImage ? (
-            <img src={url} alt={doc.name} className="max-h-full max-w-full object-contain" />
+            <ImageViewer url={url} name={doc.name} />
           ) : canAnnotate ? (
             <PdfAnnotator url={url} documentId={doc.id!} initialPage={doc.page ?? null} />
           ) : isPdf && useCanvas ? (
             <PdfCanvasViewer url={url} initialPage={doc.page ?? null} />
+          ) : isSheet ? (
+            <SheetViewer url={url} name={doc.name} />
           ) : isDocx ? (
+
             <DocxViewer url={url} name={doc.name} />
           ) : isLegacyDoc ? (
             <DocxViewer url={url} name={doc.name} legacy />
