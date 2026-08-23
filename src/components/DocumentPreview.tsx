@@ -8,6 +8,9 @@ import { PdfCanvasViewer } from "@/components/PdfCanvasViewer";
 import { PdfAnnotator } from "@/components/PdfAnnotator";
 import { DocumentNotes } from "@/components/DocumentNotes";
 import { DocxViewer } from "@/components/DocxViewer";
+import { ImageViewer } from "@/components/ImageViewer";
+import { SheetViewer } from "@/components/SheetViewer";
+
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export type PreviewDoc = {
@@ -73,14 +76,23 @@ export function DocumentPreview({
   if (!doc) return null;
 
   const mime = doc.mime_type ?? "";
-  const isImage = mime.startsWith("image/");
-  const isPdf = mime === "application/pdf" || doc.name.toLowerCase().endsWith(".pdf");
   const lower = doc.name.toLowerCase();
+  const ext = lower.split(".").pop() ?? "";
+  const isImage =
+    mime.startsWith("image/") ||
+    ["jpg", "jpeg", "png", "gif", "webp", "avif", "bmp", "svg", "heic", "heif"].includes(ext);
+  const isPdf = mime === "application/pdf" || lower.endsWith(".pdf");
+  const isSheet =
+    ["xlsx", "xlsm", "xlsb", "xls", "csv"].includes(ext) ||
+    mime === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+    mime === "application/vnd.ms-excel" ||
+    mime === "text/csv";
   const isDocx =
     lower.endsWith(".docx") ||
     mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
   const isLegacyDoc = lower.endsWith(".doc") || mime === "application/msword";
-  const embeddable = isImage || isPdf || mime.startsWith("text/");
+  const embeddable = isPdf || (mime.startsWith("text/") && !isSheet);
+
 
   const canAnnotate = isPdf && !!doc.id;
 
@@ -137,12 +149,15 @@ export function DocumentPreview({
           {!url ? (
             <p className="text-sm text-muted-foreground">Wird geladen…</p>
           ) : isImage ? (
-            <img src={url} alt={doc.name} className="max-h-full max-w-full object-contain" />
+            <ImageViewer url={url} name={doc.name} />
           ) : canAnnotate ? (
             <PdfAnnotator url={url} documentId={doc.id!} initialPage={doc.page ?? null} />
           ) : isPdf && useCanvas ? (
             <PdfCanvasViewer url={url} initialPage={doc.page ?? null} />
+          ) : isSheet ? (
+            <SheetViewer url={url} name={doc.name} />
           ) : isDocx ? (
+
             <DocxViewer url={url} name={doc.name} />
           ) : isLegacyDoc ? (
             <DocxViewer url={url} name={doc.name} legacy />
