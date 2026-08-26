@@ -10,6 +10,9 @@ import { DocumentNotes } from "@/components/DocumentNotes";
 import { DocxViewer } from "@/components/DocxViewer";
 import { ImageViewer } from "@/components/ImageViewer";
 import { SheetViewer } from "@/components/SheetViewer";
+import { PptxViewer } from "@/components/PptxViewer";
+import { MediaViewer } from "@/components/MediaViewer";
+import { OdtViewer } from "@/components/OdtViewer";
 
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -83,15 +86,23 @@ export function DocumentPreview({
     ["jpg", "jpeg", "png", "gif", "webp", "avif", "bmp", "svg", "heic", "heif"].includes(ext);
   const isPdf = mime === "application/pdf" || lower.endsWith(".pdf");
   const isSheet =
-    ["xlsx", "xlsm", "xlsb", "xls", "csv"].includes(ext) ||
+    ["xlsx", "xlsm", "xlsb", "xls", "csv", "ods"].includes(ext) ||
     mime === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
     mime === "application/vnd.ms-excel" ||
+    mime === "application/vnd.oasis.opendocument.spreadsheet" ||
     mime === "text/csv";
   const isDocx =
     lower.endsWith(".docx") ||
     mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
   const isLegacyDoc = lower.endsWith(".doc") || mime === "application/msword";
-  const embeddable = isPdf || (mime.startsWith("text/") && !isSheet);
+  const isRtf = ext === "rtf" || mime === "application/rtf" || mime === "text/rtf";
+  const isOdt = ext === "odt" || mime === "application/vnd.oasis.opendocument.text";
+  const isPptx =
+    ext === "pptx" ||
+    mime === "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+  const isAudio = mime.startsWith("audio/") || ["mp3", "wav", "m4a", "ogg", "flac"].includes(ext);
+  const isVideo = mime.startsWith("video/") || ["mp4", "webm", "mov"].includes(ext);
+  const embeddable = isPdf || (mime.startsWith("text/") && !isSheet && !isRtf);
 
 
   const canAnnotate = isPdf && !!doc.id;
