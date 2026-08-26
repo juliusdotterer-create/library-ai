@@ -8,6 +8,7 @@ import {
   format,
   isSameDay,
   isSameMonth,
+  isToday,
   startOfMonth,
   startOfWeek,
   subMonths,
@@ -133,69 +134,105 @@ function KalenderPage() {
         <TimetableGrid />
       ) : (
         <div className="grid gap-3 sm:gap-5 lg:grid-cols-[1fr_20rem]">
-      <div className="glass rounded-3xl p-2 sm:p-4">
+      <div className="glass rounded-3xl p-3 sm:p-6">
 
-
-        <div className="mb-2 flex items-center justify-between sm:mb-4">
-          <h1 className="text-base font-semibold capitalize sm:text-lg">
-            {format(month, "LLLL yyyy", { locale: de })}
-          </h1>
-          <div className="flex gap-1">
+        <div className="mb-3 flex items-center justify-between sm:mb-6">
+          <div className="flex items-baseline gap-2">
+            <h1 className="text-xl font-semibold tracking-tight capitalize sm:text-3xl">
+              {format(month, "LLLL", { locale: de })}
+            </h1>
+            <span className="text-xl font-light text-muted-foreground/70 sm:text-3xl">
+              {format(month, "yyyy")}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5">
             <Button
               variant="ghost"
-              size="icon"
-              className="h-8 w-8 rounded-2xl sm:h-9 sm:w-9"
-              onClick={() => setMonth(subMonths(month, 1))}
+              size="sm"
+              className="h-8 rounded-full px-3 text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => {
+                const now = new Date();
+                setMonth(now);
+                setSelected(now);
+              }}
             >
-              <ChevronLeft className="size-4" />
+              Heute
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 rounded-2xl sm:h-9 sm:w-9"
-              onClick={() => setMonth(addMonths(month, 1))}
-            >
-              <ChevronRight className="size-4" />
-            </Button>
+            <div className="glass-soft flex rounded-full p-0.5">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 rounded-full sm:h-8 sm:w-8"
+                onClick={() => setMonth(subMonths(month, 1))}
+              >
+                <ChevronLeft className="size-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 rounded-full sm:h-8 sm:w-8"
+                onClick={() => setMonth(addMonths(month, 1))}
+              >
+                <ChevronRight className="size-4" />
+              </Button>
+            </div>
           </div>
         </div>
 
-        <div className="mb-1 grid grid-cols-7 text-center text-[10px] text-muted-foreground sm:text-xs">
-          {["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((d) => (
-            <span key={d} className="py-0.5 sm:py-1">
+        <div className="mb-2 grid grid-cols-7 sm:mb-3">
+          {["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((d, i) => (
+            <span
+              key={d}
+              className={cn(
+                "py-1 text-center text-[10px] font-semibold uppercase tracking-widest sm:text-xs",
+                i >= 5 ? "text-muted-foreground/50" : "text-muted-foreground",
+              )}
+            >
               {d}
             </span>
           ))}
         </div>
 
-        <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
+        <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
           {range.days.map((d) => {
             const evts = dayEvents(d);
+            const today = isToday(d);
+            const isSelected = isSameDay(d, selected);
+            const inMonth = isSameMonth(d, month);
             return (
               <button
                 key={d.toISOString()}
                 onClick={() => setSelected(d)}
                 className={cn(
-                  "flex min-h-10 flex-col rounded-xl p-1 text-left text-xs transition-colors sm:min-h-20 sm:rounded-2xl sm:p-2 sm:text-sm",
-                  isSameMonth(d, month) ? "bg-card/50" : "opacity-40",
-                  isSameDay(d, selected) && "bg-primary text-primary-foreground",
+                  "group flex min-h-12 flex-col items-stretch rounded-2xl p-1.5 text-left transition-all duration-200 sm:min-h-24 sm:p-2.5",
+                  inMonth ? "bg-card/60 hover:bg-card" : "opacity-35",
+                  isSelected && "bg-primary-soft ring-1 ring-primary/40",
                 )}
               >
-                <span className="font-medium">{format(d, "d")}</span>
-                <span className="mt-0.5 flex flex-1 flex-col gap-0.5 sm:mt-1 sm:space-y-0.5">
-                  {evts.slice(0, 1).map((e) => (
+                <span
+                  className={cn(
+                    "flex h-6 w-6 items-center justify-center self-start rounded-full text-xs font-medium transition-colors sm:h-7 sm:w-7 sm:text-sm",
+                    today && !isSelected && "bg-primary text-primary-foreground shadow-sm",
+                    isSelected && "text-accent-foreground font-semibold",
+                    !today && !isSelected && "group-hover:bg-muted",
+                  )}
+                >
+                  {format(d, "d")}
+                </span>
+                <span className="mt-1 flex flex-1 flex-col gap-0.5 sm:mt-1.5 sm:gap-1">
+                  {evts.slice(0, 2).map((e) => (
                     <span
                       key={e.id}
-                      className={cn(
-                        "block truncate rounded px-0.5 text-[9px] sm:rounded-lg sm:px-1 sm:text-[11px]",
-                        isSameDay(d, selected) ? "bg-white/20" : "bg-primary-soft text-accent-foreground",
-                      )}
+                      className="flex items-center gap-1 truncate rounded-full bg-primary-soft px-1.5 py-0.5 text-[9px] font-medium text-accent-foreground sm:px-2 sm:text-[11px]"
                     >
-                      {e.title}
+                      <span className="size-1 shrink-0 rounded-full bg-primary" />
+                      <span className="truncate">{e.title}</span>
                     </span>
                   ))}
-                  {evts.length > 1 && (
-                    <span className="block text-[9px] opacity-70 sm:text-[11px]">+{evts.length - 1}</span>
+                  {evts.length > 2 && (
+                    <span className="px-1.5 text-[9px] font-medium text-muted-foreground sm:text-[11px]">
+                      +{evts.length - 2} weitere
+                    </span>
                   )}
                 </span>
               </button>
