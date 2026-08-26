@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Download, PanelRightClose, PanelRightOpen, X } from "lucide-react";
+import { Download, File, PanelRightClose, PanelRightOpen, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,9 @@ import { DocumentNotes } from "@/components/DocumentNotes";
 import { DocxViewer } from "@/components/DocxViewer";
 import { ImageViewer } from "@/components/ImageViewer";
 import { SheetViewer } from "@/components/SheetViewer";
+import { PptxViewer } from "@/components/PptxViewer";
+import { MediaViewer } from "@/components/MediaViewer";
+import { OdtViewer } from "@/components/OdtViewer";
 
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -83,15 +86,23 @@ export function DocumentPreview({
     ["jpg", "jpeg", "png", "gif", "webp", "avif", "bmp", "svg", "heic", "heif"].includes(ext);
   const isPdf = mime === "application/pdf" || lower.endsWith(".pdf");
   const isSheet =
-    ["xlsx", "xlsm", "xlsb", "xls", "csv"].includes(ext) ||
+    ["xlsx", "xlsm", "xlsb", "xls", "csv", "ods"].includes(ext) ||
     mime === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
     mime === "application/vnd.ms-excel" ||
+    mime === "application/vnd.oasis.opendocument.spreadsheet" ||
     mime === "text/csv";
   const isDocx =
     lower.endsWith(".docx") ||
     mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
   const isLegacyDoc = lower.endsWith(".doc") || mime === "application/msword";
-  const embeddable = isPdf || (mime.startsWith("text/") && !isSheet);
+  const isRtf = ext === "rtf" || mime === "application/rtf" || mime === "text/rtf";
+  const isOdt = ext === "odt" || mime === "application/vnd.oasis.opendocument.text";
+  const isPptx =
+    ext === "pptx" ||
+    mime === "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+  const isAudio = mime.startsWith("audio/") || ["mp3", "wav", "m4a", "ogg", "flac"].includes(ext);
+  const isVideo = mime.startsWith("video/") || ["mp4", "webm", "mov"].includes(ext);
+  const embeddable = isPdf || (mime.startsWith("text/") && !isSheet && !isRtf);
 
 
   const canAnnotate = isPdf && !!doc.id;
@@ -156,10 +167,18 @@ export function DocumentPreview({
             <PdfCanvasViewer url={url} initialPage={doc.page ?? null} />
           ) : isSheet ? (
             <SheetViewer url={url} name={doc.name} />
+          ) : isPptx ? (
+            <PptxViewer url={url} name={doc.name} />
+          ) : isAudio ? (
+            <MediaViewer url={url} name={doc.name} kind="audio" />
+          ) : isVideo ? (
+            <MediaViewer url={url} name={doc.name} kind="video" />
+          ) : isOdt ? (
+            <OdtViewer url={url} name={doc.name} />
           ) : isDocx ? (
 
             <DocxViewer url={url} name={doc.name} />
-          ) : isLegacyDoc ? (
+          ) : isLegacyDoc || isRtf ? (
             <DocxViewer url={url} name={doc.name} legacy />
           ) : embeddable ? (
             <iframe
@@ -168,10 +187,17 @@ export function DocumentPreview({
               className="size-full rounded-3xl bg-background"
             />
           ) : (
-            <div className="space-y-3 p-8 text-center">
-              <p className="text-sm text-muted-foreground">
-                Für diesen Dateityp gibt es keine Vorschau.
-              </p>
+            <div className="flex size-full flex-col items-center justify-center gap-4 bg-background p-8 text-center">
+              <div className="rounded-3xl bg-muted/50 p-5">
+                <File className="size-8 text-muted-foreground" />
+              </div>
+              <div className="space-y-1">
+                <p className="max-w-md truncate text-sm font-semibold">{doc.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {ext ? `.${ext.toUpperCase()}` : "Unbekannter Typ"} – für diesen Dateityp gibt es
+                  keine Vorschau.
+                </p>
+              </div>
               <Button asChild className="rounded-2xl">
                 <a href={url} download={doc.name}>
                   <Download className="size-4" /> Herunterladen
