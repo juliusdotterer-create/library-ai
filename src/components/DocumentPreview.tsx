@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Download, PanelRightClose, PanelRightOpen, X } from "lucide-react";
+import { Download, File, PanelRightClose, PanelRightOpen, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -187,10 +187,17 @@ export function DocumentPreview({
               className="size-full rounded-3xl bg-background"
             />
           ) : (
-            <div className="space-y-3 p-8 text-center">
-              <p className="text-sm text-muted-foreground">
-                Für diesen Dateityp gibt es keine Vorschau.
-              </p>
+            <div className="flex size-full flex-col items-center justify-center gap-4 bg-background p-8 text-center">
+              <div className="rounded-3xl bg-muted/50 p-5">
+                <File className="size-8 text-muted-foreground" />
+              </div>
+              <div className="space-y-1">
+                <p className="max-w-md truncate text-sm font-semibold">{doc.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {ext ? `.${ext.toUpperCase()}` : "Unbekannter Typ"} – für diesen Dateityp gibt es
+                  keine Vorschau.
+                </p>
+              </div>
               <Button asChild className="rounded-2xl">
                 <a href={url} download={doc.name}>
                   <Download className="size-4" /> Herunterladen
