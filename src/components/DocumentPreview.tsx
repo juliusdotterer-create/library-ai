@@ -167,10 +167,18 @@ export function DocumentPreview({
             <PdfCanvasViewer url={url} initialPage={doc.page ?? null} />
           ) : isSheet ? (
             <SheetViewer url={url} name={doc.name} />
+          ) : isPptx ? (
+            <PptxViewer url={url} name={doc.name} />
+          ) : isAudio ? (
+            <MediaViewer url={url} name={doc.name} kind="audio" />
+          ) : isVideo ? (
+            <MediaViewer url={url} name={doc.name} kind="video" />
+          ) : isOdt ? (
+            <OdtViewer url={url} name={doc.name} />
           ) : isDocx ? (
 
             <DocxViewer url={url} name={doc.name} />
-          ) : isLegacyDoc ? (
+          ) : isLegacyDoc || isRtf ? (
             <DocxViewer url={url} name={doc.name} legacy />
           ) : embeddable ? (
             <iframe
