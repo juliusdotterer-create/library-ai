@@ -212,7 +212,7 @@ function KalenderPage() {
               >
                 <span
                   className={cn(
-                    "flex h-6 w-6 items-center justify-center self-start rounded-full text-xs font-medium transition-colors sm:h-7 sm:w-7 sm:text-sm",
+                    "flex h-5 w-5 items-center justify-center self-start rounded-full text-[11px] font-medium transition-colors sm:h-6 sm:w-6 sm:text-xs",
                     today && !isSelected && "bg-primary text-primary-foreground shadow-sm",
                     isSelected && "text-accent-foreground font-semibold",
                     !today && !isSelected && "group-hover:bg-muted",
