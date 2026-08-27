@@ -224,7 +224,7 @@ function KalenderPage() {
                   {evts.slice(0, 2).map((e) => (
                     <span
                       key={e.id}
-                      className="flex items-center gap-1 truncate rounded-full bg-primary-soft px-1.5 py-0.5 text-[9px] font-medium text-accent-foreground sm:px-2 sm:text-[11px]"
+                      className="flex items-center gap-1 truncate rounded-full bg-primary-soft px-1 py-0.5 text-[9px] font-medium text-accent-foreground sm:px-1.5 sm:text-[10px]"
                     >
                       <span className="size-1 shrink-0 rounded-full bg-primary" />
                       <span className="truncate">{e.title}</span>
