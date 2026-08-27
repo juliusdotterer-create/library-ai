@@ -194,7 +194,7 @@ function KalenderPage() {
           ))}
         </div>
 
-        <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
+        <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
           {range.days.map((d) => {
             const evts = dayEvents(d);
             const today = isToday(d);
