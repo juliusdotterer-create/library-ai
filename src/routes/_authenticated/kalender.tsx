@@ -185,7 +185,7 @@ function KalenderPage() {
             <span
               key={d}
               className={cn(
-                "py-1 text-center text-[10px] font-semibold uppercase tracking-widest sm:text-xs",
+                "py-0.5 text-center text-[10px] font-semibold uppercase tracking-widest sm:text-xs",
                 i >= 5 ? "text-muted-foreground/50" : "text-muted-foreground",
               )}
             >
