@@ -241,9 +241,28 @@ function KalenderPage() {
         </div>
       </div>
 
-      <aside className="glass h-fit rounded-3xl p-2 sm:p-4">
-        <div className="mb-2 flex items-center justify-between sm:mb-3">
-          <h2 className="text-sm font-semibold sm:text-base">{format(selected, "EEEE, d. MMM", { locale: de })}</h2>
+      <aside className="glass h-fit rounded-3xl p-3 sm:p-5">
+        <div className="mb-3 flex items-start justify-between sm:mb-4">
+          <div className="flex items-center gap-3">
+            <span
+              className={cn(
+                "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-lg font-semibold sm:h-12 sm:w-12 sm:text-xl",
+                isToday(selected)
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "bg-primary-soft text-accent-foreground",
+              )}
+            >
+              {format(selected, "d")}
+            </span>
+            <div>
+              <h2 className="text-sm font-semibold capitalize leading-tight sm:text-base">
+                {format(selected, "EEEE", { locale: de })}
+              </h2>
+              <p className="text-[10px] capitalize text-muted-foreground sm:text-xs">
+                {format(selected, "d. MMMM yyyy", { locale: de })}
+              </p>
+            </div>
+          </div>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button size="icon" className="h-8 w-8 rounded-2xl sm:h-9 sm:w-9">
@@ -294,28 +313,39 @@ function KalenderPage() {
           </Dialog>
         </div>
 
-        <div className="space-y-1.5 sm:space-y-2">
+        <div className="space-y-2">
           {dayEvents(selected).map((e) => (
-            <div key={e.id} className="glass-soft flex items-start gap-2 rounded-xl p-2 sm:rounded-2xl sm:p-3">
-              <div className="flex-1 min-w-0">
-                <p className="truncate text-xs font-medium sm:text-sm">{e.title}</p>
-                <p className="text-[10px] text-muted-foreground sm:text-xs">
+            <div
+              key={e.id}
+              className="group glass-soft relative flex items-start gap-3 overflow-hidden rounded-2xl p-3 transition-colors hover:bg-card/70"
+            >
+              <span className="absolute inset-y-2 left-0 w-1 rounded-full bg-primary" />
+              <div className="min-w-0 flex-1 pl-2">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-accent-foreground sm:text-[11px]">
                   {format(new Date(e.start_at), "HH:mm")} Uhr
                 </p>
-                {e.notes && <p className="mt-0.5 text-[10px] text-muted-foreground sm:mt-1 sm:text-xs">{e.notes}</p>}
+                <p className="mt-0.5 truncate text-sm font-medium">{e.title}</p>
+                {e.notes && (
+                  <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground sm:text-xs">{e.notes}</p>
+                )}
               </div>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 shrink-0 rounded-2xl text-destructive sm:h-9 sm:w-9"
+                className="h-8 w-8 shrink-0 rounded-2xl text-muted-foreground/50 transition-colors hover:text-destructive"
                 onClick={() => remove.mutate(e.id)}
               >
-                <Trash2 className="size-3.5 sm:size-4" />
+                <Trash2 className="size-4" />
               </Button>
             </div>
           ))}
           {!dayEvents(selected).length && (
-            <p className="py-4 text-center text-xs text-muted-foreground sm:py-8 sm:text-sm">Keine Termine.</p>
+            <div className="flex flex-col items-center gap-2 py-8 text-center">
+              <span className="flex size-10 items-center justify-center rounded-2xl bg-muted">
+                <CalendarPlus className="size-4 text-muted-foreground" />
+              </span>
+              <p className="text-xs text-muted-foreground sm:text-sm">Keine Termine an diesem Tag.</p>
+            </div>
           )}
         </div>
       </aside>
