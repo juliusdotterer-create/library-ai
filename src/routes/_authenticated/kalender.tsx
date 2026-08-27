@@ -241,9 +241,28 @@ function KalenderPage() {
         </div>
       </div>
 
-      <aside className="glass h-fit rounded-3xl p-2 sm:p-4">
-        <div className="mb-2 flex items-center justify-between sm:mb-3">
-          <h2 className="text-sm font-semibold sm:text-base">{format(selected, "EEEE, d. MMM", { locale: de })}</h2>
+      <aside className="glass h-fit rounded-3xl p-3 sm:p-5">
+        <div className="mb-3 flex items-start justify-between sm:mb-4">
+          <div className="flex items-center gap-3">
+            <span
+              className={cn(
+                "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-lg font-semibold sm:h-12 sm:w-12 sm:text-xl",
+                isToday(selected)
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "bg-primary-soft text-accent-foreground",
+              )}
+            >
+              {format(selected, "d")}
+            </span>
+            <div>
+              <h2 className="text-sm font-semibold capitalize leading-tight sm:text-base">
+                {format(selected, "EEEE", { locale: de })}
+              </h2>
+              <p className="text-[10px] capitalize text-muted-foreground sm:text-xs">
+                {format(selected, "d. MMMM yyyy", { locale: de })}
+              </p>
+            </div>
+          </div>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button size="icon" className="h-8 w-8 rounded-2xl sm:h-9 sm:w-9">
