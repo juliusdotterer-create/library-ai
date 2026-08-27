@@ -134,9 +134,10 @@ function KalenderPage() {
         <TimetableGrid />
       ) : (
         <div className="grid gap-3 sm:gap-5 lg:grid-cols-[1fr_20rem]">
-      <div className="glass rounded-3xl p-3 sm:p-6">
+      <div className="glass rounded-3xl p-2 sm:p-4">
 
-        <div className="mb-3 flex items-center justify-between sm:mb-6">
+
+        <div className="mb-2 flex items-center justify-between sm:mb-3">
           <div className="flex items-baseline gap-2">
             <h1 className="text-xl font-semibold tracking-tight capitalize sm:text-3xl">
               {format(month, "LLLL", { locale: de })}
@@ -179,12 +180,12 @@ function KalenderPage() {
           </div>
         </div>
 
-        <div className="mb-2 grid grid-cols-7 sm:mb-3">
+        <div className="mb-1 grid grid-cols-7 sm:mb-2">
           {["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((d, i) => (
             <span
               key={d}
               className={cn(
-                "py-1 text-center text-[10px] font-semibold uppercase tracking-widest sm:text-xs",
+                "py-0.5 text-center text-[10px] font-semibold uppercase tracking-widest sm:text-xs",
                 i >= 5 ? "text-muted-foreground/50" : "text-muted-foreground",
               )}
             >
@@ -193,7 +194,7 @@ function KalenderPage() {
           ))}
         </div>
 
-        <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
+        <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
           {range.days.map((d) => {
             const evts = dayEvents(d);
             const today = isToday(d);
@@ -204,14 +205,14 @@ function KalenderPage() {
                 key={d.toISOString()}
                 onClick={() => setSelected(d)}
                 className={cn(
-                  "group flex min-h-12 flex-col items-stretch rounded-2xl p-1.5 text-left transition-all duration-200 sm:min-h-24 sm:p-2.5",
+                  "group flex min-h-10 flex-col items-stretch rounded-2xl p-1 text-left transition-all duration-200 sm:min-h-16 sm:p-1.5",
                   inMonth ? "bg-card/60 hover:bg-card" : "opacity-35",
                   isSelected && "bg-primary-soft ring-1 ring-primary/40",
                 )}
               >
                 <span
                   className={cn(
-                    "flex h-6 w-6 items-center justify-center self-start rounded-full text-xs font-medium transition-colors sm:h-7 sm:w-7 sm:text-sm",
+                    "flex h-5 w-5 items-center justify-center self-start rounded-full text-[11px] font-medium transition-colors sm:h-6 sm:w-6 sm:text-xs",
                     today && !isSelected && "bg-primary text-primary-foreground shadow-sm",
                     isSelected && "text-accent-foreground font-semibold",
                     !today && !isSelected && "group-hover:bg-muted",
@@ -219,11 +220,11 @@ function KalenderPage() {
                 >
                   {format(d, "d")}
                 </span>
-                <span className="mt-1 flex flex-1 flex-col gap-0.5 sm:mt-1.5 sm:gap-1">
+                <span className="mt-0.5 flex flex-1 flex-col gap-0.5 sm:mt-1 sm:gap-0.5">
                   {evts.slice(0, 2).map((e) => (
                     <span
                       key={e.id}
-                      className="flex items-center gap-1 truncate rounded-full bg-primary-soft px-1.5 py-0.5 text-[9px] font-medium text-accent-foreground sm:px-2 sm:text-[11px]"
+                      className="flex items-center gap-1 truncate rounded-full bg-primary-soft px-1 py-0.5 text-[9px] font-medium text-accent-foreground sm:px-1.5 sm:text-[10px]"
                     >
                       <span className="size-1 shrink-0 rounded-full bg-primary" />
                       <span className="truncate">{e.title}</span>
