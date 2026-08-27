@@ -205,7 +205,7 @@ function KalenderPage() {
                 key={d.toISOString()}
                 onClick={() => setSelected(d)}
                 className={cn(
-                  "group flex min-h-12 flex-col items-stretch rounded-2xl p-1.5 text-left transition-all duration-200 sm:min-h-24 sm:p-2.5",
+                  "group flex min-h-10 flex-col items-stretch rounded-2xl p-1 text-left transition-all duration-200 sm:min-h-16 sm:p-1.5",
                   inMonth ? "bg-card/60 hover:bg-card" : "opacity-35",
                   isSelected && "bg-primary-soft ring-1 ring-primary/40",
                 )}
