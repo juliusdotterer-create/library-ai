@@ -220,7 +220,7 @@ function KalenderPage() {
                 >
                   {format(d, "d")}
                 </span>
-                <span className="mt-1 flex flex-1 flex-col gap-0.5 sm:mt-1.5 sm:gap-1">
+                <span className="mt-0.5 flex flex-1 flex-col gap-0.5 sm:mt-1 sm:gap-0.5">
                   {evts.slice(0, 2).map((e) => (
                     <span
                       key={e.id}
