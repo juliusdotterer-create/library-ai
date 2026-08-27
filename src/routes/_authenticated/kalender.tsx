@@ -180,7 +180,7 @@ function KalenderPage() {
           </div>
         </div>
 
-        <div className="mb-2 grid grid-cols-7 sm:mb-3">
+        <div className="mb-1 grid grid-cols-7 sm:mb-2">
           {["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((d, i) => (
             <span
               key={d}
