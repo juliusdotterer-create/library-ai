@@ -134,7 +134,8 @@ function KalenderPage() {
         <TimetableGrid />
       ) : (
         <div className="grid gap-3 sm:gap-5 lg:grid-cols-[1fr_20rem]">
-      <div className="glass rounded-3xl p-3 sm:p-6">
+      <div className="glass rounded-3xl p-2 sm:p-4">
+
 
         <div className="mb-3 flex items-center justify-between sm:mb-6">
           <div className="flex items-baseline gap-2">
