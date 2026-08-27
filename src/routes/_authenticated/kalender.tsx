@@ -348,8 +348,6 @@ function KalenderPage() {
             </div>
           )}
         </div>
-
-        </div>
       </aside>
         </div>
       )}
