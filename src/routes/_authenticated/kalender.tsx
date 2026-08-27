@@ -137,7 +137,7 @@ function KalenderPage() {
       <div className="glass rounded-3xl p-2 sm:p-4">
 
 
-        <div className="mb-3 flex items-center justify-between sm:mb-6">
+        <div className="mb-2 flex items-center justify-between sm:mb-3">
           <div className="flex items-baseline gap-2">
             <h1 className="text-xl font-semibold tracking-tight capitalize sm:text-3xl">
               {format(month, "LLLL", { locale: de })}
