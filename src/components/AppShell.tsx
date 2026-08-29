@@ -31,17 +31,8 @@ const NAV = [
 export function AppShell({ children }: { children: ReactNode }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const { mode, toggleMode } = useTheme();
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const [searchOpen, setSearchOpen] = useState(false);
   const onLehrplaene = path.startsWith("/lehrplaene");
-
-  const signOut = async () => {
-    await queryClient.cancelQueries();
-    queryClient.clear();
-    await supabase.auth.signOut();
-    navigate({ to: "/auth", replace: true });
-  };
 
   return (
     <div className="min-h-screen w-full">
