@@ -58,7 +58,7 @@ function SettingsPage() {
       <div className="glass rounded-3xl p-5">
         <h1 className="text-lg font-semibold">Darstellung</h1>
         <p className="text-sm text-muted-foreground">
-          Liquid Glass trifft auf ruhiges Off-White. Alles lässt sich anpassen.
+          Passe Modus, Akzentfarbe und Intensität deines Archivs an.
         </p>
       </div>
 
