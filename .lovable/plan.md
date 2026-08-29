@@ -1,40 +1,44 @@
-# Volltextsuche: warum nicht alles indexiert ist
+# Volltextsuche: OCR für Scans + durchhaltender Indexlauf
 
 ## Befund (aus der Datenbank)
 
 - 8.505 Dokumente insgesamt, davon 7.938 PDFs.
-- Nur 2.644 Einträge im Volltext-Index: 2.202 „done“, 441 „unsupported“, 1 „failed“.
-- Alle Index-Einträge stammen aus einem einzigen Zeitfenster heute (14–16 Uhr) und brechen dann ab — der Lauf wurde also nicht beendet, nicht gleichmäßig verteilt.
+- Nur 2.644 Einträge im Volltext-Index: 2.202 „done“, 441 „unsupported“ (Scans ohne Textebene), 1 „failed“.
+- Alle Index-Einträge stammen aus einem einzigen Zeitfenster (14–16 Uhr) und brechen dann ab: der Lauf wurde nicht beendet, weil er nur im geöffneten Tab läuft.
 
-## Ursachen
+## Teil 1: Indexlauf, der nicht mehr abbricht
 
-1. **Indexierung läuft nur im Browser-Tab.** Der Button „Fehlende PDFs indexieren“ lädt jede PDF herunter und liest sie lokal aus. Schließt man den Tab, wechselt die Seite oder schläft das Gerät ein, stoppt der Lauf sofort — genau das ist passiert (~2.600 von 7.900).
-2. **Kein Fortsetzen nach Fehler / Endlosschleife möglich.** Wenn das Speichern eines Dokuments scheitert, bleibt es „ungelesen“ und wird im nächsten Durchlauf erneut geholt. Ein einzelnes problematisches Dokument kann den Lauf damit blockieren, ohne dass man es sieht.
-3. **Reine Scan-PDFs ohne Textebene** (441 Stück) liefern keinen Text — sie sind als „unsupported“ markiert und nur über den Namen auffindbar. Das braucht Texterkennung (OCR).
-4. **Andere Dateitypen werden gar nicht indexiert** (~570 Word-, Excel-, PowerPoint-, Text-Dateien) — der Index kennt nur PDFs.
-5. **Große Dateien werden gekappt**: max. 300 Seiten bzw. 400.000 Zeichen pro Dokument; alles darüber ist nicht durchsuchbar.
+Die Textextraktion passiert im Browser (die Datei wird dafür geladen und gelesen). Ganz ohne Tab geht das nicht — deshalb zwei Maßnahmen:
 
-## Vorgeschlagene Umsetzung
+**Klar kommunizieren**
+- Deutlicher Hinweis in der Indexkarte: „Der Lauf braucht diesen Tab. Nicht schließen.“
+- Warnung beim Verlassen der Seite, solange indexiert wird.
+- Bildschirm bleibt während des Laufs wach (Wake Lock), damit das Gerät nicht einschläft.
 
-**A. Indexlauf robust und wiederaufnehmbar machen**
-- Fehlgeschlagene Dokumente werden mit Status `failed` und Fehlergrund gespeichert, statt still übersprungen — damit blockiert kein Dokument den Lauf mehr.
-- Fortschritt bleibt beim Neuladen erhalten: Der Lauf startet dort, wo er aufgehört hat, mit Anzeige „x von y“, Pause/Fortsetzen und Warnung vor dem Verlassen der Seite.
-- Statuskarte in den Einstellungen zeigt aufgeschlüsselt: indexiert / ohne Textebene / fehlgeschlagen / offen — inklusive Liste der Problemdokumente.
-- Erneutes Indexieren nur der fehlgeschlagenen Dokumente per Button.
+**Technisch durchhalten**
+- Der Lauf wandert in einen Web Worker und läuft weiter, wenn man innerhalb der App die Seite wechselt (z. B. in die Library) — nur das Schließen des Tabs stoppt ihn.
+- Fortschritt wird gespeichert: Nach Neuladen oder Abbruch macht der Lauf genau dort weiter, wo er aufgehört hat, mit „x von y“, Pause/Fortsetzen.
+- Fehlerhafte Dokumente werden mit Status `failed` und Grund abgelegt statt still übersprungen, damit kein Dokument den Lauf blockiert.
+- Statuskarte zeigt aufgeschlüsselt: indexiert / nur Scan (OCR nötig) / fehlgeschlagen / offen, plus Button „Nur Fehlgeschlagene erneut versuchen“.
 
-**B. Weitere Dateitypen indexieren**
-- Word (.docx/.doc), Excel/CSV, PowerPoint, ODT und reine Textdateien werden mit den bereits vorhandenen Lesern (mammoth, xlsx, Legacy-Doc-Parser) ausgelesen und in denselben Index geschrieben.
+## Teil 2: OCR für Scan-PDFs
 
-**C. Grenzen anheben**
-- Seiten- und Zeichenlimit erhöhen (z. B. 1.000 Seiten / 1 Mio. Zeichen) und pro Dokument protokollieren, wenn gekürzt wurde.
+- Neuer, bewusst separat gestarteter Lauf „Scans per Texterkennung lesen“ für alle Dokumente mit Status `unsupported` (aktuell 441).
+- Texterkennung läuft im Browser mit Tesseract (Deutsch + Englisch), Seite für Seite: PDF-Seite wird gerendert und als Bild erkannt.
+- Deutlich langsamer als normale Extraktion (grob 2–5 Sekunden pro Seite) — deshalb eigener Fortschrittsbalken mit Restzeitschätzung, Pause/Fortsetzen und Seitenlimit pro Dokument (Standard 50 Seiten, einstellbar).
+- Ergebnis landet im selben Index mit Status `done` und Kennzeichen `ocr`, sodass Treffer in der Suche als „per Texterkennung gefunden“ markiert werden.
+- Erkennt OCR ebenfalls keinen brauchbaren Text, bleibt das Dokument als „nicht lesbar“ markiert und wird nicht endlos erneut verarbeitet.
 
-**D. Optional: Scan-PDFs per OCR (separater Schritt)**
-- Für die 441 Dokumente ohne Textebene wäre Texterkennung nötig. Das ist deutlich rechenintensiver und sollte als eigener, bewusst gestarteter Lauf umgesetzt werden — nicht Teil dieses Schritts, sofern nicht gewünscht.
+## Nicht Teil dieses Schritts
+
+Indexierung weiterer Dateitypen (Word, Excel, PowerPoint) und das Anheben der Seiten-/Zeichenlimits — separater Schritt.
 
 ## Technische Details
 
-- `src/lib/pdf-text.ts`: Limits anheben, Fehlerursache zurückgeben.
-- Neuer Extraktor `src/lib/text-extract.ts`, der je nach Dateityp an pdfjs, mammoth, xlsx, `doc-legacy` oder Plaintext delegiert.
-- `src/lib/document-text.functions.ts`: `saveDocumentText` akzeptiert `error`-Text; `listUnindexedDocuments` liefert Zähler nach Status und filtert nicht mehr nur PDFs; Zählabfragen serverseitig statt vollständiges Durchblättern aller Zeilen.
-- Migration: Spalte `error text` und `truncated boolean` in `document_text` (Grants/RLS wie bestehend).
-- `src/components/TextIndexPanel.tsx`: Statusaufschlüsselung, Pause/Fortsetzen, `beforeunload`-Warnung, „Nur Fehlgeschlagene erneut versuchen“.
+- Neues Paket `tesseract.js` (WASM, läuft im Browser-Worker); Sprachdaten `deu`+`eng` werden beim ersten Lauf geladen.
+- `src/lib/ocr.ts`: rendert PDF-Seiten via pdfjs auf Canvas und erkennt Text; begrenzte Auflösung (ca. 1.500 px Breite) für Tempo, Abbruch-Signal unterstützt.
+- `src/lib/index-runner.ts`: gemeinsamer Warteschlangen-Runner (Extraktion + OCR) im Web Worker, Fortschritt in `localStorage`, `navigator.wakeLock`, `beforeunload`-Guard.
+- Migration `document_text`: Spalten `error text`, `source text default 'text'` (`text` | `ocr`), `attempts int default 0`; Grants und RLS wie bestehend.
+- `src/lib/document-text.functions.ts`: `saveDocumentText` akzeptiert `error`/`source`; neue `listOcrCandidates` (Status `unsupported`, `attempts` unter Grenze) und `getIndexStats` (Zähler serverseitig statt vollständiges Durchblättern).
+- `src/components/TextIndexPanel.tsx`: zwei Aktionen (Volltext, OCR), Statusaufschlüsselung, Pause/Fortsetzen, Hinweis- und Verlassen-Warnung.
+- `src/lib/library.functions.ts` / `LibrarySearch.tsx`: Treffer aus OCR-Quellen kennzeichnen.
