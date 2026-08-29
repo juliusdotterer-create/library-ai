@@ -24,6 +24,9 @@ export function ProfilePanel() {
   const [pw2, setPw2] = useState("");
   const [savingPw, setSavingPw] = useState(false);
 
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
   useEffect(() => {
     void (async () => {
       if (!user) {
@@ -117,6 +120,13 @@ export function ProfilePanel() {
     } finally {
       setSavingPw(false);
     }
+  };
+
+  const signOut = async () => {
+    await queryClient.cancelQueries();
+    queryClient.clear();
+    await supabase.auth.signOut();
+    navigate({ to: "/auth", replace: true });
   };
 
   if (loading) {
@@ -218,6 +228,15 @@ export function ProfilePanel() {
         </div>
         <p className="text-xs text-muted-foreground">Mindestens 8 Zeichen.</p>
       </div>
+
+      <Button
+        variant="outline"
+        className="w-full rounded-2xl text-destructive hover:bg-destructive/10 hover:text-destructive"
+        onClick={signOut}
+      >
+        <LogOut className="size-4" />
+        Abmelden
+      </Button>
     </div>
   );
 }
