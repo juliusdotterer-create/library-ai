@@ -113,36 +113,45 @@ export type Database = {
       }
       document_text: {
         Row: {
+          attempts: number
           content: string
           created_at: string
           document_id: string
+          error: string | null
           id: string
           page_count: number
           pages: Json
+          source: string
           status: string
           tsv: unknown
           updated_at: string
           user_id: string
         }
         Insert: {
+          attempts?: number
           content?: string
           created_at?: string
           document_id: string
+          error?: string | null
           id?: string
           page_count?: number
           pages?: Json
+          source?: string
           status?: string
           tsv?: unknown
           updated_at?: string
           user_id: string
         }
         Update: {
+          attempts?: number
           content?: string
           created_at?: string
           document_id?: string
+          error?: string | null
           id?: string
           page_count?: number
           pages?: Json
+          source?: string
           status?: string
           tsv?: unknown
           updated_at?: string
