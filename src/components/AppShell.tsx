@@ -110,15 +110,6 @@ export function AppShell({ children }: { children: ReactNode }) {
           >
             {mode === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="rounded-2xl text-muted-foreground/40 hover:text-foreground"
-            onClick={signOut}
-          >
-            <LogOut className="size-4" />
-          </Button>
-
         </div>
       </header>
 
