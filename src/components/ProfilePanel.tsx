@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { CircleUserRound, Loader2, Mail, KeyRound } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { CircleUserRound, Loader2, Mail, KeyRound, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +23,9 @@ export function ProfilePanel() {
   const [pw1, setPw1] = useState("");
   const [pw2, setPw2] = useState("");
   const [savingPw, setSavingPw] = useState(false);
+
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     void (async () => {
@@ -115,6 +120,13 @@ export function ProfilePanel() {
     } finally {
       setSavingPw(false);
     }
+  };
+
+  const signOut = async () => {
+    await queryClient.cancelQueries();
+    queryClient.clear();
+    await supabase.auth.signOut();
+    navigate({ to: "/auth", replace: true });
   };
 
   if (loading) {
@@ -216,6 +228,15 @@ export function ProfilePanel() {
         </div>
         <p className="text-xs text-muted-foreground">Mindestens 8 Zeichen.</p>
       </div>
+
+      <Button
+        variant="outline"
+        className="w-full rounded-2xl text-destructive hover:bg-destructive/10 hover:text-destructive"
+        onClick={signOut}
+      >
+        <LogOut className="size-4" />
+        Abmelden
+      </Button>
     </div>
   );
 }

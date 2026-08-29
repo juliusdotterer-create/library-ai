@@ -1,5 +1,4 @@
-import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
+import { Link, useRouterState } from "@tanstack/react-router";
 import {
   FolderTree,
   CalendarDays,
@@ -9,12 +8,9 @@ import {
   Bot,
   Moon,
   Sun,
-  LogOut,
   Search,
-
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -35,17 +31,8 @@ const NAV = [
 export function AppShell({ children }: { children: ReactNode }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const { mode, toggleMode } = useTheme();
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const [searchOpen, setSearchOpen] = useState(false);
   const onLehrplaene = path.startsWith("/lehrplaene");
-
-  const signOut = async () => {
-    await queryClient.cancelQueries();
-    queryClient.clear();
-    await supabase.auth.signOut();
-    navigate({ to: "/auth", replace: true });
-  };
 
   return (
     <div className="min-h-screen w-full">
@@ -123,15 +110,6 @@ export function AppShell({ children }: { children: ReactNode }) {
           >
             {mode === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="rounded-2xl text-muted-foreground/40 hover:text-foreground"
-            onClick={signOut}
-          >
-            <LogOut className="size-4" />
-          </Button>
-
         </div>
       </header>
 
