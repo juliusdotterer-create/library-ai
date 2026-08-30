@@ -196,6 +196,73 @@ export function PdfAnnotator({
     };
   }, [view]);
 
+  /* ------- Trefferrechtecke der Volltextsuche (Basis-Koordinaten) ------- */
+  useEffect(() => {
+    const doc = docRef.current;
+    const tokens = highlightTokens(highlight ?? "");
+    if (!doc || status !== "ready" || !tokens.length) {
+      setHits([]);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const found: { page: number; x: number; y: number; w: number; h: number }[] = [];
+      for (let i = 1; i <= doc.numPages; i++) {
+        const page = await doc.getPage(i);
+        if (cancelled) return;
+        const viewport = page.getViewport({ scale: 1 });
+        const rects = await findHighlights(page, viewport as never, tokens);
+        if (cancelled) return;
+        for (const r of rects) found.push({ page: i, ...r });
+      }
+      if (!cancelled) setHits(found);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [highlight, status, url]);
+
+  useEffect(() => {
+    onMatchCount?.(hits.length);
+  }, [hits.length, onMatchCount]);
+
+  /* ------- Trefferebene zeichnen ------- */
+  useEffect(() => {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    for (let i = 0; i < view.length; i++) {
+      const canvas = hlRefs.current[i];
+      const dim = view[i];
+      if (!canvas || !dim) continue;
+      canvas.width = Math.max(1, Math.round(dim.w * dpr));
+      canvas.height = Math.max(1, Math.round(dim.h * dpr));
+      const ctx = canvas.getContext("2d");
+      if (!ctx) continue;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const s = dim.scale * dpr;
+      hits.forEach((h, idx) => {
+        if (h.page !== i + 1) return;
+        ctx.fillStyle =
+          idx === activeMatch ? "rgba(249, 115, 22, 0.45)" : "rgba(250, 204, 21, 0.38)";
+        ctx.fillRect(h.x * s, h.y * s, h.w * s, h.h * s);
+      });
+    }
+  }, [hits, view, activeMatch]);
+
+  /* ------- Zum aktiven Treffer scrollen ------- */
+  useEffect(() => {
+    if (activeMatch == null) return;
+    const hit = hits[activeMatch];
+    const wrap = wrapRef.current;
+    const dim = hit ? view[hit.page - 1] : null;
+    if (!hit || !wrap || !dim) return;
+    const pageEl = wrap.querySelector(`[data-page="${hit.page}"]`) as HTMLElement | null;
+    if (!pageEl) return;
+    const top = pageEl.offsetTop + hit.y * dim.scale - wrap.clientHeight / 3;
+    wrap.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+  }, [activeMatch, hits, view]);
+
+
+
   /* ---------------- load annotations ---------------- */
   useEffect(() => {
     let cancelled = false;
