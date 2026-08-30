@@ -1,10 +1,19 @@
 import { useEffect, useRef, useState } from "react";
+import { findHighlights, highlightTokens } from "@/lib/pdf-highlight";
 
 /**
  * Renders every page of a PDF into canvases (scrollable).
  * Used on mobile where <iframe> only shows the first page.
  */
-export function PdfCanvasViewer({ url, initialPage }: { url: string; initialPage?: number | null }) {
+export function PdfCanvasViewer({
+  url,
+  initialPage,
+  highlight,
+}: {
+  url: string;
+  initialPage?: number | null;
+  highlight?: string | null;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [pages, setPages] = useState(0);
@@ -29,6 +38,7 @@ export function PdfCanvasViewer({ url, initialPage }: { url: string; initialPage
 
         const width = container.clientWidth || 360;
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const tokens = highlightTokens(highlight ?? "");
 
         for (let i = 1; i <= doc.numPages; i++) {
           const page = await doc.getPage(i);
@@ -52,6 +62,19 @@ export function PdfCanvasViewer({ url, initialPage }: { url: string; initialPage
           if (!ctx) continue;
           await page.render({ canvas, canvasContext: ctx, viewport }).promise;
           if (cancelled) return;
+
+          if (tokens.length) {
+            const rects = await findHighlights(page, viewport as never, tokens);
+            if (cancelled) return;
+            if (rects.length) {
+              ctx.save();
+              ctx.globalCompositeOperation = "multiply";
+              ctx.fillStyle = "rgba(250, 204, 21, 0.45)";
+              for (const r of rects) ctx.fillRect(r.x, r.y, r.w, r.h);
+              ctx.restore();
+            }
+          }
+
           if (i === 1) setStatus("ready");
           if (initialPage && i === initialPage) {
             canvas.scrollIntoView({ block: "start" });
@@ -66,7 +89,7 @@ export function PdfCanvasViewer({ url, initialPage }: { url: string; initialPage
     return () => {
       cancelled = true;
     };
-  }, [url, initialPage]);
+  }, [url, initialPage, highlight]);
 
   return (
     <div className="size-full overflow-y-auto p-2">
