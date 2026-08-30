@@ -24,6 +24,8 @@ export type PreviewDoc = {
   folder_id?: string | null;
   /** Direkt zu dieser Seite springen (Treffer der Volltextsuche). */
   page?: number | null;
+  /** Suchbegriff, der im PDF farblich markiert wird. */
+  highlight?: string | null;
 };
 
 /** In-app preview overlay for documents (no extra browser window). */
@@ -39,6 +41,19 @@ export function DocumentPreview({
   const [isTouch, setIsTouch] = useState(false);
   const [notepad, setNotepad] = useState(false);
   const [split, setSplit] = useState(60);
+  const [matches, setMatches] = useState(0);
+  const [active, setActive] = useState(0);
+  const [showHits, setShowHits] = useState(true);
+  const onMatchCount = useCallback((n: number) => {
+    setMatches(n);
+    setActive(0);
+  }, []);
+  useEffect(() => {
+    setShowHits(true);
+    setMatches(0);
+    setActive(0);
+  }, [doc?.id, doc?.highlight]);
+
   // iPad/Tablets rendern PDFs im iframe oft nur als erste Seite -> Canvas-Viewer nutzen.
   useEffect(() => {
     setIsTouch(window.matchMedia("(pointer: coarse)").matches);
