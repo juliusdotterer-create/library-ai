@@ -98,13 +98,13 @@ export const searchLibrary = createServerFn({ method: "POST" })
     /* ---------- Volltextsuche im Dokumentinhalt ---------- */
     const { data: hits } = await context.supabase
       .from("document_text")
-      .select("document_id,pages")
+      .select("document_id,pages,source")
       .eq("user_id", context.userId)
       .eq("status", "done")
       .textSearch("tsv", data.term, { type: "websearch", config: "german" })
       .limit(50);
 
-    const hitRows = hits ?? [];
+    const hitRows = (hits ?? []) as { document_id: string; pages: unknown; source?: string | null }[];
     const hitDocIds = hitRows.map((h) => h.document_id);
     const nameHitIds = new Set((docs ?? []).map((d) => d.id));
     const contentIds = hitDocIds.filter((id) => !nameHitIds.has(id));
@@ -118,6 +118,7 @@ export const searchLibrary = createServerFn({ method: "POST" })
       path: string;
       page: number | null;
       snippet: string;
+      ocr: boolean;
     }[] = [];
 
     if (contentIds.length) {
@@ -128,9 +129,10 @@ export const searchLibrary = createServerFn({ method: "POST" })
         .is("deleted_at", null)
         .in("id", contentIds.slice(0, 50));
 
-      const pagesById = new Map(hitRows.map((h) => [h.document_id, h.pages]));
+      const rowById = new Map(hitRows.map((h) => [h.document_id, h]));
       contents = (hitDocs ?? []).map((d) => {
-        const raw = pagesById.get(d.id);
+        const row = rowById.get(d.id);
+        const raw = row?.pages;
         const pages: string[] = Array.isArray(raw) ? (raw as unknown[]).map((p) => String(p ?? "")) : [];
         const { page, snippet } = locate(pages, data.term);
         return {
@@ -142,6 +144,7 @@ export const searchLibrary = createServerFn({ method: "POST" })
           path: folderPath(d.folder_id, allFolders),
           page,
           snippet,
+          ocr: row?.source === "ocr",
         };
       });
     }

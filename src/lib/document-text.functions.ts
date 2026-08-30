@@ -165,8 +165,7 @@ export const listUnindexedDocuments = createServerFn({ method: "POST" })
         const isPdf = r.mime_type === "application/pdf" || r.name.toLowerCase().endsWith(".pdf");
         if (!isPdf || !r.storage_path) continue;
         const isRetry = retry.has(r.id);
-        if (data.onlyFailed ? !isRetry : indexed.has(r.id) || (!isRetry && indexed.has(r.id)))
-          continue;
+        if (data.onlyFailed && !isRetry) continue;
         if (!data.onlyFailed && indexed.has(r.id)) continue;
         total += 1;
         if (pending.length < data.limit) {
