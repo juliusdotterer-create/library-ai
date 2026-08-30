@@ -151,6 +151,11 @@ export function LibrarySearch({
                                 Seite {c.page}
                               </span>
                             )}
+                            {c.ocr && (
+                              <span className="shrink-0 rounded-full bg-primary-soft px-2 py-0.5 text-[10px] text-primary">
+                                Texterkennung
+                              </span>
+                            )}
                           </span>
                           {c.path && (
                             <span className="block truncate text-xs text-muted-foreground">{c.path}</span>
