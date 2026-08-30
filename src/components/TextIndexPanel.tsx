@@ -1,106 +1,147 @@
-import { useState } from "react";
-import { toast } from "sonner";
-import { FileSearch, Loader2 } from "lucide-react";
+import { useSyncExternalStore } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { AlertTriangle, FileSearch, Loader2, Pause, Play, ScanText, Square } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { supabase } from "@/integrations/supabase/client";
-import { extractPdfText, runQueue } from "@/lib/pdf-text";
-import { listUnindexedDocuments, saveDocumentText } from "@/lib/document-text.functions";
+import { getIndexStats } from "@/lib/document-text.functions";
+import {
+  getIndexRunnerState,
+  pauseIndexRun,
+  resumeIndexRun,
+  startIndexRun,
+  stopIndexRun,
+  subscribeIndexRunner,
+  type RunMode,
+} from "@/lib/index-runner";
 
-/**
- * Nachträgliche Volltext-Indexierung bereits vorhandener PDFs,
- * damit die Library-Suche auch Inhalte findet.
- */
+const IDLE_SNAPSHOT = getIndexRunnerState();
+
+const LABEL: Record<RunMode, string> = {
+  text: "Volltext-Indexierung",
+  failed: "Fehlgeschlagene erneut versuchen",
+  ocr: "Texterkennung (OCR)",
+};
+
+/** Volltext-Index und Texterkennung für gescannte PDFs. */
 export function TextIndexPanel() {
-  const listPending = useServerFn(listUnindexedDocuments);
-  const saveText = useServerFn(saveDocumentText);
-  const [state, setState] = useState<{ done: number; total: number } | null>(null);
-  const [running, setRunning] = useState(false);
+  const stats = useServerFn(getIndexStats);
+  const run = useSyncExternalStore(subscribeIndexRunner, getIndexRunnerState, () => IDLE_SNAPSHOT);
 
-  const check = async () => {
-    try {
-      const res = await listPending({ data: { limit: 1 } });
-      toast.success(
-        res.total ? `${res.total} PDFs ohne Volltext gefunden.` : "Alle PDFs sind indexiert.",
-      );
-      setState(res.total ? { done: 0, total: res.total } : null);
-    } catch (e) {
-      toast.error((e as Error).message);
-    }
+  const info = useQuery({
+    queryKey: ["index-stats", run.running],
+    queryFn: () => stats({}),
+    refetchInterval: run.running ? 15_000 : false,
+  });
+
+  const start = (mode: RunMode) => {
+    void startIndexRun(mode).finally(() => void info.refetch());
   };
 
-  const run = async () => {
-    setRunning(true);
-    let done = 0;
-    try {
-      for (;;) {
-        const { pending, total } = await listPending({ data: { limit: 25 } });
-        if (!pending.length) break;
-        setState({ done, total: done + total });
+  const pct = run.total ? Math.min((run.done / run.total) * 100, 100) : 0;
+  const eta = (() => {
+    if (!run.running || !run.startedAt || run.done < 2 || !run.total) return null;
+    const perItem = (Date.now() - run.startedAt) / run.done;
+    const left = Math.max(run.total - run.done, 0) * perItem;
+    const min = Math.round(left / 60_000);
+    return min < 1 ? "unter 1 Min." : min < 60 ? `${min} Min.` : `${Math.round(min / 60)} Std.`;
+  })();
 
-        await runQueue(
-          pending,
-          async (doc) => {
-            let status: "done" | "unsupported" | "failed" = "failed";
-            let payload = { content: "", pages: [] as string[], pageCount: 0 };
-            try {
-              const { data: blob } = await supabase.storage
-                .from("documents")
-                .download(doc.storage_path);
-              if (blob) {
-                const res = await extractPdfText(blob);
-                status = res.status;
-                payload = { content: res.content, pages: res.pages, pageCount: res.pageCount };
-              }
-            } catch {
-              /* Einzelne Dateien dürfen den Lauf nicht stoppen. */
-            }
-            await saveText({ data: { documentId: doc.id, status, ...payload } }).catch(
-              () => undefined,
-            );
-            done += 1;
-            setState((p) => (p ? { ...p, done } : p));
-          },
-          2,
-        );
-      }
-      setState(null);
-      toast.success("Volltext-Index aktualisiert");
-    } catch (e) {
-      toast.error((e as Error).message);
-    } finally {
-      setRunning(false);
-    }
-  };
+  const d = info.data;
 
   return (
-    <section className="glass space-y-3 rounded-3xl p-5">
+    <section className="glass space-y-4 rounded-3xl p-5">
       <div className="flex items-center gap-2">
         <FileSearch className="size-4 text-primary" />
         <h2 className="text-sm font-semibold">Volltextsuche</h2>
       </div>
+
       <p className="text-sm text-muted-foreground">
         Neue PDFs werden beim Upload automatisch indexiert. Ältere Dokumente kannst du hier
-        nachträglich durchsuchbar machen.
+        nachträglich durchsuchbar machen — gescannte PDFs ohne Textebene per Texterkennung.
       </p>
-      {state && (
-        <div className="space-y-1">
-          <Progress value={(state.done / Math.max(state.total, 1)) * 100} />
-          <p className="text-xs text-muted-foreground">
-            {state.done} von {state.total} Dokumenten verarbeitet
-          </p>
+
+      {d && (
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {[
+            ["Indexiert", d.done],
+            ["Nur Scan (OCR nötig)", d.unsupported],
+            ["Fehlgeschlagen", d.failed],
+            ["Offen", d.pending],
+          ].map(([label, value]) => (
+            <div key={label as string} className="glass-soft rounded-2xl p-3">
+              <p className="text-lg font-semibold">{value as number}</p>
+              <p className="text-[11px] leading-tight text-muted-foreground">{label as string}</p>
+            </div>
+          ))}
         </div>
       )}
-      <div className="flex flex-wrap gap-2">
-        <Button variant="outline" size="sm" onClick={() => void check()} disabled={running}>
-          Status prüfen
-        </Button>
-        <Button size="sm" onClick={() => void run()} disabled={running}>
-          {running && <Loader2 className="mr-2 size-4 animate-spin" />}
-          Fehlende PDFs indexieren
-        </Button>
+
+      <div className="flex items-start gap-2 rounded-2xl bg-primary-soft p-3 text-xs text-muted-foreground">
+        <AlertTriangle className="mt-0.5 size-4 shrink-0 text-primary" />
+        <span>
+          Der Lauf arbeitet in diesem Tab. Du kannst innerhalb der App weiter navigieren, aber der
+          Tab muss geöffnet bleiben. Nach einem Neuladen setzt der Lauf dort fort, wo er aufgehört
+          hat.
+        </span>
       </div>
+
+      {run.running || run.total ? (
+        <div className="space-y-1">
+          <Progress value={pct} />
+          <p className="text-xs text-muted-foreground">
+            {run.mode ? `${LABEL[run.mode]}: ` : ""}
+            {run.done} von {run.total} verarbeitet
+            {eta ? ` · noch ca. ${eta}` : ""}
+            {run.paused ? " · pausiert" : ""}
+          </p>
+          {run.current && (
+            <p className="truncate text-[11px] text-muted-foreground">{run.current}</p>
+          )}
+          {run.message && <p className="text-[11px] text-muted-foreground">{run.message}</p>}
+        </div>
+      ) : null}
+
+      <div className="flex flex-wrap gap-2">
+        {run.running ? (
+          <>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => (run.paused ? resumeIndexRun() : pauseIndexRun())}
+            >
+              {run.paused ? <Play className="mr-2 size-4" /> : <Pause className="mr-2 size-4" />}
+              {run.paused ? "Fortsetzen" : "Pause"}
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => stopIndexRun()}>
+              <Square className="mr-2 size-4" /> Stoppen
+            </Button>
+            <span className="flex items-center text-xs text-muted-foreground">
+              <Loader2 className="mr-2 size-4 animate-spin" /> läuft …
+            </span>
+          </>
+        ) : (
+          <>
+            <Button size="sm" onClick={() => start("text")}>
+              Fehlende PDFs indexieren
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => start("ocr")}>
+              <ScanText className="mr-2 size-4" /> Scans per Texterkennung lesen
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => start("failed")}>
+              Nur Fehlgeschlagene erneut versuchen
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => void info.refetch()}>
+              Status aktualisieren
+            </Button>
+          </>
+        )}
+      </div>
+
+      <p className="text-[11px] text-muted-foreground">
+        Texterkennung ist deutlich langsamer (ca. 2–5 Sekunden pro Seite) und liest maximal 50 Seiten
+        je Dokument.
+      </p>
     </section>
   );
 }
