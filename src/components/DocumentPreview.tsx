@@ -1,5 +1,14 @@
-import { useEffect, useState } from "react";
-import { Download, File, PanelRightClose, PanelRightOpen, X } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  File,
+  PanelRightClose,
+  PanelRightOpen,
+  X,
+} from "lucide-react";
+
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -24,6 +33,8 @@ export type PreviewDoc = {
   folder_id?: string | null;
   /** Direkt zu dieser Seite springen (Treffer der Volltextsuche). */
   page?: number | null;
+  /** Suchbegriff, der im PDF farblich markiert wird. */
+  highlight?: string | null;
 };
 
 /** In-app preview overlay for documents (no extra browser window). */
@@ -39,6 +50,19 @@ export function DocumentPreview({
   const [isTouch, setIsTouch] = useState(false);
   const [notepad, setNotepad] = useState(false);
   const [split, setSplit] = useState(60);
+  const [matches, setMatches] = useState(0);
+  const [active, setActive] = useState(0);
+  const [showHits, setShowHits] = useState(true);
+  const onMatchCount = useCallback((n: number) => {
+    setMatches(n);
+    setActive(0);
+  }, []);
+  useEffect(() => {
+    setShowHits(true);
+    setMatches(0);
+    setActive(0);
+  }, [doc?.id, doc?.highlight]);
+
   // iPad/Tablets rendern PDFs im iframe oft nur als erste Seite -> Canvas-Viewer nutzen.
   useEffect(() => {
     setIsTouch(window.matchMedia("(pointer: coarse)").matches);
@@ -111,7 +135,41 @@ export function DocumentPreview({
     <div className="fixed inset-0 z-[60] flex flex-col bg-foreground/20 p-2 backdrop-blur-[2px] lg:p-4">
       <div className="glass flex shrink-0 items-center gap-2 rounded-3xl px-3 py-2">
         <span className="min-w-0 flex-1 truncate text-sm font-semibold">{doc.name}</span>
+        {doc.highlight && showHits && canAnnotate && (
+          <div className="glass-soft flex shrink-0 items-center gap-1 rounded-2xl px-1.5 py-0.5">
+            <button
+              type="button"
+              title="Vorheriger Treffer"
+              disabled={matches === 0}
+              onClick={() => setActive((i) => (matches ? (i - 1 + matches) % matches : 0))}
+              className="rounded-xl p-1 text-muted-foreground hover:text-foreground disabled:opacity-40"
+            >
+              <ChevronLeft className="size-4" />
+            </button>
+            <span className="text-[11px] tabular-nums text-muted-foreground">
+              {matches ? `${active + 1}/${matches}` : "0"}
+            </span>
+            <button
+              type="button"
+              title="Nächster Treffer"
+              disabled={matches === 0}
+              onClick={() => setActive((i) => (matches ? (i + 1) % matches : 0))}
+              className="rounded-xl p-1 text-muted-foreground hover:text-foreground disabled:opacity-40"
+            >
+              <ChevronRight className="size-4" />
+            </button>
+            <button
+              type="button"
+              title="Markierung ausblenden"
+              onClick={() => setShowHits(false)}
+              className="rounded-xl p-1 text-muted-foreground hover:text-foreground"
+            >
+              <X className="size-3.5" />
+            </button>
+          </div>
+        )}
         <HeaderTimers />
+
         {doc.id && (
           <Button
             variant={notepad ? "default" : "secondary"}
@@ -162,9 +220,21 @@ export function DocumentPreview({
           ) : isImage ? (
             <ImageViewer url={url} name={doc.name} />
           ) : canAnnotate ? (
-            <PdfAnnotator url={url} documentId={doc.id!} initialPage={doc.page ?? null} />
+            <PdfAnnotator
+              url={url}
+              documentId={doc.id!}
+              initialPage={doc.page ?? null}
+              highlight={showHits ? (doc.highlight ?? null) : null}
+              activeMatch={active}
+              onMatchCount={onMatchCount}
+            />
           ) : isPdf && useCanvas ? (
-            <PdfCanvasViewer url={url} initialPage={doc.page ?? null} />
+            <PdfCanvasViewer
+              url={url}
+              initialPage={doc.page ?? null}
+              highlight={showHits ? (doc.highlight ?? null) : null}
+            />
+
           ) : isSheet ? (
             <SheetViewer url={url} name={doc.name} />
           ) : isPptx ? (

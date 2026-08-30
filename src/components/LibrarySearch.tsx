@@ -38,14 +38,17 @@ export function LibrarySearch({
     void navigate({ to: "/library", search: { folder: folderId ?? "root" } });
   };
 
-  const openDoc = (d: {
-    id: string;
-    name: string;
-    storage_path: string;
-    mime_type: string | null;
-    folder_id?: string | null;
-    page?: number | null;
-  }) => {
+  const openDoc = (
+    d: {
+      id: string;
+      name: string;
+      storage_path: string;
+      mime_type: string | null;
+      folder_id?: string | null;
+      page?: number | null;
+    },
+    withHighlight = false,
+  ) => {
     onOpenChange(false);
     setPreview({
       id: d.id,
@@ -54,8 +57,10 @@ export function LibrarySearch({
       mime_type: d.mime_type,
       folder_id: d.folder_id ?? null,
       page: d.page ?? null,
+      highlight: withHighlight ? debounced : null,
     });
   };
+
 
   const results = library.data;
   const isLoading = library.isLoading;
@@ -139,7 +144,7 @@ export function LibrarySearch({
                     {results.contents.map((c) => (
                       <button
                         key={`c-${c.id}`}
-                        onClick={() => openDoc(c)}
+                        onClick={() => openDoc(c, true)}
                         className="glass-soft hover:bg-primary-soft flex w-full items-start gap-3 rounded-2xl p-3 text-left"
                       >
                         <FileSearch className="mt-0.5 size-4 shrink-0 text-primary" />
