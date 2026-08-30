@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { findHighlights, highlightTokens } from "@/lib/pdf-highlight";
+
 import {
   Eraser,
   Highlighter,
