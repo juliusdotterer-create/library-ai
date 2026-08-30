@@ -144,7 +144,7 @@ export function LibrarySearch({
                     {results.contents.map((c) => (
                       <button
                         key={`c-${c.id}`}
-                        onClick={() => openDoc(c)}
+                        onClick={() => openDoc(c, true)}
                         className="glass-soft hover:bg-primary-soft flex w-full items-start gap-3 rounded-2xl p-3 text-left"
                       >
                         <FileSearch className="mt-0.5 size-4 shrink-0 text-primary" />
