@@ -220,9 +220,21 @@ export function DocumentPreview({
           ) : isImage ? (
             <ImageViewer url={url} name={doc.name} />
           ) : canAnnotate ? (
-            <PdfAnnotator url={url} documentId={doc.id!} initialPage={doc.page ?? null} />
+            <PdfAnnotator
+              url={url}
+              documentId={doc.id!}
+              initialPage={doc.page ?? null}
+              highlight={showHits ? (doc.highlight ?? null) : null}
+              activeMatch={active}
+              onMatchCount={onMatchCount}
+            />
           ) : isPdf && useCanvas ? (
-            <PdfCanvasViewer url={url} initialPage={doc.page ?? null} />
+            <PdfCanvasViewer
+              url={url}
+              initialPage={doc.page ?? null}
+              highlight={showHits ? (doc.highlight ?? null) : null}
+            />
+
           ) : isSheet ? (
             <SheetViewer url={url} name={doc.name} />
           ) : isPptx ? (
