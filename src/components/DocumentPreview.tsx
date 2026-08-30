@@ -135,7 +135,41 @@ export function DocumentPreview({
     <div className="fixed inset-0 z-[60] flex flex-col bg-foreground/20 p-2 backdrop-blur-[2px] lg:p-4">
       <div className="glass flex shrink-0 items-center gap-2 rounded-3xl px-3 py-2">
         <span className="min-w-0 flex-1 truncate text-sm font-semibold">{doc.name}</span>
+        {doc.highlight && showHits && canAnnotate && (
+          <div className="glass-soft flex shrink-0 items-center gap-1 rounded-2xl px-1.5 py-0.5">
+            <button
+              type="button"
+              title="Vorheriger Treffer"
+              disabled={matches === 0}
+              onClick={() => setActive((i) => (matches ? (i - 1 + matches) % matches : 0))}
+              className="rounded-xl p-1 text-muted-foreground hover:text-foreground disabled:opacity-40"
+            >
+              <ChevronLeft className="size-4" />
+            </button>
+            <span className="text-[11px] tabular-nums text-muted-foreground">
+              {matches ? `${active + 1}/${matches}` : "0"}
+            </span>
+            <button
+              type="button"
+              title="Nächster Treffer"
+              disabled={matches === 0}
+              onClick={() => setActive((i) => (matches ? (i + 1) % matches : 0))}
+              className="rounded-xl p-1 text-muted-foreground hover:text-foreground disabled:opacity-40"
+            >
+              <ChevronRight className="size-4" />
+            </button>
+            <button
+              type="button"
+              title="Markierung ausblenden"
+              onClick={() => setShowHits(false)}
+              className="rounded-xl p-1 text-muted-foreground hover:text-foreground"
+            >
+              <X className="size-3.5" />
+            </button>
+          </div>
+        )}
         <HeaderTimers />
+
         {doc.id && (
           <Button
             variant={notepad ? "default" : "secondary"}
