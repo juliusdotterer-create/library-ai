@@ -691,6 +691,14 @@ export function PdfAnnotator({
             />
             <canvas
               ref={(el) => {
+                hlRefs.current[i] = el;
+              }}
+              className="pointer-events-none absolute inset-0"
+              style={{ width: "100%", height: "100%" }}
+            />
+
+            <canvas
+              ref={(el) => {
                 overlayRefs.current[i] = el;
               }}
               className="absolute inset-0"
