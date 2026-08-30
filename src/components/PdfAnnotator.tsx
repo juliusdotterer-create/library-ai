@@ -58,10 +58,16 @@ export function PdfAnnotator({
   url,
   documentId,
   initialPage,
+  highlight,
+  activeMatch,
+  onMatchCount,
 }: {
   url: string;
   documentId: string;
   initialPage?: number | null;
+  highlight?: string | null;
+  activeMatch?: number;
+  onMatchCount?: (n: number) => void;
 }) {
   const { user } = useAuth();
   const userId = user?.id ?? null;
@@ -69,6 +75,7 @@ export function PdfAnnotator({
 
   const docRef = useRef<{ numPages: number; getPage: (n: number) => Promise<any> } | null>(null);
   const canvasRefs = useRef<(HTMLCanvasElement | null)[]>([]);
+  const hlRefs = useRef<(HTMLCanvasElement | null)[]>([]);
   const overlayRefs = useRef<(HTMLCanvasElement | null)[]>([]);
   const drawing = useRef<Stroke | null>(null);
   const penTap = useRef<{ t: number; x: number; y: number } | null>(null);
@@ -78,11 +85,15 @@ export function PdfAnnotator({
   const [pages, setPages] = useState<{ w: number; h: number; scale: number }[]>([]);
   const [width, setWidth] = useState(0);
   const [zoom, setZoom] = useState(1);
+  const [hits, setHits] = useState<{ page: number; x: number; y: number; w: number; h: number }[]>(
+    [],
+  );
 
   const [tool, setTool] = useState<Tool>("none");
   const [markerColor, setMarkerColor] = useState(MARKER_COLORS[0]!);
   const [penColor, setPenColor] = useState(PEN_COLORS[0]!);
   const [penWidth, setPenWidth] = useState(2);
+
 
   const [annos, setAnnos] = useState<Anno[]>([]);
   const [past, setPast] = useState<Anno[][]>([]);
