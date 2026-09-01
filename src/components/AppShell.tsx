@@ -35,12 +35,15 @@ export function AppShell({ children }: { children: ReactNode }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const { mode, toggleMode } = useTheme();
   const [searchOpen, setSearchOpen] = useState(false);
+  const [webOpen, setWebOpen] = useState(false);
   const onLehrplaene = path.startsWith("/lehrplaene");
 
   return (
     <div className="min-h-screen w-full">
       <LibrarySearch open={searchOpen} onOpenChange={setSearchOpen} />
+      <WebFrameOverlay open={webOpen} onClose={() => setWebOpen(false)} />
       <GlobalTimerWatcher />
+
       <header className="sticky top-0 z-40 px-3 pt-3 sm:px-5">
         <div className="glass mx-auto flex max-w-7xl items-center gap-2 rounded-3xl px-3 py-2">
           <div className="flex min-w-0 items-center gap-2 pr-2">
