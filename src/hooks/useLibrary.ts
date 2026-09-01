@@ -49,7 +49,7 @@ export function useTimetable() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("timetable_entries")
-        .select("*")
+        .select("id,title,weekday,start_time,end_time,room,teacher,color")
         .eq("user_id", user!.id)
         .order("weekday")
         .order("start_time");
@@ -68,7 +68,7 @@ export function useFolders(parentId: string | null) {
     queryFn: async () => {
       let q = supabase
         .from("folders")
-        .select("*")
+        .select("id,name,parent_id,color,is_favorite,deleted_at,created_at")
         .eq("user_id", user!.id)
         .is("deleted_at", null)
         .order("is_favorite", { ascending: false })
@@ -90,7 +90,7 @@ export function useDocuments(folderId: string | null) {
     queryFn: async () => {
       let q = supabase
         .from("documents")
-        .select("*")
+        .select("id,name,storage_path,mime_type,folder_id,kind,deleted_at,created_at")
         .eq("user_id", user!.id)
         .is("deleted_at", null)
         .not("name", "ilike", "desktop.ini")
@@ -154,12 +154,12 @@ export function useTrash() {
       const [f, d] = await Promise.all([
         supabase
           .from("folders")
-          .select("*")
+          .select("id,name,parent_id,deleted_at")
           .eq("user_id", user!.id)
           .not("deleted_at", "is", null),
         supabase
           .from("documents")
-          .select("*")
+          .select("id,name,storage_path,mime_type,folder_id,deleted_at")
           .eq("user_id", user!.id)
           .not("deleted_at", "is", null),
       ]);
@@ -199,7 +199,7 @@ export function useStudyPlans() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("study_plans")
-        .select("*")
+        .select("id,title,description,start_date,end_date,created_at")
         .eq("user_id", user!.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -217,7 +217,7 @@ export function useStudyTasks(planId: string | null) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("study_tasks")
-        .select("*")
+        .select("id,plan_id,title,notes,due_date,status,document_id,position")
         .eq("user_id", user!.id)
         .eq("plan_id", planId!)
         .order("due_date", { nullsFirst: false });
@@ -236,7 +236,7 @@ export function useEvents(start: string, end: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("events")
-        .select("*")
+        .select("id,title,notes,start_at,end_at,all_day,color,document_id")
         .eq("user_id", user!.id)
         .gte("start_at", start)
         .lte("start_at", end)
@@ -256,7 +256,7 @@ export function useLinks() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("links")
-        .select("*")
+        .select("id,title,url,description,position,created_at")
         .eq("user_id", user!.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
