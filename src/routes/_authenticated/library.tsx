@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -75,7 +75,8 @@ function LibraryPage() {
   const qc = useQueryClient();
   const { user } = useAuth();
   const uid = user?.id;
-  const { folder: folderParam } = Route.useSearch();
+  const search = useSearch({ strict: false }) as { folder?: string } | undefined;
+  const folderParam = search?.folder;
   const [path, setPath] = useState<Crumb[]>([{ id: null, name: "Library" }]);
   const current = path[path.length - 1];
   const fileInput = useRef<HTMLInputElement>(null);
