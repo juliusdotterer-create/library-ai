@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import {
@@ -58,7 +58,8 @@ function KalenderPage() {
   const { user } = useAuth();
   const uid = user?.id;
   const qc = useQueryClient();
-  const { view } = Route.useSearch();
+  const search = useSearch({ strict: false }) as { view?: "monat" | "stundenplan" } | undefined;
+  const view = search?.view ?? "monat";
   const navigate = useNavigate({ from: Route.fullPath });
   const [month, setMonth] = useState(new Date());
   const [selected, setSelected] = useState(new Date());
