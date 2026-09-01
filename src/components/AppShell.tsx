@@ -9,7 +9,6 @@ import {
   Moon,
   Sun,
   Search,
-  Globe,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useTheme } from "@/lib/theme";
@@ -17,9 +16,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { LibrarySearch } from "@/components/LibrarySearch";
-import { WebFrameOverlay } from "@/components/WebFrameOverlay";
 import { GlobalTimerWatcher, HeaderTimers } from "@/components/GlobalTimer";
-
 
 
 const NAV = [
@@ -35,15 +32,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const { mode, toggleMode } = useTheme();
   const [searchOpen, setSearchOpen] = useState(false);
-  const [webOpen, setWebOpen] = useState(false);
   const onLehrplaene = path.startsWith("/lehrplaene");
 
   return (
     <div className="min-h-screen w-full">
       <LibrarySearch open={searchOpen} onOpenChange={setSearchOpen} />
-      <WebFrameOverlay open={webOpen} onClose={() => setWebOpen(false)} />
       <GlobalTimerWatcher />
-
       <header className="sticky top-0 z-40 px-3 pt-3 sm:px-5">
         <div className="glass mx-auto flex max-w-7xl items-center gap-2 rounded-3xl px-3 py-2">
           <div className="flex min-w-0 items-center gap-2 pr-2">
@@ -100,17 +94,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           >
             <Bot className="size-4" />
           </Link>
-          <button
-            type="button"
-            onClick={() => setWebOpen(true)}
-            title="Web-Fenster"
-            aria-label="Web-Fenster"
-            className="rounded-2xl p-2 text-muted-foreground/40 transition-colors hover:text-foreground"
-          >
-            <Globe className="size-4" />
-          </button>
           <Link
-
             to="/einstellungen"
             title="Profil & Einstellungen"
             aria-label="Profil & Einstellungen"

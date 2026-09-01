@@ -677,33 +677,6 @@ export type Database = {
         }
         Relationships: []
       }
-      web_frames: {
-        Row: {
-          created_at: string
-          id: string
-          label: string
-          position: number
-          url: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          label: string
-          position?: number
-          url: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          label?: string
-          position?: number
-          url?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
     }
     Views: {
       [_ in never]: never
