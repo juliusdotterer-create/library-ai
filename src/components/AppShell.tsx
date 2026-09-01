@@ -100,7 +100,17 @@ export function AppShell({ children }: { children: ReactNode }) {
           >
             <Bot className="size-4" />
           </Link>
+          <button
+            type="button"
+            onClick={() => setWebOpen(true)}
+            title="Web-Fenster"
+            aria-label="Web-Fenster"
+            className="rounded-2xl p-2 text-muted-foreground/40 transition-colors hover:text-foreground"
+          >
+            <Globe className="size-4" />
+          </button>
           <Link
+
             to="/einstellungen"
             title="Profil & Einstellungen"
             aria-label="Profil & Einstellungen"
