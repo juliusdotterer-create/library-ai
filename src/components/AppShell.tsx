@@ -9,6 +9,7 @@ import {
   Moon,
   Sun,
   Search,
+  Globe,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useTheme } from "@/lib/theme";
@@ -16,7 +17,9 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { LibrarySearch } from "@/components/LibrarySearch";
+import { WebFrameOverlay } from "@/components/WebFrameOverlay";
 import { GlobalTimerWatcher, HeaderTimers } from "@/components/GlobalTimer";
+
 
 
 const NAV = [
