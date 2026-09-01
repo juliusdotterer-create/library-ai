@@ -95,19 +95,20 @@ export const searchLibrary = createServerFn({ method: "POST" })
       context.userId,
     );
 
-    /* ---------- Volltextsuche im Dokumentinhalt ---------- */
+    /* ---------- Volltextsuche im Dokumentinhalt (exakte Wortfolge) ---------- */
     const { data: hits } = await context.supabase
       .from("document_text")
       .select("document_id,pages,source")
       .eq("user_id", context.userId)
       .eq("status", "done")
-      .textSearch("tsv", data.term, { type: "websearch", config: "german" })
+      .textSearch("tsv", data.term, { type: "phrase", config: "german" })
       .limit(50);
 
     const hitRows = (hits ?? []) as { document_id: string; pages: unknown; source?: string | null }[];
     const hitDocIds = hitRows.map((h) => h.document_id);
     const nameHitIds = new Set((docs ?? []).map((d) => d.id));
     const contentIds = hitDocIds.filter((id) => !nameHitIds.has(id));
+
 
     let contents: {
       id: string;
