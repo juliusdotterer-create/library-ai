@@ -83,22 +83,17 @@ export function DocumentNotes({
 
       let nb: { id: string } | null = fixedNotebookId ? { id: fixedNotebookId } : null;
 
-      if (!nb) {
-        let base = supabase
+      // Nur dokumentgebundene Notizen werden wiederverwendet. Freie Notizen
+      // bekommen IMMER ein eigenes Notizbuch, damit sie sich nicht mit
+      // anderen Notizen im selben Ordner vermischen.
+      if (!nb && documentId) {
+        const { data: found } = await supabase
           .from("notebooks")
           .select("id")
           .eq("user_id", userId)
+          .eq("document_id", documentId)
           .order("created_at", { ascending: true })
           .limit(10);
-
-        if (documentId) {
-          base = base.eq("document_id", documentId);
-        } else {
-          base = base.is("document_id", null);
-          base = folderId ? base.eq("folder_id", folderId) : base.is("folder_id", null);
-        }
-
-        const { data: found } = await base;
 
         // Ältere Lade-Rennen konnten mehrere Notizbücher für dasselbe Dokument
         // erzeugen. Bevorzuge das tatsächlich befüllte Buch statt eines leeren
@@ -120,6 +115,7 @@ export function DocumentNotes({
             null;
         }
       }
+
 
       if (!nb) {
         const created = await supabase
