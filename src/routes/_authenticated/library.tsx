@@ -919,3 +919,11 @@ function remainingLabel(p: {
   if (rest < 60) return `noch ca. ${rest}s`;
   return `noch ca. ${Math.floor(rest / 60)}:${String(rest % 60).padStart(2, "0")} min`;
 }
+
+/** Kurzes Datum für die Listenansicht. */
+function dateLabel(value?: string | null) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "2-digit" });
+}
