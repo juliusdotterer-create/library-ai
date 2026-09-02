@@ -35,7 +35,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const { mode, toggleMode } = useTheme();
   const [searchOpen, setSearchOpen] = useState(false);
+  const online = useOnlineStatus();
   const onLehrplaene = path.startsWith("/lehrplaene");
+
 
   return (
     <div className="min-h-screen w-full">
