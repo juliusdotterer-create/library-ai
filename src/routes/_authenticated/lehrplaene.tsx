@@ -1,20 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import {
-  ArrowLeft,
-  CheckCircle2,
-  ChevronDown,
-  ChevronRight,
-  Circle,
-  FileText,
-  Folder,
-  Plus,
-  Trash2,
-} from "lucide-react";
-import { format } from "date-fns";
-import { de } from "date-fns/locale";
+import { Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useAllDocuments, useAllFolders, useStudyPlans, useStudyTasks } from "@/hooks/useLibrary";
@@ -30,15 +18,18 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { StudyTimers } from "@/components/StudyTimer";
 import { DocumentPreview, type PreviewDoc } from "@/components/DocumentPreview";
-
-type PickedDocument = { id: string; name: string; path: string };
-type PickedFolder = { id: string; name: string; path: string };
-
+import {
+  buildFolderPath,
+  DocumentPicker,
+  FolderPicker,
+  type PickerFolder,
+} from "@/components/lehrplan/DocumentPicker";
+import { TaskList } from "@/components/lehrplan/TaskList";
 import { cn } from "@/lib/utils";
 
+type PickedDocument = { id: string; name: string; path: string };
 
 export const Route = createFileRoute("/_authenticated/lehrplaene")({
   head: () => ({
@@ -65,12 +56,6 @@ function LehrplanPage() {
   const [planOpen, setPlanOpen] = useState(false);
   const [task, setTask] = useState({ title: "", due: "" });
   const [doc, setDoc] = useState<PickedDocument | null>(null);
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const [pickerFolder, setPickerFolder] = useState<string | null>(null);
-  const [folderPickerOpen, setFolderPickerOpen] = useState(false);
-  const [folderNav, setFolderNav] = useState<string | null>(null);
-
-
 
   const plans = useStudyPlans();
   const tasks = useStudyTasks(activeId);
@@ -81,81 +66,21 @@ function LehrplanPage() {
     if (plans.data?.length && !activeId) setActiveId(plans.data[0].id);
   }, [plans.data, activeId]);
 
-  const folderPath = (id: string | null): string => {
-    const list = folders.data ?? [];
-    const parts: string[] = [];
-    let cur = list.find((f) => f.id === id);
-    let guard = 0;
-    while (cur && guard++ < 20) {
-      parts.unshift(cur.name);
-      cur = list.find((f) => f.id === cur!.parent_id);
-    }
-    return parts.join(" / ");
-  };
+  const folderList = (folders.data ?? []) as PickerFolder[];
+  const docList = docs.data ?? [];
 
-  const natural = new Intl.Collator("de", { numeric: true, sensitivity: "base" });
-
-
-
-
-  const subFolders = (parentId: string | null) =>
-    (folders.data ?? [])
-      .filter((f) => (f.parent_id ?? null) === parentId)
-      .sort((a, b) => natural.compare(a.name, b.name));
-
-  const docsIn = (folderId: string | null) =>
-    (docs.data ?? [])
-      .filter((d) => (d.folder_id ?? null) === folderId)
-      .sort((a, b) => natural.compare(a.name, b.name));
-
-  const docMap: Record<string, string> = Object.fromEntries(
-    (docs.data ?? []).map((d) => [d.id, d.name]),
+  const docNames: Record<string, string> = Object.fromEntries(docList.map((d) => [d.id, d.name]));
+  const docFolders: Record<string, string | null> = Object.fromEntries(
+    docList.map((d) => [d.id, d.folder_id ?? null]),
   );
-
-  const docFolderMap: Record<string, string | null> = Object.fromEntries(
-    (docs.data ?? []).map((d) => [d.id, d.folder_id ?? null]),
-  );
-
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
-  const toggleGroup = (key: string) =>
-    setOpenGroups((s) => ({ ...s, [key]: !s[key] }));
-
-  const [docQuery, setDocQuery] = useState("");
-
-  const allDocs = (docs.data ?? [])
-    .filter((d) => {
-      const q = docQuery.trim().toLowerCase();
-      if (!q) return true;
-      return (
-        d.name.toLowerCase().includes(q) || folderPath(d.folder_id).toLowerCase().includes(q)
-      );
-    })
-    .sort(
-      (a, b) =>
-        natural.compare(folderPath(a.folder_id), folderPath(b.folder_id)) ||
-        natural.compare(a.name, b.name),
-    );
-
-  const pickDoc = (d: { id: string; name: string; folder_id: string | null }) => {
-    setDoc({ id: d.id, name: d.name, path: folderPath(d.folder_id) });
-    if (!task.title.trim()) setTask((t) => ({ ...t, title: `${d.name} lernen` }));
-    setDocQuery("");
-    setPickerOpen(false);
-  };
-
-
-
-
 
   const [preview, setPreview] = useState<PreviewDoc | null>(null);
 
   const openDoc = (id: string) => {
-    const d = docs.data?.find((x) => x.id === id);
+    const d = docList.find((x) => x.id === id);
     if (!d) return;
     setPreview({ id: d.id, name: d.name, storage_path: d.storage_path, mime_type: d.mime_type });
   };
-
-
 
   const createPlan = useMutation({
     mutationFn: async () => {
@@ -205,12 +130,11 @@ function LehrplanPage() {
       setDoc(null);
       void qc.invalidateQueries({ queryKey: ["study_tasks"] });
     },
-
     onError: (e: Error) => toast.error(e.message),
   });
 
   const addFolderTasks = useMutation({
-    mutationFn: async (folder: PickedFolder) => {
+    mutationFn: async (folder: PickerFolder) => {
       if (!uid) throw new Error("Nicht angemeldet");
       const { data: folderDocs, error: docErr } = await supabase
         .from("documents")
@@ -265,6 +189,8 @@ function LehrplanPage() {
     },
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["study_tasks"] }),
   });
+
+  const activePlan = plans.data?.find((p) => p.id === activeId);
 
   return (
     <div className="grid gap-5 lg:grid-cols-[18rem_1fr]">
@@ -336,12 +262,8 @@ function LehrplanPage() {
           <>
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-lg font-semibold">
-                  {plans.data?.find((p) => p.id === activeId)?.title}
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  {plans.data?.find((p) => p.id === activeId)?.description}
-                </p>
+                <h2 className="text-lg font-semibold">{activePlan?.title}</h2>
+                <p className="text-sm text-muted-foreground">{activePlan?.description}</p>
               </div>
               <Button
                 variant="ghost"
@@ -367,175 +289,17 @@ function LehrplanPage() {
                   value={task.due}
                   onChange={(e) => setTask({ ...task, due: e.target.value })}
                 />
-                <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="h-9 w-56 justify-between rounded-2xl font-normal"
-                    >
-                      <span className="truncate">{doc ? doc.name : "Dokument wählen"}</span>
-                      <ChevronRight className="size-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent align="start" className="glass w-80 rounded-2xl p-2">
-                    <Input
-                      autoFocus
-                      placeholder="Dokumente suchen…"
-                      className="mb-2 h-8 rounded-xl text-sm"
-                      value={docQuery}
-                      onChange={(e) => setDocQuery(e.target.value)}
-                    />
-
-                    {!docQuery.trim() && (
-                      <div className="mb-2 flex items-center gap-1 px-1 text-xs text-muted-foreground">
-                        {pickerFolder && (
-                          <button
-                            className="rounded-lg p-1 hover:bg-muted"
-                            onClick={() =>
-                              setPickerFolder(
-                                folders.data?.find((f) => f.id === pickerFolder)?.parent_id ?? null,
-                              )
-                            }
-                          >
-                            <ArrowLeft className="size-3.5" />
-                          </button>
-                        )}
-                        <span className="truncate">
-                          {pickerFolder ? folderPath(pickerFolder) : "Library"}
-                        </span>
-                      </div>
-                    )}
-                    <div className="max-h-80 space-y-0.5 overflow-y-auto">
-                      {!docQuery.trim() &&
-                        subFolders(pickerFolder).map((f) => (
-                          <button
-                            key={f.id}
-                            onClick={() => setPickerFolder(f.id)}
-                            className="flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left text-sm hover:bg-muted"
-                          >
-                            <Folder className="size-4 shrink-0 opacity-60" />
-                            <span className="flex-1 truncate">{f.name}</span>
-                            <ChevronRight className="size-3.5 shrink-0 opacity-50" />
-                          </button>
-                        ))}
-                      {!docQuery.trim() && docsIn(pickerFolder).map((d) => (
-                        <button
-                          key={d.id}
-                          onClick={() => pickDoc(d)}
-                          className={cn(
-                            "flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left text-sm hover:bg-muted",
-                            doc?.id === d.id && "bg-muted",
-                          )}
-                        >
-                          <FileText className="size-4 shrink-0 opacity-60" />
-                          <span className="flex-1 truncate">{d.name}</span>
-                        </button>
-                      ))}
-
-                      {docQuery.trim() &&
-                        allDocs.map((d) => (
-                          <button
-                            key={`all-${d.id}`}
-                            onClick={() => pickDoc(d)}
-                            className={cn(
-                              "flex w-full items-start gap-2 rounded-xl px-2 py-1.5 text-left text-sm hover:bg-muted",
-                              doc?.id === d.id && "bg-muted",
-                            )}
-                          >
-                            <FileText className="mt-0.5 size-4 shrink-0 opacity-60" />
-                            <span className="min-w-0 flex-1">
-                              <span className="block truncate">{d.name}</span>
-                              <span className="block truncate text-[11px] text-muted-foreground">
-                                {folderPath(d.folder_id) || "Library"}
-                              </span>
-                            </span>
-                          </button>
-                        ))}
-                      {docQuery.trim() && !allDocs.length && (
-                        <p className="py-6 text-center text-xs text-muted-foreground">
-                          Keine Dokumente gefunden.
-                        </p>
-                      )}
-                      {!docQuery.trim() &&
-                        !subFolders(pickerFolder).length &&
-                        !docsIn(pickerFolder).length && (
-                          <p className="py-6 text-center text-xs text-muted-foreground">
-                            Ordner ist leer.
-                          </p>
-                        )}
-
-                    </div>
-                  </PopoverContent>
-
-                </Popover>
-
-                <Popover open={folderPickerOpen} onOpenChange={setFolderPickerOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="h-9 w-52 justify-between rounded-2xl font-normal"
-                    >
-                      <span className="truncate">Ganzer Ordner</span>
-                      <ChevronRight className="size-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent align="start" className="glass w-72 rounded-2xl p-2">
-                    <div className="mb-2 flex items-center gap-1 px-1 text-xs text-muted-foreground">
-                      {folderNav && (
-                        <button
-                          className="rounded-lg p-1 hover:bg-muted"
-                          onClick={() =>
-                            setFolderNav(
-                              folders.data?.find((f) => f.id === folderNav)?.parent_id ?? null,
-                            )
-                          }
-                        >
-                          <ArrowLeft className="size-3.5" />
-                        </button>
-                      )}
-                      <span className="truncate">
-                        {folderNav ? folderPath(folderNav) : "Library"}
-                      </span>
-                    </div>
-                    {folderNav && (
-                      <Button
-                        size="sm"
-                        className="mb-2 w-full rounded-xl"
-                        onClick={() => {
-                          const f = folders.data?.find((x) => x.id === folderNav);
-                          if (f) {
-                            addFolderTasks.mutate({
-                              id: f.id,
-                              name: f.name,
-                              path: folderPath(f.id),
-                            });
-                            setFolderPickerOpen(false);
-                          }
-                        }}
-                      >
-                        Diesen Ordner einplanen
-                      </Button>
-                    )}
-                    <div className="max-h-72 space-y-0.5 overflow-y-auto">
-                      {subFolders(folderNav).map((f) => (
-                        <button
-                          key={f.id}
-                          onClick={() => setFolderNav(f.id)}
-                          className="flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left text-sm hover:bg-muted"
-                        >
-                          <Folder className="size-4 shrink-0 opacity-60" />
-                          <span className="flex-1 truncate">{f.name}</span>
-                          <ChevronRight className="size-3.5 shrink-0 opacity-50" />
-                        </button>
-                      ))}
-                      {!subFolders(folderNav).length && (
-                        <p className="py-6 text-center text-xs text-muted-foreground">
-                          Keine Unterordner.
-                        </p>
-                      )}
-                    </div>
-                  </PopoverContent>
-                </Popover>
+                <DocumentPicker
+                  folders={folderList}
+                  docs={docList}
+                  selectedId={doc?.id ?? null}
+                  label={doc ? doc.name : "Dokument wählen"}
+                  onPick={(d) => {
+                    setDoc({ id: d.id, name: d.name, path: buildFolderPath(folderList, d.folder_id) });
+                    if (!task.title.trim()) setTask((t) => ({ ...t, title: `${d.name} lernen` }));
+                  }}
+                />
+                <FolderPicker folders={folderList} onPick={(f) => addFolderTasks.mutate(f)} />
 
                 <Button
                   className="h-9 rounded-2xl"
@@ -560,117 +324,15 @@ function LehrplanPage() {
               <StudyTimers />
             </div>
 
-
-            <div className="space-y-2">
-              {(() => {
-                type Task = NonNullable<typeof tasks.data>[number];
-                const renderTask = (t: Task, nested = false) => {
-                  const done = t.status === "done";
-                  return (
-                    <div
-                      key={t.id}
-                      className={cn(
-                        "flex items-center gap-3 rounded-2xl p-3",
-                        nested ? "bg-muted/40" : "glass-soft",
-                      )}
-                    >
-                      <button onClick={() => toggleTask.mutate({ id: t.id, done })}>
-                        {done ? (
-                          <CheckCircle2 className="size-5 text-primary" />
-                        ) : (
-                          <Circle className="size-5 text-muted-foreground" />
-                        )}
-                      </button>
-                      <span className={cn("flex-1 text-sm", done && "line-through opacity-60")}>
-                        {t.title}
-                        {t.document_id && docMap[t.document_id] && (
-                          <button
-                            onClick={() => openDoc(t.document_id!)}
-                            className="bg-primary-soft text-accent-foreground ml-2 inline-flex items-center gap-1 rounded-lg px-2 py-0.5 align-middle text-[11px]"
-                          >
-                            <FileText className="size-3" />
-                            {docMap[t.document_id]}
-                          </button>
-                        )}
-                      </span>
-
-                      {!nested && t.due_date && (
-                        <span className="text-xs text-muted-foreground">
-                          {format(new Date(t.due_date), "d. MMM", { locale: de })}
-                        </span>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="rounded-2xl text-destructive"
-                        onClick={() => removeTask.mutate(t.id)}
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
-                    </div>
-                  );
-                };
-
-                const groups: { key: string; folderId: string | null; items: Task[] }[] = [];
-                const index = new Map<string, number>();
-                for (const t of tasks.data ?? []) {
-                  const folderId = t.document_id ? (docFolderMap[t.document_id] ?? null) : null;
-                  const key = folderId ? `${folderId}|${t.due_date ?? ""}` : `single-${t.id}`;
-                  const at = index.get(key);
-                  if (at === undefined) {
-                    index.set(key, groups.length);
-                    groups.push({ key, folderId, items: [t] });
-                  } else {
-                    groups[at].items.push(t);
-                  }
-                }
-
-                return groups.map((g) => {
-                  if (g.items.length < 2 || !g.folderId) return renderTask(g.items[0]);
-                  const open = !!openGroups[g.key];
-                  const doneCount = g.items.filter((t) => t.status === "done").length;
-                  const due = g.items[0].due_date;
-                  const name = folders.data?.find((f) => f.id === g.folderId)?.name ?? "Ordner";
-                  return (
-                    <div key={g.key} className="glass-soft rounded-2xl p-2">
-                      <button
-                        onClick={() => toggleGroup(g.key)}
-                        className="flex w-full items-center gap-3 rounded-xl px-1 py-1.5 text-left hover:bg-muted/50"
-                      >
-                        {open ? (
-                          <ChevronDown className="size-4 shrink-0 opacity-60" />
-                        ) : (
-                          <ChevronRight className="size-4 shrink-0 opacity-60" />
-                        )}
-                        <Folder className="size-5 shrink-0 text-primary" />
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-medium">{name}</span>
-                          <span className="block truncate text-xs text-muted-foreground">
-                            {folderPath(g.folderId)} · {doneCount}/{g.items.length} erledigt
-                          </span>
-                        </span>
-                        {due && (
-                          <span className="text-xs text-muted-foreground">
-                            {format(new Date(due), "d. MMM", { locale: de })}
-                          </span>
-                        )}
-                      </button>
-                      {open && (
-                        <div className="mt-1 space-y-1 pl-6">
-                          {g.items.map((t) => renderTask(t, true))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                });
-              })()}
-              {!tasks.data?.length && (
-                <p className="py-10 text-center text-sm text-muted-foreground">
-                  Noch keine Aufgaben in diesem Plan.
-                </p>
-              )}
-            </div>
-
+            <TaskList
+              tasks={tasks.data ?? []}
+              folders={folderList}
+              docNames={docNames}
+              docFolders={docFolders}
+              onToggle={(t) => toggleTask.mutate(t)}
+              onRemove={(id) => removeTask.mutate(id)}
+              onOpenDoc={openDoc}
+            />
           </>
         ) : (
           <p className="py-20 text-center text-sm text-muted-foreground">
@@ -680,6 +342,5 @@ function LehrplanPage() {
       </section>
       <DocumentPreview doc={preview} onClose={() => setPreview(null)} />
     </div>
-
   );
 }
