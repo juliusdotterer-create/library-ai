@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
+  ArrowUpDown,
   ChevronRight,
   Download,
   FilePlus2,
@@ -11,6 +12,8 @@ import {
   Folder,
   FolderPlus,
   FolderUp,
+  LayoutGrid,
+  List,
   MoreVertical,
   NotebookPen,
   Pencil,
@@ -18,6 +21,7 @@ import {
   Trash2,
   Upload,
 } from "lucide-react";
+
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
