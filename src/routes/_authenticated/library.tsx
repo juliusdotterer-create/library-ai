@@ -129,6 +129,10 @@ function LibraryPage() {
 
   const folders = useFolders(current.id);
   const docs = useDocuments(current.id);
+  const { sort, view, setSort, setView } = useLibraryView();
+  const sortedFolders = sortItems(folders.data ?? undefined, sort);
+  const sortedDocs = sortItems(docs.data ?? undefined, sort);
+
 
   const invalidate = () => {
     void qc.invalidateQueries({ queryKey: ["folders"] });
