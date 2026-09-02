@@ -9,6 +9,7 @@ import {
   Moon,
   Sun,
   Search,
+  WifiOff,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useTheme } from "@/lib/theme";
@@ -17,6 +18,8 @@ import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { LibrarySearch } from "@/components/LibrarySearch";
 import { GlobalTimerWatcher, HeaderTimers } from "@/components/GlobalTimer";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+
 
 
 const NAV = [
@@ -32,7 +35,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const { mode, toggleMode } = useTheme();
   const [searchOpen, setSearchOpen] = useState(false);
+  const online = useOnlineStatus();
   const onLehrplaene = path.startsWith("/lehrplaene");
+
 
   return (
     <div className="min-h-screen w-full">
@@ -78,8 +83,18 @@ export function AppShell({ children }: { children: ReactNode }) {
           </nav>
 
           <div className="flex flex-1 items-center justify-end gap-2 md:flex-none">
+            {!online && (
+              <span
+                title="Keine Verbindung – gespeicherte Inhalte bleiben nutzbar"
+                className="flex items-center gap-1.5 rounded-2xl bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground"
+              >
+                <WifiOff className="size-3.5" />
+                <span className="hidden sm:inline">Offline</span>
+              </span>
+            )}
             {!onLehrplaene && <HeaderTimers />}
           </div>
+
 
           <Link
             to="/connect"

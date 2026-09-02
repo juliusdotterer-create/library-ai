@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
+  ArrowUpDown,
   ChevronRight,
   Download,
   FilePlus2,
@@ -11,6 +12,8 @@ import {
   Folder,
   FolderPlus,
   FolderUp,
+  LayoutGrid,
+  List,
   MoreVertical,
   NotebookPen,
   Pencil,
@@ -19,12 +22,15 @@ import {
   Upload,
 } from "lucide-react";
 
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useDocuments, useFolders, queryKeys } from "@/hooks/useLibrary";
 import { cn } from "@/lib/utils";
 import { useServerFn } from "@tanstack/react-start";
+import { useLibraryView, sortItems, SORT_LABELS, type SortKey } from "@/hooks/useLibraryView";
 import { saveDocumentText } from "@/lib/document-text.functions";
+
 import { extractPdfText, isPdfFile, runQueue } from "@/lib/pdf-text";
 import { softDeleteFolder } from "@/lib/tree";
 import { Progress } from "@/components/ui/progress";
@@ -123,6 +129,10 @@ function LibraryPage() {
 
   const folders = useFolders(current.id);
   const docs = useDocuments(current.id);
+  const { sort, view, setSort, setView } = useLibraryView();
+  const sortedFolders = sortItems(folders.data ?? undefined, sort);
+  const sortedDocs = sortItems(docs.data ?? undefined, sort);
+
 
   const invalidate = () => {
     void qc.invalidateQueries({ queryKey: ["folders"] });
@@ -525,6 +535,41 @@ function LibraryPage() {
           ))}
         </div>
         <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                className="rounded-2xl text-muted-foreground"
+                title="Sortierung"
+                aria-label="Sortierung"
+              >
+                <ArrowUpDown className="size-4" />
+                <span className="hidden lg:inline">{SORT_LABELS[sort]}</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="glass rounded-2xl">
+              {(Object.keys(SORT_LABELS) as SortKey[]).map((key) => (
+                <DropdownMenuItem
+                  key={key}
+                  onClick={() => setSort(key)}
+                  className={cn(sort === key && "font-semibold text-primary")}
+                >
+                  {SORT_LABELS[key]}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-2xl text-muted-foreground"
+            title={view === "grid" ? "Listenansicht" : "Kachelansicht"}
+            aria-label={view === "grid" ? "Listenansicht" : "Kachelansicht"}
+            onClick={() => setView(view === "grid" ? "list" : "grid")}
+          >
+            {view === "grid" ? <List className="size-4" /> : <LayoutGrid className="size-4" />}
+          </Button>
+
           <Input
             value={newFolder}
             placeholder="Neuer Ordner"
@@ -655,21 +700,38 @@ function LibraryPage() {
         </div>
       )}
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {folders.data?.map((f) => (
+      <div
+        className={cn(
+          view === "grid" ? "grid gap-3 sm:grid-cols-2 lg:grid-cols-3" : "flex flex-col gap-2",
+        )}
+      >
+        {sortedFolders.map((f) => (
           <div
             key={f.id}
-            className="glass group flex items-center gap-3 rounded-3xl p-4 transition-transform hover:-translate-y-0.5"
+            className={cn(
+              "glass group flex items-center gap-3 transition-transform",
+              view === "grid" ? "rounded-3xl p-4 hover:-translate-y-0.5" : "rounded-2xl px-4 py-2",
+            )}
           >
             <button
               className="flex min-w-0 flex-1 items-center gap-3 text-left"
               onClick={() => setPath([...path, { id: f.id, name: f.name }])}
             >
-              <span className="bg-primary-soft flex size-10 items-center justify-center rounded-2xl">
-                <Folder className="size-5 text-primary" />
+              <span
+                className={cn(
+                  "bg-primary-soft flex items-center justify-center rounded-2xl",
+                  view === "grid" ? "size-10" : "size-8",
+                )}
+              >
+                <Folder className={cn("text-primary", view === "grid" ? "size-5" : "size-4")} />
               </span>
               <span className="truncate font-medium">{f.name}</span>
             </button>
+            {view === "list" && (
+              <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">
+                {dateLabel(f.created_at)}
+              </span>
+            )}
             <Button
               size="icon"
               variant="ghost"
@@ -689,17 +751,27 @@ function LibraryPage() {
         ))}
 
 
-        {docs.data?.map((d) => (
+        {sortedDocs.map((d) => (
           <div
             key={d.id}
-            className="glass group flex items-center gap-3 rounded-3xl p-4 transition-transform hover:-translate-y-0.5"
+            className={cn(
+              "glass group flex items-center gap-3 transition-transform",
+              view === "grid" ? "rounded-3xl p-4 hover:-translate-y-0.5" : "rounded-2xl px-4 py-2",
+            )}
           >
-            <button className="flex flex-1 items-center gap-3 text-left" onClick={() => open(d)}>
-              <span className="flex size-10 items-center justify-center rounded-2xl bg-muted">
+            <button className="flex min-w-0 flex-1 items-center gap-3 text-left" onClick={() => open(d)}>
+              <span
+                className={cn(
+                  "flex items-center justify-center rounded-2xl bg-muted",
+                  view === "grid" ? "size-10" : "size-8",
+                )}
+              >
                 {d.kind === "note" ? (
-                  <NotebookPen className="size-5 text-primary" />
+                  <NotebookPen className={cn("text-primary", view === "grid" ? "size-5" : "size-4")} />
                 ) : (
-                  <FileText className="size-5 text-muted-foreground" />
+                  <FileText
+                    className={cn("text-muted-foreground", view === "grid" ? "size-5" : "size-4")}
+                  />
                 )}
               </span>
 
@@ -708,6 +780,11 @@ function LibraryPage() {
               </span>
 
             </button>
+            {view === "list" && (
+              <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">
+                {dateLabel(d.created_at)}
+              </span>
+            )}
             <RowMenu
               onOpen={() => open(d)}
               onRename={() => setRename({ table: "documents", id: d.id, name: d.name })}
@@ -718,13 +795,14 @@ function LibraryPage() {
 
         {!folders.isLoading &&
           !docs.isLoading &&
-          !folders.data?.length &&
-          !docs.data?.length && (
+          !sortedFolders.length &&
+          !sortedDocs.length && (
             <p className="col-span-full py-16 text-center text-sm text-muted-foreground">
               Dieser Ordner ist leer. Lege einen Unterordner an oder lade Dateien hoch.
             </p>
           )}
       </div>
+
 
       <Dialog open={!!rename} onOpenChange={(o) => !o && setRename(null)}>
         <DialogContent className="glass rounded-3xl">
@@ -840,4 +918,12 @@ function remainingLabel(p: {
   const rest = Math.max(0, Math.round(elapsed / ratio - elapsed));
   if (rest < 60) return `noch ca. ${rest}s`;
   return `noch ca. ${Math.floor(rest / 60)}:${String(rest % 60).padStart(2, "0")} min`;
+}
+
+/** Kurzes Datum für die Listenansicht. */
+function dateLabel(value?: string | null) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "2-digit" });
 }
