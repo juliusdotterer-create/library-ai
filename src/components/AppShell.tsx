@@ -83,8 +83,18 @@ export function AppShell({ children }: { children: ReactNode }) {
           </nav>
 
           <div className="flex flex-1 items-center justify-end gap-2 md:flex-none">
+            {!online && (
+              <span
+                title="Keine Verbindung – gespeicherte Inhalte bleiben nutzbar"
+                className="flex items-center gap-1.5 rounded-2xl bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground"
+              >
+                <WifiOff className="size-3.5" />
+                <span className="hidden sm:inline">Offline</span>
+              </span>
+            )}
             {!onLehrplaene && <HeaderTimers />}
           </div>
+
 
           <Link
             to="/connect"
