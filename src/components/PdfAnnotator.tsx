@@ -1,59 +1,27 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { findHighlights, highlightTokens } from "@/lib/pdf-highlight";
-
-import {
-  Eraser,
-  Highlighter,
-  Maximize2,
-  MousePointer2,
-  Pen,
-  Redo2,
-  StickyNote,
-  Trash2,
-  Undo2,
-  ZoomIn,
-  ZoomOut,
-} from "lucide-react";
+import { StickyNote } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import {
+  AnnotationToolbar,
+  MARKER_COLORS,
+  MAX_ZOOM,
+  MIN_ZOOM,
+  PEN_COLORS,
+  type Tool,
+} from "@/components/pdf/AnnotationToolbar";
+import {
+  annoId,
+  usePdfAnnotations,
+  type Anno,
+  type Note,
+  type Stroke,
+} from "@/hooks/usePdfAnnotations";
 
-type Tool = "none" | "marker" | "pen" | "note" | "eraser";
+export type { Anno } from "@/hooks/usePdfAnnotations";
 
-type Stroke = {
-  id: string;
-  kind: "stroke";
-  page: number;
-  tool: "marker" | "pen";
-  color: string;
-  width: number;
-  pts: [number, number][];
-};
-
-type Note = {
-  id: string;
-  kind: "note";
-  page: number;
-  x: number;
-  y: number;
-  text: string;
-};
-
-export type Anno = Stroke | Note;
-
-const MARKER_COLORS = ["#facc15", "#4ade80", "#f472b6"];
-const PEN_COLORS = ["#1f2937", "#2563eb", "#dc2626"];
-
-const MIN_ZOOM = 0.5;
-const MAX_ZOOM = 4;
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
-
-const uid = () =>
-  typeof crypto !== "undefined" && "randomUUID" in crypto
-    ? crypto.randomUUID()
-    : Math.random().toString(36).slice(2);
 
 /** PDF viewer with a transparent annotation layer per page. */
 export function PdfAnnotator({
@@ -71,8 +39,6 @@ export function PdfAnnotator({
   activeMatch?: number;
   onMatchCount?: (n: number) => void;
 }) {
-  const { user } = useAuth();
-  const userId = user?.id ?? null;
   const wrapRef = useRef<HTMLDivElement>(null);
 
   const docRef = useRef<{ numPages: number; getPage: (n: number) => Promise<any> } | null>(null);
@@ -95,13 +61,9 @@ export function PdfAnnotator({
   const [markerColor, setMarkerColor] = useState(MARKER_COLORS[0]!);
   const [penColor, setPenColor] = useState(PEN_COLORS[0]!);
   const [penWidth, setPenWidth] = useState(2);
-
-
-  const [annos, setAnnos] = useState<Anno[]>([]);
-  const [past, setPast] = useState<Anno[][]>([]);
-  const [future, setFuture] = useState<Anno[][]>([]);
-  const [loaded, setLoaded] = useState(false);
   const [editNote, setEditNote] = useState<string | null>(null);
+
+  const { annos, setAnnos, commit, undo, redo, canUndo, canRedo } = usePdfAnnotations(documentId);
 
   /* ---------------- measure container ---------------- */
   useEffect(() => {
@@ -125,7 +87,6 @@ export function PdfAnnotator({
     jumpedTo.current = initialPage;
     target.scrollIntoView({ block: "start" });
   }, [initialPage, status, pages.length]);
-
 
   /* ---------------- load pdf ---------------- */
   useEffect(() => {
@@ -263,92 +224,53 @@ export function PdfAnnotator({
     wrap.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
   }, [activeMatch, hits, view]);
 
-
-
-  /* ---------------- load annotations ---------------- */
-  useEffect(() => {
-    let cancelled = false;
-    setLoaded(false);
-    setAnnos([]);
-    setPast([]);
-    setFuture([]);
-    void (async () => {
-      const { data } = await supabase
-        .from("document_annotations")
-        .select("data")
-        .eq("document_id", documentId)
-        .maybeSingle();
-      if (cancelled) return;
-      const list = Array.isArray(data?.data) ? (data.data as unknown as Anno[]) : [];
-      setAnnos(list);
-      setLoaded(true);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [documentId]);
-
-  /* ---------------- autosave ---------------- */
-  useEffect(() => {
-    if (!loaded) return;
-    const t = setTimeout(() => {
-      void (async () => {
-        if (!userId) return;
-        await supabase
-          .from("document_annotations")
-          .upsert(
-            { user_id: userId, document_id: documentId, data: annos as never },
-            { onConflict: "user_id,document_id" },
-          );
-      })();
-    }, 900);
-    return () => clearTimeout(t);
-  }, [annos, loaded, documentId, userId]);
-
   /* ---------------- draw overlays ---------------- */
   const pendingRedraw = useRef<number | null>(null);
 
-  const drawPages = useCallback((indices?: number[]) => {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const pageList = indices ?? view.map((_, i) => i);
-    pageList.forEach((i) => {
-      const dim = view[i];
-      const canvas = overlayRefs.current[i];
-      if (!canvas || !dim) return;
-      if (canvas.width !== Math.round(dim.w * dpr)) {
-        canvas.width = Math.round(dim.w * dpr);
-        canvas.height = Math.round(dim.h * dpr);
-      }
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, dim.w, dim.h);
-      const items = [
-        ...annos.filter((a): a is Stroke => a.kind === "stroke" && a.page === i),
-        ...(drawing.current && drawing.current.page === i ? [drawing.current] : []),
-      ];
-      if (items.length === 0) return;
-      for (const s of items) {
-        if (s.pts.length === 0) continue;
-        ctx.save();
-        ctx.globalAlpha = s.tool === "marker" ? 0.35 : 1;
-        ctx.strokeStyle = s.color;
-        ctx.lineWidth = (s.tool === "marker" ? s.width * 5 : s.width) * zoom;
-        ctx.lineCap = "round";
-        ctx.lineJoin = "round";
-        ctx.beginPath();
-        s.pts.forEach(([nx, ny], idx) => {
-          const x = nx * dim.w;
-          const y = ny * dim.h;
-          if (idx === 0) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
-        });
-        if (s.pts.length === 1) ctx.lineTo(s.pts[0]![0] * dim.w + 0.1, s.pts[0]![1] * dim.h);
-        ctx.stroke();
-        ctx.restore();
-      }
-    });
-  }, [annos, view, zoom]);
+  const drawPages = useCallback(
+    (indices?: number[]) => {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const pageList = indices ?? view.map((_, i) => i);
+      pageList.forEach((i) => {
+        const dim = view[i];
+        const canvas = overlayRefs.current[i];
+        if (!canvas || !dim) return;
+        if (canvas.width !== Math.round(dim.w * dpr)) {
+          canvas.width = Math.round(dim.w * dpr);
+          canvas.height = Math.round(dim.h * dpr);
+        }
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, dim.w, dim.h);
+        const items = [
+          ...annos.filter((a): a is Stroke => a.kind === "stroke" && a.page === i),
+          ...(drawing.current && drawing.current.page === i ? [drawing.current] : []),
+        ];
+        if (items.length === 0) return;
+        for (const s of items) {
+          if (s.pts.length === 0) continue;
+          ctx.save();
+          ctx.globalAlpha = s.tool === "marker" ? 0.35 : 1;
+          ctx.strokeStyle = s.color;
+          ctx.lineWidth = (s.tool === "marker" ? s.width * 5 : s.width) * zoom;
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+          ctx.beginPath();
+          s.pts.forEach(([nx, ny], idx) => {
+            const x = nx * dim.w;
+            const y = ny * dim.h;
+            if (idx === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          });
+          if (s.pts.length === 1) ctx.lineTo(s.pts[0]![0] * dim.w + 0.1, s.pts[0]![1] * dim.h);
+          ctx.stroke();
+          ctx.restore();
+        }
+      });
+    },
+    [annos, view, zoom],
+  );
 
   const drawPagesRef = useRef(drawPages);
   drawPagesRef.current = drawPages;
@@ -396,33 +318,13 @@ export function PdfAnnotator({
     return () => el.removeEventListener("wheel", onWheel);
   }, []);
 
-  /* ---------------- history helpers ---------------- */
-  const commit = (next: Anno[]) => {
-    setPast((p) => [...p.slice(-49), annos]);
-    setFuture([]);
-    setAnnos(next);
-  };
-
-  const undo = () => {
+  const undoAll = () => {
     pendingRedraw.current = -1;
-    setPast((p) => {
-      if (p.length === 0) return p;
-      const prev = p[p.length - 1]!;
-      setFuture((f) => [annos, ...f].slice(0, 50));
-      setAnnos(prev);
-      return p.slice(0, -1);
-    });
+    undo();
   };
-
-  const redo = () => {
+  const redoAll = () => {
     pendingRedraw.current = -1;
-    setFuture((f) => {
-      if (f.length === 0) return f;
-      const next = f[0]!;
-      setPast((p) => [...p, annos]);
-      setAnnos(next);
-      return f.slice(1);
-    });
+    redo();
   };
 
   /* ---------------- pointer handling ---------------- */
@@ -437,8 +339,7 @@ export function PdfAnnotator({
     const tol = 12;
     const hit = annos.find((a) => {
       if (a.page !== i) return false;
-      if (a.kind === "note")
-        return Math.hypot((a.x - p[0]) * dim.w, (a.y - p[1]) * dim.h) < 24;
+      if (a.kind === "note") return Math.hypot((a.x - p[0]) * dim.w, (a.y - p[1]) * dim.h) < 24;
       return a.pts.some(
         ([x, y]) =>
           Math.hypot((x - p[0]) * dim.w, (y - p[1]) * dim.h) <
@@ -465,11 +366,7 @@ export function PdfAnnotator({
       const now = Date.now();
       const last = penTap.current;
       penTap.current = { t: now, x: e.clientX, y: e.clientY };
-      if (
-        last &&
-        now - last.t < 400 &&
-        Math.hypot(e.clientX - last.x, e.clientY - last.y) < 24
-      ) {
+      if (last && now - last.t < 400 && Math.hypot(e.clientX - last.x, e.clientY - last.y) < 24) {
         penTap.current = null;
         toggleEraser();
         return;
@@ -484,7 +381,7 @@ export function PdfAnnotator({
     const p = pointFor(e);
     if (tool === "note") {
       pendingRedraw.current = i;
-      const note: Note = { id: uid(), kind: "note", page: i, x: p[0], y: p[1], text: "" };
+      const note: Note = { id: annoId(), kind: "note", page: i, x: p[0], y: p[1], text: "" };
       commit([...annos, note]);
       setEditNote(note.id);
       setTool("none");
@@ -496,7 +393,7 @@ export function PdfAnnotator({
     }
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     drawing.current = {
-      id: uid(),
+      id: annoId(),
       kind: "stroke",
       page: i,
       tool: tool === "marker" ? "marker" : "pen",
@@ -534,133 +431,31 @@ export function PdfAnnotator({
 
   const notes = useMemo(() => annos.filter((a): a is Note => a.kind === "note"), [annos]);
 
-  const swatch = (c: string, active: boolean, onClick: () => void) => (
-    <button
-      key={c}
-      type="button"
-      onClick={onClick}
-      title="Farbe"
-      className={cn(
-        "size-5 rounded-full border transition",
-        active ? "ring-2 ring-primary ring-offset-1 ring-offset-background" : "border-border",
-      )}
-      style={{ background: c }}
-    />
-  );
-
-  const toolBtn = (t: Tool, label: string, Icon: typeof Pen) => (
-    <Button
-      type="button"
-      size="icon"
-      variant={tool === t ? "default" : "ghost"}
-      className="rounded-2xl"
-      title={label}
-      onClick={() => setTool(tool === t ? "none" : t)}
-    >
-      <Icon className="size-4" />
-    </Button>
-  );
-
   return (
     <div className="flex size-full min-h-0 flex-col">
-      {/* toolbar */}
-      <div className="flex flex-wrap items-center gap-1 border-b border-border/50 px-2 py-1.5">
-        {toolBtn("none", "Nur ansehen", MousePointer2)}
-        {toolBtn("marker", "Textmarker", Highlighter)}
-        {toolBtn("pen", "Stift", Pen)}
-        {toolBtn("note", "Notiz", StickyNote)}
-        {toolBtn("eraser", "Radiergummi", Eraser)}
-
-        {tool === "marker" && (
-          <div className="ml-1 flex items-center gap-1">
-            {MARKER_COLORS.map((c) => swatch(c, markerColor === c, () => setMarkerColor(c)))}
-          </div>
-        )}
-        {tool === "pen" && (
-          <div className="ml-1 flex items-center gap-2">
-            {PEN_COLORS.map((c) => swatch(c, penColor === c, () => setPenColor(c)))}
-            <input
-              type="range"
-              min={1}
-              max={8}
-              step={1}
-              value={penWidth}
-              onChange={(e) => setPenWidth(Number(e.target.value))}
-              className="h-1 w-20 accent-primary"
-              title="Strichstärke"
-            />
-          </div>
-        )}
-
-        <div className="ml-auto flex items-center gap-1">
-          <Button
-            size="icon"
-            variant="ghost"
-            className="rounded-2xl"
-            title="Verkleinern"
-            disabled={zoom <= MIN_ZOOM + 0.001}
-            onClick={() => zoomAt(1 / 1.25)}
-          >
-            <ZoomOut className="size-4" />
-          </Button>
-          <span className="w-10 text-center text-[11px] tabular-nums text-muted-foreground">
-            {Math.round(zoom * 100)}%
-          </span>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="rounded-2xl"
-            title="Vergrößern"
-            disabled={zoom >= MAX_ZOOM - 0.001}
-            onClick={() => zoomAt(1.25)}
-          >
-            <ZoomIn className="size-4" />
-          </Button>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="rounded-2xl"
-            title="Breite anpassen"
-            onClick={() => setZoom(1)}
-          >
-            <Maximize2 className="size-4" />
-          </Button>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="rounded-2xl"
-            title="Rückgängig"
-            disabled={past.length === 0}
-            onClick={undo}
-          >
-            <Undo2 className="size-4" />
-          </Button>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="rounded-2xl"
-            title="Wiederherstellen"
-            disabled={future.length === 0}
-            onClick={redo}
-          >
-            <Redo2 className="size-4" />
-          </Button>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="rounded-2xl"
-            title="Alle Markierungen löschen"
-            disabled={annos.length === 0}
-            onClick={() => {
-              pendingRedraw.current = -1;
-              commit([]);
-              toast.success("Markierungen gelöscht");
-            }}
-          >
-            <Trash2 className="size-4" />
-          </Button>
-        </div>
-      </div>
+      <AnnotationToolbar
+        tool={tool}
+        setTool={setTool}
+        markerColor={markerColor}
+        setMarkerColor={setMarkerColor}
+        penColor={penColor}
+        setPenColor={setPenColor}
+        penWidth={penWidth}
+        setPenWidth={setPenWidth}
+        zoom={zoom}
+        onZoom={(f) => zoomAt(f)}
+        onResetZoom={() => setZoom(1)}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onUndo={undoAll}
+        onRedo={redoAll}
+        canClear={annos.length > 0}
+        onClear={() => {
+          pendingRedraw.current = -1;
+          commit([]);
+          toast.success("Markierungen gelöscht");
+        }}
+      />
 
       {/* pages */}
       <div
@@ -728,9 +523,11 @@ export function PdfAnnotator({
                         autoFocus
                         value={n.text}
                         onChange={(e) =>
-                          setAnnos((prev) =>
+                          setAnnos((prev: Anno[]) =>
                             prev.map((a) =>
-                              a.id === n.id && a.kind === "note" ? { ...a, text: e.target.value } : a,
+                              a.id === n.id && a.kind === "note"
+                                ? { ...a, text: e.target.value }
+                                : a,
                             ),
                           )
                         }
