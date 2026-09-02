@@ -535,6 +535,41 @@ function LibraryPage() {
           ))}
         </div>
         <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                className="rounded-2xl text-muted-foreground"
+                title="Sortierung"
+                aria-label="Sortierung"
+              >
+                <ArrowUpDown className="size-4" />
+                <span className="hidden lg:inline">{SORT_LABELS[sort]}</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="glass rounded-2xl">
+              {(Object.keys(SORT_LABELS) as SortKey[]).map((key) => (
+                <DropdownMenuItem
+                  key={key}
+                  onClick={() => setSort(key)}
+                  className={cn(sort === key && "font-semibold text-primary")}
+                >
+                  {SORT_LABELS[key]}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-2xl text-muted-foreground"
+            title={view === "grid" ? "Listenansicht" : "Kachelansicht"}
+            aria-label={view === "grid" ? "Listenansicht" : "Kachelansicht"}
+            onClick={() => setView(view === "grid" ? "list" : "grid")}
+          >
+            {view === "grid" ? <List className="size-4" /> : <LayoutGrid className="size-4" />}
+          </Button>
+
           <Input
             value={newFolder}
             placeholder="Neuer Ordner"
