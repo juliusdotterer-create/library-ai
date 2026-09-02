@@ -28,7 +28,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDocuments, useFolders, queryKeys } from "@/hooks/useLibrary";
 import { cn } from "@/lib/utils";
 import { useServerFn } from "@tanstack/react-start";
+import { useLibraryView, sortItems, SORT_LABELS, type SortKey } from "@/hooks/useLibraryView";
 import { saveDocumentText } from "@/lib/document-text.functions";
+
 import { extractPdfText, isPdfFile, runQueue } from "@/lib/pdf-text";
 import { softDeleteFolder } from "@/lib/tree";
 import { Progress } from "@/components/ui/progress";

@@ -9,6 +9,7 @@ import {
   Moon,
   Sun,
   Search,
+  WifiOff,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useTheme } from "@/lib/theme";
@@ -17,6 +18,8 @@ import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { LibrarySearch } from "@/components/LibrarySearch";
 import { GlobalTimerWatcher, HeaderTimers } from "@/components/GlobalTimer";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+
 
 
 const NAV = [
