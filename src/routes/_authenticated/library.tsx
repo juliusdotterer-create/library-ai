@@ -5,39 +5,29 @@ import { toast } from "sonner";
 import {
   ArrowUpDown,
   ChevronRight,
-  Download,
   FilePlus2,
-  FileSearch,
-  FileText,
   Folder,
   FolderPlus,
   FolderUp,
   LayoutGrid,
   List,
-  MoreVertical,
   NotebookPen,
-  Pencil,
   Star,
-  Trash2,
   Upload,
 } from "lucide-react";
 
-
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useDocuments, useFolders, queryKeys } from "@/hooks/useLibrary";
+import { useDocuments, useFolders } from "@/hooks/useLibrary";
 import { cn } from "@/lib/utils";
-import { useServerFn } from "@tanstack/react-start";
 import { useLibraryView, sortItems, SORT_LABELS, type SortKey } from "@/hooks/useLibraryView";
-import { saveDocumentText } from "@/lib/document-text.functions";
-
-import { extractPdfText, isPdfFile, runQueue } from "@/lib/pdf-text";
+import { useLibraryUpload } from "@/hooks/useLibraryUpload";
 import { softDeleteFolder } from "@/lib/tree";
-import { Progress } from "@/components/ui/progress";
 import { ConfirmDelete } from "@/components/ConfirmDelete";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
+import { DocumentCard, FolderCard } from "@/components/library/ItemCard";
+import { UploadProgressPanel } from "@/components/library/UploadProgressPanel";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -72,10 +62,6 @@ export const Route = createFileRoute("/_authenticated/library")({
 });
 
 type Crumb = { id: string | null; name: string };
-
-/** Systemdateien, die Windows/macOS beim Ordner-Upload mitschickt – nie importieren. */
-const JUNK = /^(desktop\.ini|thumbs\.db|\.ds_store|\.localized|icon\r?)$/i;
-const isJunk = (name: string) => JUNK.test(name) || name.startsWith("._");
 
 function LibraryPage() {
   const qc = useQueryClient();
@@ -126,18 +112,22 @@ function LibraryPage() {
     };
   }, [folderParam, uid]);
 
-
   const folders = useFolders(current.id);
   const docs = useDocuments(current.id);
   const { sort, view, setSort, setView } = useLibraryView();
   const sortedFolders = sortItems(folders.data ?? undefined, sort);
   const sortedDocs = sortItems(docs.data ?? undefined, sort);
 
-
   const invalidate = () => {
     void qc.invalidateQueries({ queryKey: ["folders"] });
     void qc.invalidateQueries({ queryKey: ["documents"] });
   };
+
+  const { progress, indexing, dragging, dropZone, upload, uploadFileList } = useLibraryUpload({
+    uid,
+    folderId: current.id,
+    onDone: invalidate,
+  });
 
   const createFolder = useMutation({
     mutationFn: async (name: string) => {
@@ -154,222 +144,6 @@ function LibraryPage() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
-
-  const [progress, setProgress] = useState<{
-    done: number;
-    total: number;
-    bytesDone: number;
-    bytesTotal: number;
-    started: number;
-    name: string;
-  } | null>(null);
-  const [indexing, setIndexing] = useState<{ done: number; total: number } | null>(null);
-  const saveText = useServerFn(saveDocumentText);
-
-
-  const uploadFile = async (file: File, folderId: string | null) => {
-    if (!uid) throw new Error("Nicht angemeldet");
-    const storagePath = `${uid}/${crypto.randomUUID()}-${file.name.replace(/[^\w.\-]/g, "_")}`;
-    const { error: upErr } = await supabase.storage
-      .from("documents")
-      .upload(storagePath, file, { contentType: file.type || undefined });
-    if (upErr) throw upErr;
-    const { data, error } = await supabase
-      .from("documents")
-      .insert({
-        user_id: uid,
-        folder_id: folderId,
-        name: file.name,
-        storage_path: storagePath,
-        mime_type: file.type,
-        size_bytes: file.size,
-      })
-      .select("id")
-      .single();
-    if (error) throw error;
-    return data.id as string;
-  };
-
-  /** Extrahiert PDF-Text im Hintergrund, damit die Volltextsuche greift. */
-  const indexPdfs = async (items: { id: string; file: File }[]) => {
-    if (!items.length) return;
-    setIndexing({ done: 0, total: items.length });
-    await runQueue(
-      items,
-      async (item) => {
-        try {
-          const res = await extractPdfText(item.file);
-          await saveText({
-            data: {
-              documentId: item.id,
-              content: res.content,
-              pages: res.pages,
-              pageCount: res.pageCount,
-              status: res.status,
-            },
-          });
-        } catch {
-          await saveText({
-            data: {
-              documentId: item.id,
-              content: "",
-              pages: [],
-              pageCount: 0,
-              status: "failed",
-            },
-          }).catch(() => undefined);
-        }
-        setIndexing((p) => (p ? { ...p, done: p.done + 1 } : p));
-      },
-      2,
-    );
-    setIndexing(null);
-  };
-
-  const runUpload = async (all: { file: File; segments: string[] }[]) => {
-    const entries = all.filter((e) => !isJunk(e.file.name));
-    if (!entries.length) {
-      toast.info("Nur Systemdateien (z. B. desktop.ini) – nichts importiert");
-      return;
-    }
-    if (!uid) {
-      toast.error("Nicht angemeldet");
-      return;
-    }
-    const cache = new Map<string, string | null>([["", current.id]]);
-
-
-    const ensureFolder = async (segments: string[]): Promise<string | null> => {
-      const key = segments.join("/");
-      if (cache.has(key)) return cache.get(key)!;
-      const parent = await ensureFolder(segments.slice(0, -1));
-      const name = segments[segments.length - 1];
-      const { data, error } = await supabase
-        .from("folders")
-        .insert({ user_id: uid, parent_id: parent, name })
-        .select("id")
-        .single();
-      if (error) throw error;
-      cache.set(key, data.id);
-      return data.id;
-    };
-
-    const bytesTotal = entries.reduce((s, e) => s + e.file.size, 0);
-    const started = Date.now();
-    let bytesDone = 0;
-    setProgress({
-      done: 0,
-      total: entries.length,
-      bytesDone: 0,
-      bytesTotal,
-      started,
-      name: entries[0]?.file.name ?? "",
-    });
-
-    const failed: { name: string; reason: string }[] = [];
-    const toIndex: { id: string; file: File }[] = [];
-
-    for (let i = 0; i < entries.length; i++) {
-      const { file, segments } = entries[i];
-      setProgress((p) => (p ? { ...p, name: file.name } : p));
-      // Einzelne Fehler dürfen den restlichen Import nicht abbrechen.
-      for (let attempt = 1; attempt <= 3; attempt++) {
-        try {
-          const folderId = await ensureFolder(segments);
-          const docId = await uploadFile(file, folderId);
-          if (isPdfFile(file.name, file.type)) toIndex.push({ id: docId, file });
-          break;
-        } catch (err) {
-          if (attempt === 3) {
-            failed.push({ name: file.name, reason: (err as Error).message });
-          } else {
-            await new Promise((r) => setTimeout(r, 400 * attempt));
-          }
-        }
-      }
-      bytesDone += file.size;
-      const doneCount = i + 1;
-      setProgress((p) => (p ? { ...p, done: doneCount, bytesDone } : p));
-    }
-    setProgress(null);
-    // Volltext-Indexierung läuft im Hintergrund weiter.
-    void indexPdfs(toIndex);
-    return { total: entries.length, failed };
-  };
-
-  const uploadEntries = useMutation({
-    mutationFn: runUpload,
-    onSuccess: (res) => {
-      invalidate();
-      if (!res) return;
-      if (res.failed.length) {
-        toast.error(
-          `${res.failed.length} von ${res.total} Dateien fehlgeschlagen: ${res.failed
-            .slice(0, 3)
-            .map((f) => `${f.name} (${f.reason})`)
-            .join(", ")}`,
-        );
-        return;
-      }
-      toast.success("Import abgeschlossen");
-    },
-    onError: (e: Error) => {
-      setProgress(null);
-      toast.error(e.message);
-    },
-  });
-
-
-  const fromFileList = (files: FileList) =>
-    Array.from(files).map((file) => {
-      const rel = (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name;
-      return { file, segments: rel.split("/").slice(0, -1) };
-    });
-
-  const [dragging, setDragging] = useState(false);
-
-  const readEntry = async (
-    entry: FileSystemEntry,
-    segments: string[],
-    out: { file: File; segments: string[] }[],
-  ): Promise<void> => {
-    if (entry.isFile) {
-      const file = await new Promise<File>((res, rej) =>
-        (entry as FileSystemFileEntry).file(res, rej),
-      );
-      out.push({ file, segments });
-      return;
-    }
-    const reader = (entry as FileSystemDirectoryEntry).createReader();
-    const children: FileSystemEntry[] = [];
-    for (;;) {
-      const batch = await new Promise<FileSystemEntry[]>((res, rej) =>
-        reader.readEntries(res, rej),
-      );
-      if (!batch.length) break;
-      children.push(...batch);
-    }
-    for (const child of children) await readEntry(child, [...segments, entry.name], out);
-  };
-
-  const onDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragging(false);
-    const items = Array.from(e.dataTransfer.items ?? []);
-    const out: { file: File; segments: string[] }[] = [];
-    const entries = items
-      .map((i) => (typeof i.webkitGetAsEntry === "function" ? i.webkitGetAsEntry() : null))
-      .filter(Boolean) as FileSystemEntry[];
-    if (entries.length) {
-      for (const entry of entries) await readEntry(entry, [], out);
-    } else if (e.dataTransfer.files?.length) {
-      out.push(...fromFileList(e.dataTransfer.files));
-    }
-    if (out.length) uploadEntries.mutate(out);
-  };
-
-
-
 
   const [confirmDel, setConfirmDel] = useState<{
     table: "folders" | "documents";
@@ -391,7 +165,6 @@ function LibraryPage() {
         .eq("user_id", uid);
       if (error) throw error;
     },
-
     onSuccess: () => {
       invalidate();
       toast.success("In den Papierkorb verschoben");
@@ -495,19 +268,8 @@ function LibraryPage() {
     });
   };
 
-
   return (
-    <div
-      className="relative space-y-5"
-      onDragOver={(e) => {
-        e.preventDefault();
-        setDragging(true);
-      }}
-      onDragLeave={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragging(false);
-      }}
-      onDrop={(e) => void onDrop(e)}
-    >
+    <div className="relative space-y-5" {...dropZone}>
       {dragging && (
         <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center rounded-3xl border-2 border-dashed border-primary bg-primary/10 backdrop-blur-[2px]">
           <span className="glass flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-medium">
@@ -516,7 +278,6 @@ function LibraryPage() {
         </div>
       )}
       <div className="glass flex flex-wrap items-center gap-3 rounded-3xl p-4">
-
         <div className="flex flex-1 flex-wrap items-center gap-1 text-sm">
           {path.map((c, i) => (
             <span key={`${c.id ?? "root"}-${i}`} className="flex items-center gap-1">
@@ -619,10 +380,9 @@ function LibraryPage() {
             multiple
             hidden
             onChange={(e) => {
-              if (e.target.files?.length) uploadEntries.mutate(fromFileList(e.target.files));
+              if (e.target.files?.length) uploadFileList(e.target.files);
               e.target.value = "";
             }}
-
           />
           <input
             ref={folderInput}
@@ -633,54 +393,14 @@ function LibraryPage() {
             webkitdirectory=""
             directory=""
             onChange={(e) => {
-              if (e.target.files?.length) uploadEntries.mutate(fromFileList(e.target.files));
+              if (e.target.files?.length) uploadFileList(e.target.files);
               e.target.value = "";
             }}
-
           />
-
         </div>
       </div>
 
-      {progress && (
-        <div className="glass space-y-2 rounded-3xl p-4">
-          <div className="flex items-center justify-between gap-3 text-sm">
-            <span className="flex min-w-0 items-center gap-2">
-              <Upload className="size-4 shrink-0 animate-pulse text-primary" />
-              <span className="truncate font-medium">{progress.name}</span>
-            </span>
-            <span className="shrink-0 text-muted-foreground">
-              {progress.done}/{progress.total} · {remainingLabel(progress)}
-            </span>
-          </div>
-          <Progress
-            value={
-              progress.bytesTotal
-                ? (progress.bytesDone / progress.bytesTotal) * 100
-                : (progress.done / Math.max(progress.total, 1)) * 100
-            }
-          />
-          <p className="text-xs text-muted-foreground">
-            {mb(progress.bytesDone)} von {mb(progress.bytesTotal)} hochgeladen
-          </p>
-        </div>
-      )}
-
-      {indexing && (
-        <div className="glass space-y-2 rounded-3xl p-4">
-          <div className="flex items-center justify-between gap-3 text-sm">
-            <span className="flex items-center gap-2">
-              <FileSearch className="size-4 shrink-0 animate-pulse text-primary" />
-              <span className="font-medium">Volltext wird erstellt</span>
-            </span>
-            <span className="shrink-0 text-muted-foreground">
-              {indexing.done}/{indexing.total}
-            </span>
-          </div>
-          <Progress value={(indexing.done / Math.max(indexing.total, 1)) * 100} />
-        </div>
-      )}
-
+      <UploadProgressPanel progress={progress} indexing={indexing} />
 
       {!current.id && !!favorites.data?.length && (
         <div className="glass flex flex-wrap items-center gap-2 rounded-3xl p-4">
@@ -706,103 +426,34 @@ function LibraryPage() {
         )}
       >
         {sortedFolders.map((f) => (
-          <div
+          <FolderCard
             key={f.id}
-            className={cn(
-              "glass group flex items-center gap-3 transition-transform",
-              view === "grid" ? "rounded-3xl p-4 hover:-translate-y-0.5" : "rounded-2xl px-4 py-2",
-            )}
-          >
-            <button
-              className="flex min-w-0 flex-1 items-center gap-3 text-left"
-              onClick={() => setPath([...path, { id: f.id, name: f.name }])}
-            >
-              <span
-                className={cn(
-                  "bg-primary-soft flex items-center justify-center rounded-2xl",
-                  view === "grid" ? "size-10" : "size-8",
-                )}
-              >
-                <Folder className={cn("text-primary", view === "grid" ? "size-5" : "size-4")} />
-              </span>
-              <span className="truncate font-medium">{f.name}</span>
-            </button>
-            {view === "list" && (
-              <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">
-                {dateLabel(f.created_at)}
-              </span>
-            )}
-            <Button
-              size="icon"
-              variant="ghost"
-              className="rounded-2xl"
-              title={f.is_favorite ? "Favorit entfernen" : "Als Favorit markieren"}
-              onClick={() => toggleFavorite.mutate({ id: f.id, value: !f.is_favorite })}
-            >
-              <Star
-                className={cn("size-4", f.is_favorite && "fill-primary text-primary")}
-              />
-            </Button>
-            <RowMenu
-              onRename={() => setRename({ table: "folders", id: f.id, name: f.name })}
-              onDelete={() => setConfirmDel({ table: "folders", id: f.id, name: f.name })}
-            />
-          </div>
+            folder={f}
+            view={view}
+            onOpen={() => setPath([...path, { id: f.id, name: f.name }])}
+            onToggleFavorite={() => toggleFavorite.mutate({ id: f.id, value: !f.is_favorite })}
+            onRename={() => setRename({ table: "folders", id: f.id, name: f.name })}
+            onDelete={() => setConfirmDel({ table: "folders", id: f.id, name: f.name })}
+          />
         ))}
-
 
         {sortedDocs.map((d) => (
-          <div
+          <DocumentCard
             key={d.id}
-            className={cn(
-              "glass group flex items-center gap-3 transition-transform",
-              view === "grid" ? "rounded-3xl p-4 hover:-translate-y-0.5" : "rounded-2xl px-4 py-2",
-            )}
-          >
-            <button className="flex min-w-0 flex-1 items-center gap-3 text-left" onClick={() => open(d)}>
-              <span
-                className={cn(
-                  "flex items-center justify-center rounded-2xl bg-muted",
-                  view === "grid" ? "size-10" : "size-8",
-                )}
-              >
-                {d.kind === "note" ? (
-                  <NotebookPen className={cn("text-primary", view === "grid" ? "size-5" : "size-4")} />
-                ) : (
-                  <FileText
-                    className={cn("text-muted-foreground", view === "grid" ? "size-5" : "size-4")}
-                  />
-                )}
-              </span>
-
-              <span className="min-w-0">
-                <span className="block truncate font-medium">{d.name}</span>
-              </span>
-
-            </button>
-            {view === "list" && (
-              <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">
-                {dateLabel(d.created_at)}
-              </span>
-            )}
-            <RowMenu
-              onOpen={() => open(d)}
-              onRename={() => setRename({ table: "documents", id: d.id, name: d.name })}
-              onDelete={() => setConfirmDel({ table: "documents", id: d.id, name: d.name })}
-            />
-          </div>
+            doc={d}
+            view={view}
+            onOpen={() => open(d)}
+            onRename={() => setRename({ table: "documents", id: d.id, name: d.name })}
+            onDelete={() => setConfirmDel({ table: "documents", id: d.id, name: d.name })}
+          />
         ))}
 
-        {!folders.isLoading &&
-          !docs.isLoading &&
-          !sortedFolders.length &&
-          !sortedDocs.length && (
-            <p className="col-span-full py-16 text-center text-sm text-muted-foreground">
-              Dieser Ordner ist leer. Lege einen Unterordner an oder lade Dateien hoch.
-            </p>
-          )}
+        {!folders.isLoading && !docs.isLoading && !sortedFolders.length && !sortedDocs.length && (
+          <p className="col-span-full py-16 text-center text-sm text-muted-foreground">
+            Dieser Ordner ist leer. Lege einen Unterordner an oder lade Dateien hoch.
+          </p>
+        )}
       </div>
-
 
       <Dialog open={!!rename} onOpenChange={(o) => !o && setRename(null)}>
         <DialogContent className="glass rounded-3xl">
@@ -862,68 +513,6 @@ function LibraryPage() {
           invalidate();
         }}
       />
-
     </div>
   );
-}
-
-function RowMenu({
-  onOpen,
-  onRename,
-  onDelete,
-}: {
-  onOpen?: () => void;
-  onRename: () => void;
-  onDelete: () => void;
-}) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="rounded-2xl">
-          <MoreVertical className="size-4" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="glass rounded-2xl">
-        {onOpen && (
-          <DropdownMenuItem onClick={onOpen}>
-            <Download className="size-4" /> Öffnen
-          </DropdownMenuItem>
-        )}
-        <DropdownMenuItem onClick={onRename}>
-          <Pencil className="size-4" /> Umbenennen
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={onDelete} className="text-destructive">
-          <Trash2 className="size-4" /> In den Papierkorb
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
-function mb(bytes: number) {
-  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-}
-
-function remainingLabel(p: {
-  done: number;
-  total: number;
-  bytesDone: number;
-  bytesTotal: number;
-  started: number;
-}) {
-  const elapsed = (Date.now() - p.started) / 1000;
-  const ratio = p.bytesTotal ? p.bytesDone / p.bytesTotal : p.done / Math.max(p.total, 1);
-  if (!ratio || elapsed < 0.5) return "Restzeit wird berechnet…";
-  const rest = Math.max(0, Math.round(elapsed / ratio - elapsed));
-  if (rest < 60) return `noch ca. ${rest}s`;
-  return `noch ca. ${Math.floor(rest / 60)}:${String(rest % 60).padStart(2, "0")} min`;
-}
-
-/** Kurzes Datum für die Listenansicht. */
-function dateLabel(value?: string | null) {
-  if (!value) return "";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "2-digit" });
 }
