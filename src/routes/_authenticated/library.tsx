@@ -123,7 +123,7 @@ function LibraryPage() {
     void qc.invalidateQueries({ queryKey: ["documents"] });
   };
 
-  const { progress, indexing, dragging, dropZone, upload, uploadFileList } = useLibraryUpload({
+  const { progress, indexing, dragging, dropZone, uploadFileList } = useLibraryUpload({
     uid,
     folderId: current.id,
     onDone: invalidate,
