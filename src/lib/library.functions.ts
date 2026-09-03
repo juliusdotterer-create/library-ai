@@ -71,7 +71,7 @@ export const searchLibrary = createServerFn({ method: "POST" })
 
     const { data: docs, error: docsErr } = await context.supabase
       .from("documents")
-      .select("id,name,storage_path,mime_type,folder_id")
+      .select("id,name,storage_path,mime_type,folder_id,kind,notebook_id")
       .eq("user_id", context.userId)
       .is("deleted_at", null)
       .not("name", "ilike", "desktop.ini")
@@ -163,6 +163,8 @@ export const searchLibrary = createServerFn({ method: "POST" })
           storage_path: d.storage_path,
           mime_type: d.mime_type,
           folder_id: d.folder_id,
+          kind: d.kind,
+          notebook_id: d.notebook_id,
           path: folderPath(d.folder_id, allFolders),
         }))
         .sort((a, b) => rank(a.name, data.term) - rank(b.name, data.term) || a.name.localeCompare(b.name)),
