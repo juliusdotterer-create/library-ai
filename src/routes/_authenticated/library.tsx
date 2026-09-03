@@ -295,7 +295,7 @@ function LibraryPage() {
             </span>
           ))}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -334,7 +334,7 @@ function LibraryPage() {
           <Input
             value={newFolder}
             placeholder="Neuer Ordner"
-            className="h-9 w-44 rounded-2xl"
+            className="h-9 min-w-0 flex-1 rounded-2xl sm:w-44 sm:flex-none"
             onChange={(e) => setNewFolder(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && newFolder.trim()) createFolder.mutate(newFolder.trim());
