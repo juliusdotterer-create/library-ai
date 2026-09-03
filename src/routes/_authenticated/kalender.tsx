@@ -14,7 +14,7 @@ import {
   subMonths,
 } from "date-fns";
 import { de } from "date-fns/locale";
-import { CalendarPlus, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
+import { CalendarArrowUp, CalendarPlus, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/dialog";
 import { TimetableGrid } from "@/components/TimetableGrid";
 import { cn } from "@/lib/utils";
+import { buildIcs, downloadIcs, icsFileName, type IcsEvent } from "@/lib/ics";
 
 
 export const Route = createFileRoute("/_authenticated/kalender")({
@@ -114,6 +115,22 @@ function KalenderPage() {
   const dayEvents = (d: Date) =>
     (events.data ?? []).filter((e) => isSameDay(new Date(e.start_at), d));
 
+  /** Exportiert Termine als .ics für den Handy-Kalender. */
+  const exportIcs = async (list: IcsEvent[], filename: string) => {
+    if (!list.length) {
+      toast.error("Keine Termine zum Exportieren.");
+      return;
+    }
+    try {
+      await downloadIcs(filename, buildIcs(list));
+      toast.success(
+        list.length === 1 ? "Termin exportiert" : `${list.length} Termine exportiert`,
+      );
+    } catch {
+      toast.error("Export fehlgeschlagen");
+    }
+  };
+
   return (
     <div className="space-y-3 sm:space-y-4">
       <div className="glass inline-flex gap-1 rounded-2xl p-1">
@@ -159,6 +176,21 @@ function KalenderPage() {
               }}
             >
               Heute
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 rounded-full px-3 text-xs text-muted-foreground hover:text-foreground"
+              title="Alle Termine des Monats in den Handy-Kalender übernehmen"
+              onClick={() =>
+                void exportIcs(
+                  (events.data ?? []).filter((e) => isSameMonth(new Date(e.start_at), month)),
+                  `kalender-${format(month, "yyyy-MM")}.ics`,
+                )
+              }
+            >
+              <CalendarArrowUp className="mr-1 size-4" />
+              In Kalender
             </Button>
             <div className="glass-soft flex rounded-full p-0.5">
               <Button
@@ -331,6 +363,15 @@ function KalenderPage() {
                   <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground sm:text-xs">{e.notes}</p>
                 )}
               </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                title="In Handy-Kalender übernehmen"
+                className="h-8 w-8 shrink-0 rounded-2xl text-muted-foreground/50 transition-colors hover:text-foreground"
+                onClick={() => void exportIcs([e], icsFileName(e.title))}
+              >
+                <CalendarArrowUp className="size-4" />
+              </Button>
               <Button
                 variant="ghost"
                 size="icon"
