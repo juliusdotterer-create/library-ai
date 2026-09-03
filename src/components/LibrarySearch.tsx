@@ -32,6 +32,7 @@ export function LibrarySearch({
   });
 
   const [preview, setPreview] = useState<PreviewDoc | null>(null);
+  const [noteDoc, setNoteDoc] = useState<{ notebookId: string; name: string } | null>(null);
 
   const goToFolder = (folderId: string | null) => {
     onOpenChange(false);
@@ -46,10 +47,16 @@ export function LibrarySearch({
       mime_type: string | null;
       folder_id?: string | null;
       page?: number | null;
+      kind?: string | null;
+      notebook_id?: string | null;
     },
     withHighlight = false,
   ) => {
     onOpenChange(false);
+    if (d.kind === "note" && d.notebook_id) {
+      setNoteDoc({ notebookId: d.notebook_id, name: d.name });
+      return;
+    }
     setPreview({
       id: d.id,
       name: d.name,
@@ -60,6 +67,7 @@ export function LibrarySearch({
       highlight: withHighlight ? debounced : null,
     });
   };
+
 
 
   const results = library.data;
