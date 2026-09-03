@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { DocumentPreview, type PreviewDoc } from "@/components/DocumentPreview";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { searchLibrary } from "@/lib/library.functions";
+import { FreeNotesOverlay } from "@/components/FreeNotesOverlay";
 
 export function LibrarySearch({
   open,
@@ -196,6 +197,14 @@ export function LibrarySearch({
         </DialogContent>
       </Dialog>
       <DocumentPreview doc={preview} onClose={() => setPreview(null)} />
+      <FreeNotesOverlay
+        key={noteDoc?.notebookId ?? "note"}
+        open={!!noteDoc}
+        onClose={() => setNoteDoc(null)}
+        folderId={null}
+        notebookId={noteDoc?.notebookId ?? null}
+        title={noteDoc?.name}
+      />
     </>
   );
 }
