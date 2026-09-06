@@ -326,6 +326,7 @@ function ConnectPage() {
             <li><strong>ChatGPT:</strong> App-Einstellungen → Connector → „Refresh“ neben Information.</li>
             <li><strong>Claude:</strong> Connectors-Seite → Connector auswählen → Tools aktualisieren.</li>
             <li><strong>Claude Code:</strong> Neue Sitzung startet automatisch mit den aktuellen Tools. Bei geänderter URL: <code className="rounded bg-muted px-1 py-0.5 text-xs">claude mcp remove library</code>, dann den Install-Befehl erneut ausführen.</li>
+            <li><strong>Anara:</strong> Verbindungs-Einstellungen öffnen, die Library-Verbindung auswählen und neu laden.</li>
             <li><strong>Andere:</strong> In den Connector-Einstellungen „Reload“ oder „Reconnect“ wählen.</li>
           </ul>
         </CardContent>
