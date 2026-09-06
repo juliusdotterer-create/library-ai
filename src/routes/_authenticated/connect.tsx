@@ -133,12 +133,68 @@ function ConnectPage() {
       </Card>
 
       <Tabs defaultValue="chatgpt" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3 gap-1 sm:grid-cols-5">
           <TabsTrigger value="chatgpt">ChatGPT</TabsTrigger>
           <TabsTrigger value="claude">Claude</TabsTrigger>
           <TabsTrigger value="claude-code">Claude Code</TabsTrigger>
+          <TabsTrigger value="anara">Anara</TabsTrigger>
           <TabsTrigger value="other">Andere</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="anara" className="mt-4 space-y-4">
+          <Card className="glass">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Bot className="size-5 text-primary" />
+                Anara verbinden
+              </CardTitle>
+              <CardDescription>
+                Anara greift dann über deine Anmeldung auf deine eigenen Dokumente, Ordner und Termine zu.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-foreground">Deine {appName}-Adresse für Anara</p>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <code className="flex-1 rounded-xl bg-muted/50 px-4 py-3 text-sm break-all">
+                    {mcpUrl}
+                  </code>
+                  <CopyButton value={mcpUrl} />
+                </div>
+              </div>
+              <ol className="space-y-3">
+                <Step number={1}>
+                  Öffne in{" "}
+                  <a
+                    href="https://anara.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+                  >
+                    anara.com
+                    <ExternalLink className="size-3" />
+                  </a>{" "}
+                  die Einstellungen für Verbindungen bzw. MCP.
+                </Step>
+                <Step number={2}>Lege eine neue MCP-Verbindung an und füge die obige {appName}-Adresse ein.</Step>
+                <Step number={3}>Melde dich im geöffneten Fenster mit deinem {appName}-Konto an.</Step>
+                <Step number={4}>Bitte Anara anschließend, in {appName} zu suchen oder Dokumente zu lesen.</Step>
+              </ol>
+              <div className="space-y-2 rounded-xl border border-border/60 bg-muted/30 p-4">
+                <p className="text-sm font-medium text-foreground">Umgekehrte Richtung: Anaras eigene MCP-Adresse</p>
+                <p className="text-sm text-muted-foreground">
+                  Diese Adresse brauchst du nur, wenn ein anderer Agent auf deine Anara-Quellen zugreifen soll – nicht für die Verbindung oben.
+                </p>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <code className="flex-1 rounded-xl bg-background/60 px-4 py-3 text-sm break-all">
+                    https://anara.com/api/mcp
+                  </code>
+                  <CopyButton value="https://anara.com/api/mcp" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="chatgpt" className="mt-4 space-y-4">
           <Card className="glass">
@@ -270,6 +326,7 @@ function ConnectPage() {
             <li><strong>ChatGPT:</strong> App-Einstellungen → Connector → „Refresh“ neben Information.</li>
             <li><strong>Claude:</strong> Connectors-Seite → Connector auswählen → Tools aktualisieren.</li>
             <li><strong>Claude Code:</strong> Neue Sitzung startet automatisch mit den aktuellen Tools. Bei geänderter URL: <code className="rounded bg-muted px-1 py-0.5 text-xs">claude mcp remove library</code>, dann den Install-Befehl erneut ausführen.</li>
+            <li><strong>Anara:</strong> Verbindungs-Einstellungen öffnen, die Library-Verbindung auswählen und neu laden.</li>
             <li><strong>Andere:</strong> In den Connector-Einstellungen „Reload“ oder „Reconnect“ wählen.</li>
           </ul>
         </CardContent>
