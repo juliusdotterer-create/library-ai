@@ -40,7 +40,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
 
   return (
-    <div className="min-h-screen w-full overflow-x-hidden">
+    <div className="min-h-screen w-full overflow-x-clip">
       <LibrarySearch open={searchOpen} onOpenChange={setSearchOpen} />
       <GlobalTimerWatcher />
       <header className="sticky top-0 z-40 px-3 pt-3 sm:px-5">
