@@ -58,6 +58,9 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <Search className="size-3 text-primary" />
               </span>
             </button>
+            <kbd className="hidden rounded-xl bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground sm:inline-block">
+              ⌘K
+            </kbd>
           </div>
 
 
