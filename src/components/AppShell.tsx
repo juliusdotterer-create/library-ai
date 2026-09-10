@@ -40,10 +40,10 @@ export function AppShell({ children }: { children: ReactNode }) {
 
 
   return (
-    <div className="min-h-screen w-full overflow-x-clip">
+    <div className="min-h-screen w-full max-w-[100dvw] overflow-x-clip">
       <LibrarySearch open={searchOpen} onOpenChange={setSearchOpen} />
       <GlobalTimerWatcher />
-      <header className="sticky top-0 z-40 px-3 pt-3 sm:px-5">
+      <header className="sticky top-0 z-40 px-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-5">
         <div className="glass mx-auto flex max-w-7xl items-center gap-2 rounded-3xl px-3 py-2">
           <div className="flex min-w-0 items-center gap-2 pr-2">
             <button
@@ -128,10 +128,10 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-7xl px-3 py-6 pb-24 sm:px-5 md:pb-6">{children}</main>
+      <main className="mx-auto w-full max-w-7xl px-3 py-6 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:px-5 md:pb-6">{children}</main>
 
       {/* Mobile: kompakte Icon-Leiste am unteren Bildschirmrand */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 px-3 pb-3 md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:hidden">
         <div className="glass mx-auto flex max-w-md items-center justify-around rounded-3xl px-2 py-2">
           {NAV.map((item) => {
             const active = path.startsWith(item.to);
