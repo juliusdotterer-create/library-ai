@@ -52,7 +52,8 @@ function LinksPage() {
   const { user } = useAuth();
   const uid = user?.id;
   const qc = useQueryClient();
-  const [open, setOpen] = useState(false);
+  const search = useSearch({ strict: false }) as { create?: boolean } | undefined;
+  const [open, setOpen] = useState(search?.create ?? false);
   const [form, setForm] = useState<{ id?: string; title: string; url: string }>({
     title: "",
     url: "",
