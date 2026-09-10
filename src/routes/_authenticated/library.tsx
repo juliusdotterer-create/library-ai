@@ -71,8 +71,9 @@ function LibraryPage() {
   const qc = useQueryClient();
   const { user } = useAuth();
   const uid = user?.id;
-  const search = useSearch({ strict: false }) as { folder?: string } | undefined;
+  const search = useSearch({ strict: false }) as { folder?: string; create?: "folder" } | undefined;
   const folderParam = search?.folder;
+  const createFolderParam = search?.create;
   const [path, setPath] = useState<Crumb[]>([{ id: null, name: "Library" }]);
   const current = path[path.length - 1];
   const fileInput = useRef<HTMLInputElement>(null);
