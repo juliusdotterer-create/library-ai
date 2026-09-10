@@ -133,12 +133,12 @@ function ConnectPage() {
       </Card>
 
       <Tabs defaultValue="chatgpt" className="w-full">
-        <TabsList className="grid h-auto min-h-9 w-full grid-cols-2 gap-1 sm:h-9 sm:grid-cols-5">
-          <TabsTrigger value="chatgpt">ChatGPT</TabsTrigger>
-          <TabsTrigger value="claude">Claude</TabsTrigger>
-          <TabsTrigger value="claude-code">Claude Code</TabsTrigger>
-          <TabsTrigger value="anara">Anara</TabsTrigger>
-          <TabsTrigger value="other">Andere</TabsTrigger>
+        <TabsList className="flex h-auto min-h-10 w-full snap-x gap-1 overflow-x-auto p-1 sm:grid sm:h-9 sm:grid-cols-5">
+          <TabsTrigger value="chatgpt" className="shrink-0 snap-start min-w-[100px] sm:w-full">ChatGPT</TabsTrigger>
+          <TabsTrigger value="claude" className="shrink-0 snap-start min-w-[100px] sm:w-full">Claude</TabsTrigger>
+          <TabsTrigger value="claude-code" className="shrink-0 snap-start min-w-[100px] sm:w-full">Claude Code</TabsTrigger>
+          <TabsTrigger value="anara" className="shrink-0 snap-start min-w-[100px] sm:w-full">Anara</TabsTrigger>
+          <TabsTrigger value="other" className="shrink-0 snap-start min-w-[100px] sm:w-full">Andere</TabsTrigger>
         </TabsList>
 
         <TabsContent value="anara" className="mt-4 space-y-4">
