@@ -1,11 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Plus, Trash2 } from "lucide-react";
+import { ListChecks, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useAllDocuments, useAllFolders, useStudyPlans, useStudyTasks } from "@/hooks/useLibrary";
+import { MotionItem } from "@/components/MotionItem";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,11 +28,17 @@ import {
   type PickerFolder,
 } from "@/components/lehrplan/DocumentPicker";
 import { TaskList } from "@/components/lehrplan/TaskList";
+import { EmptyState } from "@/components/EmptyState";
+import { PlanSkeleton } from "@/components/Skeletons";
 import { cn } from "@/lib/utils";
 
 type PickedDocument = { id: string; name: string; path: string };
 
 export const Route = createFileRoute("/_authenticated/lehrplaene")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    plan: typeof search.plan === "string" ? search.plan : undefined,
+    create: search.create === "1" || search.create === 1,
+  }),
   head: () => ({
     meta: [
       { title: "Lehrpläne – Eigene Lernzeitpläne" },
@@ -51,9 +58,10 @@ function LehrplanPage() {
   const { user } = useAuth();
   const uid = user?.id;
   const qc = useQueryClient();
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const search = useSearch({ strict: false }) as { plan?: string; create?: boolean } | undefined;
+  const [activeId, setActiveId] = useState<string | null>(search?.plan ?? null);
   const [planForm, setPlanForm] = useState({ title: "", description: "" });
-  const [planOpen, setPlanOpen] = useState(false);
+  const [planOpen, setPlanOpen] = useState(search?.create ?? false);
   const [task, setTask] = useState({ title: "", due: "" });
   const [doc, setDoc] = useState<PickedDocument | null>(null);
 
@@ -239,20 +247,30 @@ function LehrplanPage() {
         </div>
 
         <div className="space-y-1.5">
-          {plans.data?.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => setActiveId(p.id)}
-              className={cn(
-                "flex w-full items-center gap-2 rounded-2xl px-3 py-2.5 text-left text-sm transition-colors",
-                activeId === p.id ? "bg-primary text-primary-foreground" : "hover:bg-muted",
-              )}
-            >
-              <span className="truncate">{p.title}</span>
-            </button>
-          ))}
-          {!plans.data?.length && (
-            <p className="py-6 text-center text-sm text-muted-foreground">Noch kein Lehrplan.</p>
+          {plans.isLoading ? (
+            <PlanSkeleton />
+          ) : plans.data?.length ? (
+            plans.data.map((p, i) => (
+              <MotionItem key={p.id} delay={i * 0.04} hover={false}>
+                <button
+                  onClick={() => setActiveId(p.id)}
+                  className={cn(
+                    "flex w-full items-center gap-2 rounded-2xl px-3 py-2.5 text-left text-sm transition-colors",
+                    activeId === p.id ? "bg-primary text-primary-foreground" : "hover:bg-muted",
+                  )}
+                >
+                  <span className="truncate">{p.title}</span>
+                </button>
+              </MotionItem>
+            ))
+          ) : (
+            <EmptyState
+              icon={<ListChecks className="size-7" />}
+              title="Noch kein Lehrplan"
+              description="Lege deinen ersten Plan an, um Aufgaben und Dokumente zu strukturieren."
+              action={{ label: "Lehrplan erstellen", onClick: () => setPlanOpen(true) }}
+              className="py-6"
+            />
           )}
         </div>
       </aside>
@@ -335,9 +353,12 @@ function LehrplanPage() {
             />
           </>
         ) : (
-          <p className="py-20 text-center text-sm text-muted-foreground">
-            Erstelle links deinen ersten Lehrplan.
-          </p>
+          <EmptyState
+            icon={<ListChecks className="size-7" />}
+            title="Wähle einen Lehrplan"
+            description="Erstelle links einen neuen Plan oder öffne einen bestehenden, um Aufgaben zu verwalten."
+            action={{ label: "Neuer Lehrplan", onClick: () => setPlanOpen(true) }}
+          />
         )}
       </section>
       <DocumentPreview doc={preview} onClose={() => setPreview(null)} />

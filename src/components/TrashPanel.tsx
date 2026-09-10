@@ -10,6 +10,9 @@ import { purgeDocuments, purgeFolder, restoreFolder, type PurgeProgress } from "
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ConfirmDelete } from "@/components/ConfirmDelete";
+import { EmptyState } from "@/components/EmptyState";
+import { MotionItem } from "@/components/MotionItem";
+import { TrashSkeleton } from "@/components/Skeletons";
 
 export function TrashPanel() {
   const qc = useQueryClient();
@@ -145,28 +148,41 @@ export function TrashPanel() {
         </div>
       )}
 
-      {topFolders.map((f) => (
-        <Row
-          key={f.id}
-          icon={<Folder className="size-5 text-primary" />}
-          name={f.name}
-          hint="inkl. Inhalt"
-          onRestore={() => restore.mutate({ table: "folders", id: f.id })}
-          onPurge={() => purge.mutate({ table: "folders", id: f.id })}
-        />
-      ))}
-      {looseDocs.map((d) => (
-        <Row
-          key={d.id}
-          icon={<FileText className="size-5 text-muted-foreground" />}
-          name={d.name}
-          onRestore={() => restore.mutate({ table: "documents", id: d.id })}
-          onPurge={() => purge.mutate({ table: "documents", id: d.id, storagePath: d.storage_path })}
-        />
-      ))}
+      {trash.isLoading ? (
+        <TrashSkeleton />
+      ) : (
+        <>
+          {topFolders.map((f, i) => (
+            <MotionItem key={f.id} delay={i * 0.04}>
+              <Row
+                icon={<Folder className="size-5 text-primary" />}
+                name={f.name}
+                hint="inkl. Inhalt"
+                onRestore={() => restore.mutate({ table: "folders", id: f.id })}
+                onPurge={() => purge.mutate({ table: "folders", id: f.id })}
+              />
+            </MotionItem>
+          ))}
+          {looseDocs.map((d, i) => (
+            <MotionItem key={d.id} delay={(topFolders.length + i) * 0.04}>
+              <Row
+                icon={<FileText className="size-5 text-muted-foreground" />}
+                name={d.name}
+                onRestore={() => restore.mutate({ table: "documents", id: d.id })}
+                onPurge={() => purge.mutate({ table: "documents", id: d.id, storagePath: d.storage_path })}
+              />
+            </MotionItem>
+          ))}
 
-      {empty && (
-        <p className="py-10 text-center text-sm text-muted-foreground">Der Papierkorb ist leer.</p>
+          {empty && (
+            <EmptyState
+              icon={<Trash2 className="size-7" />}
+              title="Papierkorb leer"
+              description="Hier landen gelöschte Ordner und Dateien, bevor sie endgültig entfernt werden."
+              className="py-10"
+            />
+          )}
+        </>
       )}
     </div>
   );

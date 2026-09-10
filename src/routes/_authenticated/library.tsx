@@ -24,6 +24,9 @@ import { useLibraryView, sortItems, SORT_LABELS, type SortKey } from "@/hooks/us
 import { useLibraryUpload } from "@/hooks/useLibraryUpload";
 import { softDeleteFolder } from "@/lib/tree";
 import { ConfirmDelete } from "@/components/ConfirmDelete";
+import { EmptyState } from "@/components/EmptyState";
+import { PullToRefresh } from "@/components/PullToRefresh";
+import { LibrarySkeleton } from "@/components/Skeletons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DocumentCard, FolderCard } from "@/components/library/ItemCard";
@@ -45,8 +48,10 @@ import {
 } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/_authenticated/library")({
-  validateSearch: (search: Record<string, unknown>): { folder?: string } =>
-    typeof search.folder === "string" ? { folder: search.folder } : {},
+  validateSearch: (search: Record<string, unknown>): { folder?: string; create?: "folder" } => ({
+    folder: typeof search.folder === "string" ? search.folder : undefined,
+    create: search.create === "folder" ? ("folder" as const) : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Library – Ordner & Dokumente" },
@@ -67,12 +72,14 @@ function LibraryPage() {
   const qc = useQueryClient();
   const { user } = useAuth();
   const uid = user?.id;
-  const search = useSearch({ strict: false }) as { folder?: string } | undefined;
+  const search = useSearch({ strict: false }) as { folder?: string; create?: "folder" } | undefined;
   const folderParam = search?.folder;
+  const createFolderParam = search?.create;
   const [path, setPath] = useState<Crumb[]>([{ id: null, name: "Library" }]);
   const current = path[path.length - 1];
   const fileInput = useRef<HTMLInputElement>(null);
   const folderInput = useRef<HTMLInputElement>(null);
+  const newFolderRef = useRef<HTMLInputElement>(null);
   const [newFolder, setNewFolder] = useState("");
   const [rename, setRename] = useState<{
     table: "folders" | "documents";
@@ -111,6 +118,12 @@ function LibraryPage() {
       cancelled = true;
     };
   }, [folderParam, uid]);
+
+  useEffect(() => {
+    if (createFolderParam === "folder") {
+      newFolderRef.current?.focus();
+    }
+  }, [createFolderParam]);
 
   const folders = useFolders(current.id);
   const docs = useDocuments(current.id);
@@ -332,6 +345,7 @@ function LibraryPage() {
           </Button>
 
           <Input
+            ref={newFolderRef}
             value={newFolder}
             placeholder="Neuer Ordner"
             className="h-9 min-w-0 flex-1 rounded-2xl sm:w-44 sm:flex-none"
@@ -420,40 +434,56 @@ function LibraryPage() {
         </div>
       )}
 
-      <div
-        className={cn(
-          view === "grid" ? "grid gap-3 sm:grid-cols-2 lg:grid-cols-3" : "flex flex-col gap-2",
-        )}
-      >
-        {sortedFolders.map((f) => (
-          <FolderCard
-            key={f.id}
-            folder={f}
-            view={view}
-            onOpen={() => setPath([...path, { id: f.id, name: f.name }])}
-            onToggleFavorite={() => toggleFavorite.mutate({ id: f.id, value: !f.is_favorite })}
-            onRename={() => setRename({ table: "folders", id: f.id, name: f.name })}
-            onDelete={() => setConfirmDel({ table: "folders", id: f.id, name: f.name })}
-          />
-        ))}
+      <PullToRefresh onRefresh={invalidate} className="-mx-3 px-3 sm:-mx-5 sm:px-5">
+        {folders.isLoading || docs.isLoading ? (
+          <LibrarySkeleton view={view} />
+        ) : (
+          <div
+            className={cn(
+              view === "grid" ? "grid gap-3 sm:grid-cols-2 lg:grid-cols-3" : "flex flex-col gap-2",
+            )}
+          >
+            {sortedFolders.map((f) => (
+              <FolderCard
+                key={f.id}
+                folder={f}
+                view={view}
+                onOpen={() => setPath([...path, { id: f.id, name: f.name }])}
+                onToggleFavorite={() => toggleFavorite.mutate({ id: f.id, value: !f.is_favorite })}
+                onRename={() => setRename({ table: "folders", id: f.id, name: f.name })}
+                onDelete={() => setConfirmDel({ table: "folders", id: f.id, name: f.name })}
+              />
+            ))}
 
-        {sortedDocs.map((d) => (
-          <DocumentCard
-            key={d.id}
-            doc={d}
-            view={view}
-            onOpen={() => open(d)}
-            onRename={() => setRename({ table: "documents", id: d.id, name: d.name })}
-            onDelete={() => setConfirmDel({ table: "documents", id: d.id, name: d.name })}
-          />
-        ))}
+            {sortedDocs.map((d) => (
+              <DocumentCard
+                key={d.id}
+                doc={d}
+                view={view}
+                onOpen={() => open(d)}
+                onRename={() => setRename({ table: "documents", id: d.id, name: d.name })}
+                onDelete={() => setConfirmDel({ table: "documents", id: d.id, name: d.name })}
+              />
+            ))}
 
-        {!folders.isLoading && !docs.isLoading && !sortedFolders.length && !sortedDocs.length && (
-          <p className="col-span-full py-16 text-center text-sm text-muted-foreground">
-            Dieser Ordner ist leer. Lege einen Unterordner an oder lade Dateien hoch.
-          </p>
+            {!sortedFolders.length && !sortedDocs.length && (
+              <EmptyState
+                icon={<Folder className="size-7" />}
+                title={current.id ? "Dieser Ordner ist leer" : "Deine Library ist noch leer"}
+                description={
+                  current.id
+                    ? "Lege einen Unterordner an oder lade Dateien hoch, um hier Inhalte zu sehen."
+                    : "Erstelle Ordner oder importiere Dateien, um dein Studienarchiv aufzubauen."
+                }
+                action={{
+                  label: "Ordner erstellen",
+                  onClick: () => newFolderRef.current?.focus(),
+                }}
+              />
+            )}
+          </div>
         )}
-      </div>
+      </PullToRefresh>
 
       <Dialog open={!!rename} onOpenChange={(o) => !o && setRename(null)}>
         <DialogContent className="glass rounded-3xl">

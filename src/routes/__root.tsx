@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { ThemeProvider } from "@/lib/theme";
 import { Toaster } from "@/components/ui/sonner";
+import { CommandPalette } from "@/components/CommandPalette";
 import { registerServiceWorker } from "@/lib/register-sw";
 
 function NotFoundComponent() {
@@ -138,6 +139,7 @@ function RootComponent() {
       <ThemeProvider>
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
         <Outlet />
+        <CommandPalette />
         <Toaster position="top-center" richColors />
       </ThemeProvider>
     </QueryClientProvider>

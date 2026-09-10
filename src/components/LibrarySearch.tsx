@@ -37,7 +37,7 @@ export function LibrarySearch({
 
   const goToFolder = (folderId: string | null) => {
     onOpenChange(false);
-    void navigate({ to: "/library", search: { folder: folderId ?? "root" } });
+    void navigate({ to: "/library", search: { folder: folderId ?? "root", create: undefined } });
   };
 
   const openDoc = (

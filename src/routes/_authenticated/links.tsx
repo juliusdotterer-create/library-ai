@@ -1,12 +1,15 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Link2, Pencil, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { LinkLogo } from "@/components/LinkLogo";
+import { MotionItem } from "@/components/MotionItem";
 import { useAuth } from "@/hooks/useAuth";
 import { useLinks } from "@/hooks/useLibrary";
+import { EmptyState } from "@/components/EmptyState";
+import { LinkSkeleton } from "@/components/Skeletons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,6 +23,9 @@ import {
 } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/_authenticated/links")({
+  validateSearch: (search: Record<string, unknown>): { create?: boolean } => ({
+    create: search.create === "1" || search.create === 1,
+  }),
   head: () => ({
     meta: [
       { title: "Linktree – Alle Verweise an einem Ort" },
@@ -46,7 +52,8 @@ function LinksPage() {
   const { user } = useAuth();
   const uid = user?.id;
   const qc = useQueryClient();
-  const [open, setOpen] = useState(false);
+  const search = useSearch({ strict: false }) as { create?: boolean } | undefined;
+  const [open, setOpen] = useState(search?.create ?? false);
   const [form, setForm] = useState<{ id?: string; title: string; url: string }>({
     title: "",
     url: "",
@@ -146,55 +153,63 @@ function LinksPage() {
         </Dialog>
       </div>
 
-      <div className="space-y-2.5">
-        {links.data?.map((l) => {
-          const host = domainOf(l.url);
-          return (
-            <div
-              key={l.id}
-              className="glass group flex items-center gap-3 rounded-3xl p-4 transition-transform hover:-translate-y-0.5"
-            >
-              <span className="bg-primary-soft flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl">
-                <LinkLogo host={host} title={l.title} />
-              </span>
+      {links.isLoading ? (
+        <LinkSkeleton />
+      ) : (
+        <div className="space-y-2.5">
+          {links.data?.map((l, i) => {
+            const host = domainOf(l.url);
+            return (
+              <MotionItem
+                key={l.id}
+                delay={i * 0.04}
+                className="glass group flex items-center gap-3 rounded-3xl p-4 transition-transform hover:-translate-y-0.5"
+              >
+                <span className="bg-primary-soft flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl">
+                  <LinkLogo host={host} title={l.title} />
+                </span>
 
-              <a
-                href={l.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="min-w-0 flex-1"
-              >
-                <span className="block truncate font-medium">{l.title}</span>
-                <span className="block truncate text-xs text-muted-foreground">{host}</span>
-              </a>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-2xl"
-                onClick={() => {
-                  setForm({ id: l.id, title: l.title, url: l.url });
-                  setOpen(true);
-                }}
-              >
-                <Pencil className="size-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-2xl text-destructive"
-                onClick={() => remove.mutate(l.id)}
-              >
-                <Trash2 className="size-4" />
-              </Button>
-            </div>
-          );
-        })}
-        {!links.data?.length && (
-          <p className="py-16 text-center text-sm text-muted-foreground">
-            Noch keine Links gespeichert.
-          </p>
-        )}
-      </div>
+                <a
+                  href={l.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="min-w-0 flex-1"
+                >
+                  <span className="block truncate font-medium">{l.title}</span>
+                  <span className="block truncate text-xs text-muted-foreground">{host}</span>
+                </a>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-2xl"
+                  onClick={() => {
+                    setForm({ id: l.id, title: l.title, url: l.url });
+                    setOpen(true);
+                  }}
+                >
+                  <Pencil className="size-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-2xl text-destructive"
+                  onClick={() => remove.mutate(l.id)}
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              </MotionItem>
+            );
+          })}
+          {!links.data?.length && (
+            <EmptyState
+              icon={<Link2 className="size-7" />}
+              title="Noch keine Links"
+              description="Sammle hier alle wichtigen URLs mit automatisch passenden Icons."
+              action={{ label: "Ersten Link hinzufügen", onClick: () => setOpen(true) }}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }
