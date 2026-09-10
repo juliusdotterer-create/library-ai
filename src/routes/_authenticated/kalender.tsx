@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useEvents } from "@/hooks/useLibrary";
+import { MotionItem } from "@/components/MotionItem";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,6 +33,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { TimetableGrid } from "@/components/TimetableGrid";
+import { EmptyState } from "@/components/EmptyState";
+import { CalendarSkeleton } from "@/components/Skeletons";
 import { cn } from "@/lib/utils";
 import { buildIcs, downloadIcs, icsFileName, type IcsEvent } from "@/lib/ics";
 
@@ -39,6 +42,8 @@ import { buildIcs, downloadIcs, icsFileName, type IcsEvent } from "@/lib/ics";
 export const Route = createFileRoute("/_authenticated/kalender")({
   validateSearch: (search: Record<string, unknown>) => ({
     view: search.view === "stundenplan" ? ("stundenplan" as const) : ("monat" as const),
+    date: typeof search.date === "string" ? search.date : undefined,
+    create: search.create === "1" || search.create === 1,
   }),
   head: () => ({
     meta: [
@@ -59,12 +64,16 @@ function KalenderPage() {
   const { user } = useAuth();
   const uid = user?.id;
   const qc = useQueryClient();
-  const search = useSearch({ strict: false }) as { view?: "monat" | "stundenplan" } | undefined;
+  const search = useSearch({ strict: false }) as
+    | { view?: "monat" | "stundenplan"; date?: string; create?: boolean }
+    | undefined;
   const view = search?.view ?? "monat";
   const navigate = useNavigate({ from: Route.fullPath });
-  const [month, setMonth] = useState(new Date());
-  const [selected, setSelected] = useState(new Date());
-  const [open, setOpen] = useState(false);
+  const parsedDate = search?.date ? new Date(search.date) : new Date();
+  const initialDate = Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
+  const [month, setMonth] = useState(initialDate);
+  const [selected, setSelected] = useState(initialDate);
+  const [open, setOpen] = useState(search?.create ?? false);
   const [form, setForm] = useState({ title: "", notes: "", time: "09:00" });
 
 
@@ -137,7 +146,7 @@ function KalenderPage() {
         {(["monat", "stundenplan"] as const).map((v) => (
           <button
             key={v}
-            onClick={() => void navigate({ search: { view: v } })}
+            onClick={() => void navigate({ search: (prev) => ({ ...prev, view: v }) })}
             className={cn(
               "rounded-xl px-3 py-1.5 text-xs font-medium transition-colors sm:text-sm",
               view === v ? "bg-primary text-primary-foreground" : "text-muted-foreground",
@@ -348,47 +357,52 @@ function KalenderPage() {
         </div>
 
         <div className="space-y-2">
-          {dayEvents(selected).map((e) => (
-            <div
-              key={e.id}
-              className="group glass-soft relative flex items-start gap-3 overflow-hidden rounded-2xl p-3 transition-colors hover:bg-card/70"
-            >
-              <span className="absolute inset-y-2 left-0 w-1 rounded-full bg-primary" />
-              <div className="min-w-0 flex-1 pl-2">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-accent-foreground sm:text-[11px]">
-                  {format(new Date(e.start_at), "HH:mm")} Uhr
-                </p>
-                <p className="mt-0.5 truncate text-sm font-medium">{e.title}</p>
-                {e.notes && (
-                  <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground sm:text-xs">{e.notes}</p>
-                )}
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                title="In Handy-Kalender übernehmen"
-                className="h-8 w-8 shrink-0 rounded-2xl text-muted-foreground/50 transition-colors hover:text-foreground"
-                onClick={() => void exportIcs([e], icsFileName(e.title))}
+          {events.isLoading ? (
+            <CalendarSkeleton />
+          ) : dayEvents(selected).length ? (
+            dayEvents(selected).map((e, i) => (
+              <MotionItem
+                key={e.id}
+                delay={i * 0.04}
+                className="group glass-soft relative flex items-start gap-3 overflow-hidden rounded-2xl p-3 transition-colors hover:bg-card/70"
               >
-                <CalendarArrowUp className="size-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 shrink-0 rounded-2xl text-muted-foreground/50 transition-colors hover:text-destructive"
-                onClick={() => remove.mutate(e.id)}
-              >
-                <Trash2 className="size-4" />
-              </Button>
-            </div>
-          ))}
-          {!dayEvents(selected).length && (
-            <div className="flex flex-col items-center gap-2 py-8 text-center">
-              <span className="flex size-10 items-center justify-center rounded-2xl bg-muted">
-                <CalendarPlus className="size-4 text-muted-foreground" />
-              </span>
-              <p className="text-xs text-muted-foreground sm:text-sm">Keine Termine an diesem Tag.</p>
-            </div>
+                <span className="absolute inset-y-2 left-0 w-1 rounded-full bg-primary" />
+                <div className="min-w-0 flex-1 pl-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-accent-foreground sm:text-[11px]">
+                    {format(new Date(e.start_at), "HH:mm")} Uhr
+                  </p>
+                  <p className="mt-0.5 truncate text-sm font-medium">{e.title}</p>
+                  {e.notes && (
+                    <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground sm:text-xs">{e.notes}</p>
+                  )}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  title="In Handy-Kalender übernehmen"
+                  className="h-8 w-8 shrink-0 rounded-2xl text-muted-foreground/50 transition-colors hover:text-foreground"
+                  onClick={() => void exportIcs([e], icsFileName(e.title))}
+                >
+                  <CalendarArrowUp className="size-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0 rounded-2xl text-muted-foreground/50 transition-colors hover:text-destructive"
+                  onClick={() => remove.mutate(e.id)}
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              </MotionItem>
+            ))
+          ) : (
+            <EmptyState
+              icon={<CalendarPlus className="size-7" />}
+              title="Keine Termine"
+              description="An diesem Tag steht noch nichts an. Füge einen neuen Termin hinzu."
+              action={{ label: "Termin erstellen", onClick: () => setOpen(true) }}
+              className="py-8"
+            />
           )}
         </div>
       </aside>

@@ -6,6 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { MotionItem } from "@/components/MotionItem";
 import { cn } from "@/lib/utils";
 import type { ViewMode } from "@/hooks/useLibraryView";
 
@@ -81,7 +82,7 @@ export function FolderCard({
   onDelete: () => void;
 }) {
   return (
-    <div className={shell(view)}>
+    <MotionItem className={shell(view)}>
       <button className="flex min-w-0 flex-1 items-center gap-3 text-left" onClick={onOpen}>
         <span className={iconBox(view, "primary")}>
           <Folder className={cn("text-primary", iconSize(view))} />
@@ -103,7 +104,7 @@ export function FolderCard({
         <Star className={cn("size-4", folder.is_favorite && "fill-primary text-primary")} />
       </Button>
       <RowMenu onRename={onRename} onDelete={onDelete} />
-    </div>
+    </MotionItem>
   );
 }
 
@@ -121,7 +122,7 @@ export function DocumentCard({
   onDelete: () => void;
 }) {
   return (
-    <div className={shell(view)}>
+    <MotionItem className={shell(view)}>
       <button className="flex min-w-0 flex-1 items-center gap-3 text-left" onClick={onOpen}>
         <span className={iconBox(view, "muted")}>
           {doc.kind === "note" ? (
@@ -140,6 +141,6 @@ export function DocumentCard({
         </span>
       )}
       <RowMenu onOpen={onOpen} onRename={onRename} onDelete={onDelete} />
-    </div>
+    </MotionItem>
   );
 }
