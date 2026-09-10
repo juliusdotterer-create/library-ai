@@ -23,6 +23,9 @@ import {
 } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/_authenticated/links")({
+  validateSearch: (search: Record<string, unknown>): { create?: boolean } => ({
+    create: search.create === "1" || search.create === 1,
+  }),
   head: () => ({
     meta: [
       { title: "Linktree – Alle Verweise an einem Ort" },
