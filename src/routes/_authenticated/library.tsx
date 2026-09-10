@@ -47,7 +47,7 @@ import {
 } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/_authenticated/library")({
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: Record<string, unknown>): { folder?: string; create?: "folder" } => ({
     folder: typeof search.folder === "string" ? search.folder : undefined,
     create: search.create === "folder" ? ("folder" as const) : undefined,
   }),
