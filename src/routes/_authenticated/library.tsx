@@ -434,54 +434,56 @@ function LibraryPage() {
         </div>
       )}
 
-      {folders.isLoading || docs.isLoading ? (
-        <LibrarySkeleton view={view} />
-      ) : (
-        <div
-          className={cn(
-            view === "grid" ? "grid gap-3 sm:grid-cols-2 lg:grid-cols-3" : "flex flex-col gap-2",
-          )}
-        >
-          {sortedFolders.map((f) => (
-            <FolderCard
-              key={f.id}
-              folder={f}
-              view={view}
-              onOpen={() => setPath([...path, { id: f.id, name: f.name }])}
-              onToggleFavorite={() => toggleFavorite.mutate({ id: f.id, value: !f.is_favorite })}
-              onRename={() => setRename({ table: "folders", id: f.id, name: f.name })}
-              onDelete={() => setConfirmDel({ table: "folders", id: f.id, name: f.name })}
-            />
-          ))}
+      <PullToRefresh onRefresh={invalidate} className="-mx-3 px-3 sm:-mx-5 sm:px-5">
+        {folders.isLoading || docs.isLoading ? (
+          <LibrarySkeleton view={view} />
+        ) : (
+          <div
+            className={cn(
+              view === "grid" ? "grid gap-3 sm:grid-cols-2 lg:grid-cols-3" : "flex flex-col gap-2",
+            )}
+          >
+            {sortedFolders.map((f) => (
+              <FolderCard
+                key={f.id}
+                folder={f}
+                view={view}
+                onOpen={() => setPath([...path, { id: f.id, name: f.name }])}
+                onToggleFavorite={() => toggleFavorite.mutate({ id: f.id, value: !f.is_favorite })}
+                onRename={() => setRename({ table: "folders", id: f.id, name: f.name })}
+                onDelete={() => setConfirmDel({ table: "folders", id: f.id, name: f.name })}
+              />
+            ))}
 
-          {sortedDocs.map((d) => (
-            <DocumentCard
-              key={d.id}
-              doc={d}
-              view={view}
-              onOpen={() => open(d)}
-              onRename={() => setRename({ table: "documents", id: d.id, name: d.name })}
-              onDelete={() => setConfirmDel({ table: "documents", id: d.id, name: d.name })}
-            />
-          ))}
+            {sortedDocs.map((d) => (
+              <DocumentCard
+                key={d.id}
+                doc={d}
+                view={view}
+                onOpen={() => open(d)}
+                onRename={() => setRename({ table: "documents", id: d.id, name: d.name })}
+                onDelete={() => setConfirmDel({ table: "documents", id: d.id, name: d.name })}
+              />
+            ))}
 
-          {!sortedFolders.length && !sortedDocs.length && (
-            <EmptyState
-              icon={<Folder className="size-7" />}
-              title={current.id ? "Dieser Ordner ist leer" : "Deine Library ist noch leer"}
-              description={
-                current.id
-                  ? "Lege einen Unterordner an oder lade Dateien hoch, um hier Inhalte zu sehen."
-                  : "Erstelle Ordner oder importiere Dateien, um dein Studienarchiv aufzubauen."
-              }
-              action={{
-                label: "Ordner erstellen",
-                onClick: () => newFolderRef.current?.focus(),
-              }}
-            />
-          )}
-        </div>
-      )}
+            {!sortedFolders.length && !sortedDocs.length && (
+              <EmptyState
+                icon={<Folder className="size-7" />}
+                title={current.id ? "Dieser Ordner ist leer" : "Deine Library ist noch leer"}
+                description={
+                  current.id
+                    ? "Lege einen Unterordner an oder lade Dateien hoch, um hier Inhalte zu sehen."
+                    : "Erstelle Ordner oder importiere Dateien, um dein Studienarchiv aufzubauen."
+                }
+                action={{
+                  label: "Ordner erstellen",
+                  onClick: () => newFolderRef.current?.focus(),
+                }}
+              />
+            )}
+          </div>
+        )}
+      </PullToRefresh>
 
       <Dialog open={!!rename} onOpenChange={(o) => !o && setRename(null)}>
         <DialogContent className="glass rounded-3xl">
