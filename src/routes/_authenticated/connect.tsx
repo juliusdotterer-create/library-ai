@@ -133,7 +133,7 @@ function ConnectPage() {
       </Card>
 
       <Tabs defaultValue="chatgpt" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 gap-1 sm:grid-cols-5">
+        <TabsList className="grid h-auto min-h-9 w-full grid-cols-2 gap-1 sm:h-9 sm:grid-cols-5">
           <TabsTrigger value="chatgpt">ChatGPT</TabsTrigger>
           <TabsTrigger value="claude">Claude</TabsTrigger>
           <TabsTrigger value="claude-code">Claude Code</TabsTrigger>
