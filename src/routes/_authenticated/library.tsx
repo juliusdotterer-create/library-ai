@@ -118,6 +118,12 @@ function LibraryPage() {
     };
   }, [folderParam, uid]);
 
+  useEffect(() => {
+    if (createFolderParam === "folder") {
+      newFolderRef.current?.focus();
+    }
+  }, [createFolderParam]);
+
   const folders = useFolders(current.id);
   const docs = useDocuments(current.id);
   const { sort, view, setSort, setView } = useLibraryView();
