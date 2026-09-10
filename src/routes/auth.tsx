@@ -53,7 +53,7 @@ function AuthPage() {
     }
     const go = () => {
       if (next) window.location.replace(next);
-      else navigate({ to: "/library", replace: true });
+      else navigate({ to: "/library", replace: true, search: { folder: undefined, create: undefined } });
     };
     void supabase.auth.getSession().then(({ data }) => {
       if (data.session) go();
