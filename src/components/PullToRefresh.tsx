@@ -21,7 +21,8 @@ export function PullToRefresh({
 
   const onTouchStart = (e: TouchEvent<HTMLDivElement>) => {
     if (!containerRef.current) return;
-    if (containerRef.current.scrollTop > 0) return;
+    const pageScrollTop = document.scrollingElement?.scrollTop ?? window.scrollY;
+    if (pageScrollTop > 0 || refreshing) return;
     startY.current = e.touches[0]?.clientY ?? 0;
     setPulling(true);
   };
@@ -30,6 +31,8 @@ export function PullToRefresh({
     if (!pulling) return;
     const y = e.touches[0]?.clientY ?? 0;
     const delta = Math.max(0, y - startY.current);
+    if (delta === 0) return;
+    e.preventDefault();
     setOffset(Math.min(delta * 0.45, THRESHOLD + 24));
   };
 
@@ -49,7 +52,7 @@ export function PullToRefresh({
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
-      className={cn("relative overflow-y-auto overscroll-y-contain", className)}
+      className={cn("relative overscroll-y-contain", className)}
     >
       <div
         className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-center"
