@@ -86,7 +86,7 @@ function KalenderPage() {
       }
     }
     if (search.create) setOpen(true);
-    void navigate({ search: { view }, replace: true });
+    void navigate({ search: { view, date: undefined, create: false }, replace: true });
   }, [navigate, search?.create, search?.date, view]);
 
   const range = useMemo(() => {

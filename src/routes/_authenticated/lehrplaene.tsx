@@ -75,7 +75,7 @@ function LehrplanPage() {
     if (!search?.plan && !search?.create) return;
     if (search.plan) setActiveId(search.plan);
     if (search.create) setPlanOpen(true);
-    void navigate({ search: {}, replace: true });
+    void navigate({ search: { plan: undefined, create: false }, replace: true });
   }, [navigate, search?.create, search?.plan]);
 
   useEffect(() => {
