@@ -79,8 +79,8 @@ function LehrplanPage() {
   }, [navigate, search?.create, search?.plan]);
 
   useEffect(() => {
-    if (plans.data?.length && !activeId) setActiveId(plans.data[0].id);
-  }, [plans.data, activeId]);
+    if (plans.data?.length && !activeId && !search?.plan) setActiveId(plans.data[0].id);
+  }, [plans.data, activeId, search?.plan]);
 
   const folderList = (folders.data ?? []) as PickerFolder[];
   const docList = docs.data ?? [];
