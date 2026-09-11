@@ -1,4 +1,4 @@
-import { createFileRoute, useSearch } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -59,9 +59,10 @@ function LehrplanPage() {
   const uid = user?.id;
   const qc = useQueryClient();
   const search = useSearch({ strict: false }) as { plan?: string; create?: boolean } | undefined;
-  const [activeId, setActiveId] = useState<string | null>(search?.plan ?? null);
+  const navigate = useNavigate({ from: Route.fullPath });
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [planForm, setPlanForm] = useState({ title: "", description: "" });
-  const [planOpen, setPlanOpen] = useState(search?.create ?? false);
+  const [planOpen, setPlanOpen] = useState(false);
   const [task, setTask] = useState({ title: "", due: "" });
   const [doc, setDoc] = useState<PickedDocument | null>(null);
 
@@ -71,8 +72,15 @@ function LehrplanPage() {
   const folders = useAllFolders();
 
   useEffect(() => {
-    if (plans.data?.length && !activeId) setActiveId(plans.data[0].id);
-  }, [plans.data, activeId]);
+    if (!search?.plan && !search?.create) return;
+    if (search.plan) setActiveId(search.plan);
+    if (search.create) setPlanOpen(true);
+    void navigate({ search: { plan: undefined, create: false }, replace: true });
+  }, [navigate, search?.create, search?.plan]);
+
+  useEffect(() => {
+    if (plans.data?.length && !activeId && !search?.plan) setActiveId(plans.data[0].id);
+  }, [plans.data, activeId, search?.plan]);
 
   const folderList = (folders.data ?? []) as PickerFolder[];
   const docList = docs.data ?? [];

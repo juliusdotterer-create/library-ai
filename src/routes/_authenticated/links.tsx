@@ -1,6 +1,6 @@
-import { createFileRoute, useSearch } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Link2, Pencil, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -53,7 +53,8 @@ function LinksPage() {
   const uid = user?.id;
   const qc = useQueryClient();
   const search = useSearch({ strict: false }) as { create?: boolean } | undefined;
-  const [open, setOpen] = useState(search?.create ?? false);
+  const navigate = useNavigate({ from: Route.fullPath });
+  const [open, setOpen] = useState(false);
   const [form, setForm] = useState<{ id?: string; title: string; url: string }>({
     title: "",
     url: "",
@@ -61,6 +62,11 @@ function LinksPage() {
 
   const links = useLinks();
 
+  useEffect(() => {
+    if (!search?.create) return;
+    setOpen(true);
+    void navigate({ search: {}, replace: true });
+  }, [navigate, search?.create]);
 
   const save = useMutation({
     mutationFn: async () => {

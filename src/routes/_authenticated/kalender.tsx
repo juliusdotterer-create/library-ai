@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   addMonths,
   endOfMonth,
@@ -73,10 +73,21 @@ function KalenderPage() {
   const initialDate = Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
   const [month, setMonth] = useState(initialDate);
   const [selected, setSelected] = useState(initialDate);
-  const [open, setOpen] = useState(search?.create ?? false);
+  const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ title: "", notes: "", time: "09:00" });
 
-
+  useEffect(() => {
+    if (!search?.date && !search?.create) return;
+    if (search.date) {
+      const target = new Date(search.date);
+      if (!Number.isNaN(target.getTime())) {
+        setMonth(target);
+        setSelected(target);
+      }
+    }
+    if (search.create) setOpen(true);
+    void navigate({ search: { view, date: undefined, create: false }, replace: true });
+  }, [navigate, search?.create, search?.date, view]);
 
   const range = useMemo(() => {
     const start = startOfWeek(startOfMonth(month), { weekStartsOn: 1 });
