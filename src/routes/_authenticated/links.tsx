@@ -73,23 +73,24 @@ function LinksPage() {
     mutationFn: async () => {
       if (!uid) throw new Error("Nicht angemeldet");
       const url = form.url.startsWith("http") ? form.url : `https://${form.url}`;
+      const app_url = form.appUrl.trim() || null;
       if (form.id) {
         const { error } = await supabase
           .from("links")
-          .update({ title: form.title, url })
+          .update({ title: form.title, url, app_url })
           .eq("id", form.id)
           .eq("user_id", uid);
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from("links")
-          .insert({ user_id: uid, title: form.title, url });
+          .insert({ user_id: uid, title: form.title, url, app_url });
         if (error) throw error;
       }
     },
     onSuccess: () => {
       setOpen(false);
-      setForm({ title: "", url: "" });
+      setForm({ title: "", url: "", appUrl: "" });
       void qc.invalidateQueries({ queryKey: ["links"] });
       toast.success("Gespeichert");
     },
@@ -116,7 +117,7 @@ function LinksPage() {
           open={open}
           onOpenChange={(o) => {
             setOpen(o);
-            if (!o) setForm({ title: "", url: "" });
+            if (!o) setForm({ title: "", url: "", appUrl: "" });
           }}
         >
           <DialogTrigger asChild>
@@ -190,7 +191,7 @@ function LinksPage() {
                   size="icon"
                   className="rounded-2xl"
                   onClick={() => {
-                    setForm({ id: l.id, title: l.title, url: l.url });
+                    setForm({ id: l.id, title: l.title, url: l.url, appUrl: l.app_url ?? "" });
                     setOpen(true);
                   }}
                 >
