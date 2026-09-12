@@ -147,6 +147,18 @@ function LinksPage() {
                   onChange={(e) => setForm({ ...form, url: e.target.value })}
                 />
               </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">App-Link (optional)</Label>
+                <Input
+                  className="rounded-2xl"
+                  placeholder="youtube://… oder spotify:…"
+                  value={form.appUrl}
+                  onChange={(e) => setForm({ ...form, appUrl: e.target.value })}
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Öffnet die App direkt. Ist sie nicht installiert, wird die Web-Adresse geöffnet.
+                </p>
+              </div>
             </div>
             <DialogFooter>
               <Button
@@ -177,15 +189,16 @@ function LinksPage() {
                   <LinkLogo host={host} title={l.title} />
                 </span>
 
-                <a
-                  href={l.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="min-w-0 flex-1"
+                <button
+                  type="button"
+                  onClick={() => openLink(l.url, l.app_url)}
+                  className="min-w-0 flex-1 text-left"
                 >
                   <span className="block truncate font-medium">{l.title}</span>
-                  <span className="block truncate text-xs text-muted-foreground">{host}</span>
-                </a>
+                  <span className="block truncate text-xs text-muted-foreground">
+                    {l.app_url ? `${host} · öffnet App` : host}
+                  </span>
+                </button>
                 <Button
                   variant="ghost"
                   size="icon"
