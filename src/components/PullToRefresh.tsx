@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode, type TouchEvent } from "react";
+import { useEffect, useRef, useState, type ReactNode, type TouchEvent } from "react";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -13,31 +13,39 @@ export function PullToRefresh({
   onRefresh: () => Promise<void> | void;
   className?: string;
 }) {
-  const [pulling, setPulling] = useState(false);
   const [offset, setOffset] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const startY = useRef(0);
+  const pulling = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // React registriert touchmove als passiven Listener – preventDefault()
+  // würde dort ignoriert. Deshalb nativ mit { passive: false } anbinden.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const onMove = (e: globalThis.TouchEvent) => {
+      if (!pulling.current) return;
+      const y = e.touches[0]?.clientY ?? 0;
+      const delta = Math.max(0, y - startY.current);
+      if (delta <= 0) return;
+      e.preventDefault();
+      setOffset(Math.min(delta * 0.45, THRESHOLD + 24));
+    };
+    el.addEventListener("touchmove", onMove, { passive: false });
+    return () => el.removeEventListener("touchmove", onMove);
+  }, []);
+
   const onTouchStart = (e: TouchEvent<HTMLDivElement>) => {
-    if (!containerRef.current) return;
     const pageScrollTop = document.scrollingElement?.scrollTop ?? window.scrollY;
     if (pageScrollTop > 0 || refreshing) return;
     startY.current = e.touches[0]?.clientY ?? 0;
-    setPulling(true);
-  };
-
-  const onTouchMove = (e: TouchEvent<HTMLDivElement>) => {
-    if (!pulling) return;
-    const y = e.touches[0]?.clientY ?? 0;
-    const delta = Math.max(0, y - startY.current);
-    if (delta === 0) return;
-    e.preventDefault();
-    setOffset(Math.min(delta * 0.45, THRESHOLD + 24));
+    pulling.current = true;
   };
 
   const onTouchEnd = async () => {
-    setPulling(false);
+    if (!pulling.current) return;
+    pulling.current = false;
     if (offset >= THRESHOLD) {
       setRefreshing(true);
       await onRefresh();
@@ -50,9 +58,9 @@ export function PullToRefresh({
     <div
       ref={containerRef}
       onTouchStart={onTouchStart}
-      onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
       className={cn("relative overscroll-y-contain", className)}
+      style={{ touchAction: "pan-x pan-y" }}
     >
       <div
         className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-center"
