@@ -55,9 +55,10 @@ function LinksPage() {
   const search = useSearch({ strict: false }) as { create?: boolean } | undefined;
   const navigate = useNavigate({ from: Route.fullPath });
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState<{ id?: string; title: string; url: string }>({
+  const [form, setForm] = useState<{ id?: string; title: string; url: string; appUrl: string }>({
     title: "",
     url: "",
+    appUrl: "",
   });
 
   const links = useLinks();

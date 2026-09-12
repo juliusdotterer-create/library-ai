@@ -256,7 +256,7 @@ export function useLinks() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("links")
-        .select("id,title,url,description,position,created_at")
+        .select("id,title,url,app_url,description,position,created_at")
         .eq("user_id", user!.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
