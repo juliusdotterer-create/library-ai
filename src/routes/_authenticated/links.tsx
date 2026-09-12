@@ -48,6 +48,21 @@ function domainOf(url: string) {
   }
 }
 
+function openLink(url: string, appUrl: string | null | undefined) {
+  if (!appUrl) {
+    window.open(url, "_blank", "noopener,noreferrer");
+    return;
+  }
+  // App zuerst versuchen; bleibt die Seite sichtbar, nach kurzer Zeit aufs Web ausweichen.
+  const fallback = window.setTimeout(() => {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }, 1500);
+  const cancel = () => window.clearTimeout(fallback);
+  window.addEventListener("pagehide", cancel, { once: true });
+  document.addEventListener("visibilitychange", cancel, { once: true });
+  window.location.href = appUrl;
+}
+
 function LinksPage() {
   const { user } = useAuth();
   const uid = user?.id;
