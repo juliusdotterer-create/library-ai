@@ -48,6 +48,21 @@ function domainOf(url: string) {
   }
 }
 
+function openLink(url: string, appUrl: string | null | undefined) {
+  if (!appUrl) {
+    window.open(url, "_blank", "noopener,noreferrer");
+    return;
+  }
+  // App zuerst versuchen; bleibt die Seite sichtbar, nach kurzer Zeit aufs Web ausweichen.
+  const fallback = window.setTimeout(() => {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }, 1500);
+  const cancel = () => window.clearTimeout(fallback);
+  window.addEventListener("pagehide", cancel, { once: true });
+  document.addEventListener("visibilitychange", cancel, { once: true });
+  window.location.href = appUrl;
+}
+
 function LinksPage() {
   const { user } = useAuth();
   const uid = user?.id;
@@ -55,9 +70,10 @@ function LinksPage() {
   const search = useSearch({ strict: false }) as { create?: boolean } | undefined;
   const navigate = useNavigate({ from: Route.fullPath });
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState<{ id?: string; title: string; url: string }>({
+  const [form, setForm] = useState<{ id?: string; title: string; url: string; appUrl: string }>({
     title: "",
     url: "",
+    appUrl: "",
   });
 
   const links = useLinks();
@@ -72,23 +88,24 @@ function LinksPage() {
     mutationFn: async () => {
       if (!uid) throw new Error("Nicht angemeldet");
       const url = form.url.startsWith("http") ? form.url : `https://${form.url}`;
+      const app_url = form.appUrl.trim() || null;
       if (form.id) {
         const { error } = await supabase
           .from("links")
-          .update({ title: form.title, url })
+          .update({ title: form.title, url, app_url })
           .eq("id", form.id)
           .eq("user_id", uid);
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from("links")
-          .insert({ user_id: uid, title: form.title, url });
+          .insert({ user_id: uid, title: form.title, url, app_url });
         if (error) throw error;
       }
     },
     onSuccess: () => {
       setOpen(false);
-      setForm({ title: "", url: "" });
+      setForm({ title: "", url: "", appUrl: "" });
       void qc.invalidateQueries({ queryKey: ["links"] });
       toast.success("Gespeichert");
     },
@@ -115,7 +132,7 @@ function LinksPage() {
           open={open}
           onOpenChange={(o) => {
             setOpen(o);
-            if (!o) setForm({ title: "", url: "" });
+            if (!o) setForm({ title: "", url: "", appUrl: "" });
           }}
         >
           <DialogTrigger asChild>
@@ -144,6 +161,18 @@ function LinksPage() {
                   value={form.url}
                   onChange={(e) => setForm({ ...form, url: e.target.value })}
                 />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">App-Link (optional)</Label>
+                <Input
+                  className="rounded-2xl"
+                  placeholder="youtube://… oder spotify:…"
+                  value={form.appUrl}
+                  onChange={(e) => setForm({ ...form, appUrl: e.target.value })}
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Öffnet die App direkt. Ist sie nicht installiert, wird die Web-Adresse geöffnet.
+                </p>
               </div>
             </div>
             <DialogFooter>
@@ -175,21 +204,22 @@ function LinksPage() {
                   <LinkLogo host={host} title={l.title} />
                 </span>
 
-                <a
-                  href={l.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="min-w-0 flex-1"
+                <button
+                  type="button"
+                  onClick={() => openLink(l.url, l.app_url)}
+                  className="min-w-0 flex-1 text-left"
                 >
                   <span className="block truncate font-medium">{l.title}</span>
-                  <span className="block truncate text-xs text-muted-foreground">{host}</span>
-                </a>
+                  <span className="block truncate text-xs text-muted-foreground">
+                    {l.app_url ? `${host} · öffnet App` : host}
+                  </span>
+                </button>
                 <Button
                   variant="ghost"
                   size="icon"
                   className="rounded-2xl"
                   onClick={() => {
-                    setForm({ id: l.id, title: l.title, url: l.url });
+                    setForm({ id: l.id, title: l.title, url: l.url, appUrl: l.app_url ?? "" });
                     setOpen(true);
                   }}
                 >
