@@ -323,6 +323,7 @@ export type Database = {
       }
       links: {
         Row: {
+          app_url: string | null
           created_at: string
           description: string | null
           id: string
@@ -333,6 +334,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          app_url?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -343,6 +345,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          app_url?: string | null
           created_at?: string
           description?: string | null
           id?: string
