@@ -218,16 +218,23 @@ function LinksPage() {
                   <LinkLogo host={host} title={l.title} />
                 </span>
 
-                <button
-                  type="button"
-                  onClick={() => openLink(l.url, l.app_url)}
+                <a
+                  href={l.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => {
+                    if (!l.app_url) return;
+                    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+                    e.preventDefault();
+                    tryOpenApp(l.url, l.app_url);
+                  }}
                   className="min-w-0 flex-1 text-left"
                 >
                   <span className="block truncate font-medium">{l.title}</span>
                   <span className="block truncate text-xs text-muted-foreground">
                     {l.app_url ? `${host} · öffnet App` : host}
                   </span>
-                </button>
+                </a>
                 <Button
                   variant="ghost"
                   size="icon"
