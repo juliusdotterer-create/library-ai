@@ -194,11 +194,17 @@ function LibraryPage() {
         .eq("user_id", uid);
       if (error) throw error;
     },
+    onMutate: ({ table, id }) => ({
+      snapshot: patchList(table, (rows) => rows.filter((r) => r.id !== id)),
+    }),
     onSuccess: () => {
       invalidate();
       toast.success("In den Papierkorb verschoben");
     },
-    onError: (e: Error) => toast.error(e.message || "Löschen fehlgeschlagen"),
+    onError: (e: Error, _v, ctx) => {
+      restore(ctx?.snapshot);
+      toast.error(e.message || "Löschen fehlgeschlagen");
+    },
   });
 
   const doRename = useMutation({
