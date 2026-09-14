@@ -262,12 +262,20 @@ function LibraryPage() {
         .eq("user_id", uid);
       if (error) throw error;
     },
+    onMutate: ({ id, value }) => ({
+      snapshot: patchList("folders", (rows) =>
+        rows.map((row) => (row.id === id ? { ...row, is_favorite: value } : row)),
+      ),
+    }),
     onSuccess: (_d, v) => {
       invalidate();
       void qc.invalidateQueries({ queryKey: ["favorite-folders", uid] });
       toast.success(v.value ? "Zu Favoriten hinzugefügt" : "Aus Favoriten entfernt");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error, _v, ctx) => {
+      restore(ctx?.snapshot);
+      toast.error(e.message);
+    },
   });
 
   const openFolder = async (id: string, name: string) => {
