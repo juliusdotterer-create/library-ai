@@ -48,18 +48,32 @@ function domainOf(url: string) {
   }
 }
 
-function openLink(url: string, appUrl: string | null | undefined) {
-  if (!appUrl) {
-    window.open(url, "_blank", "noopener,noreferrer");
-    return;
-  }
-  // App zuerst versuchen; bleibt die Seite sichtbar, nach kurzer Zeit aufs Web ausweichen.
+/** Versucht die App zu öffnen und weicht im selben Tab auf die Web-Adresse aus. */
+function tryOpenApp(url: string, appUrl: string) {
+  let done = false;
+  const cancel = () => {
+    if (done) return;
+    done = true;
+    window.clearTimeout(fallback);
+    window.removeEventListener("pagehide", cancel);
+    window.removeEventListener("blur", cancel);
+    document.removeEventListener("visibilitychange", onVisibility);
+  };
+  const onVisibility = () => {
+    if (document.visibilityState === "hidden") cancel();
+  };
   const fallback = window.setTimeout(() => {
-    window.open(url, "_blank", "noopener,noreferrer");
-  }, 1500);
-  const cancel = () => window.clearTimeout(fallback);
-  window.addEventListener("pagehide", cancel, { once: true });
-  document.addEventListener("visibilitychange", cancel, { once: true });
+    if (done) return;
+    done = true;
+    document.removeEventListener("visibilitychange", onVisibility);
+    window.removeEventListener("pagehide", cancel);
+    window.removeEventListener("blur", cancel);
+    // Gleicher Tab: wird nicht von Popup-Blockern verhindert.
+    window.location.href = url;
+  }, 1200);
+  window.addEventListener("pagehide", cancel);
+  window.addEventListener("blur", cancel);
+  document.addEventListener("visibilitychange", onVisibility);
   window.location.href = appUrl;
 }
 
@@ -204,16 +218,23 @@ function LinksPage() {
                   <LinkLogo host={host} title={l.title} />
                 </span>
 
-                <button
-                  type="button"
-                  onClick={() => openLink(l.url, l.app_url)}
+                <a
+                  href={l.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => {
+                    if (!l.app_url) return;
+                    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+                    e.preventDefault();
+                    tryOpenApp(l.url, l.app_url);
+                  }}
                   className="min-w-0 flex-1 text-left"
                 >
                   <span className="block truncate font-medium">{l.title}</span>
                   <span className="block truncate text-xs text-muted-foreground">
                     {l.app_url ? `${host} · öffnet App` : host}
                   </span>
-                </button>
+                </a>
                 <Button
                   variant="ghost"
                   size="icon"
