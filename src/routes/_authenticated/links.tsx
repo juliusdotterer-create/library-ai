@@ -132,7 +132,20 @@ function LinksPage() {
       const { error } = await supabase.from("links").delete().eq("id", id).eq("user_id", uid);
       if (error) throw error;
     },
+    onMutate: (id) => {
+      const snapshot = qc.getQueriesData({ queryKey: ["links"] });
+      qc.setQueriesData({ queryKey: ["links"] }, (old: unknown) =>
+        Array.isArray(old)
+          ? (old as { id: string }[]).filter((l) => l.id !== id)
+          : old,
+      );
+      return { snapshot };
+    },
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["links"] }),
+    onError: (e: Error, _id, ctx) => {
+      ctx?.snapshot?.forEach(([key, data]) => qc.setQueryData(key, data));
+      toast.error(e.message || "Löschen fehlgeschlagen");
+    },
   });
 
   return (
