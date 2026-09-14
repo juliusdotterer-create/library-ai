@@ -164,6 +164,22 @@ function LibraryPage() {
     name: string;
   } | null>(null);
 
+  /** Optimistisch: Listen sofort anpassen, damit die UI nicht auf den Server wartet. */
+  const patchList = (
+    table: "folders" | "documents",
+    apply: (rows: Record<string, unknown>[]) => Record<string, unknown>[],
+  ) => {
+    const snapshot = qc.getQueriesData({ queryKey: [table] });
+    qc.setQueriesData({ queryKey: [table] }, (old: unknown) =>
+      Array.isArray(old) ? apply(old as Record<string, unknown>[]) : old,
+    );
+    return snapshot;
+  };
+
+  const restore = (snapshot?: [readonly unknown[], unknown][]) => {
+    snapshot?.forEach(([key, data]) => qc.setQueryData(key, data));
+  };
+
   const softDelete = useMutation({
     mutationFn: async ({ table, id }: { table: "folders" | "documents"; id: string }) => {
       if (!uid) throw new Error("Nicht angemeldet");
