@@ -217,10 +217,21 @@ function LibraryPage() {
         .eq("user_id", uid);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onMutate: (r) => {
       setRename(null);
+      return {
+        snapshot: patchList(r.table, (rows) =>
+          rows.map((row) => (row.id === r.id ? { ...row, name: r.name } : row)),
+        ),
+      };
+    },
+    onSuccess: () => {
       invalidate();
       toast.success("Umbenannt");
+    },
+    onError: (e: Error, _v, ctx) => {
+      restore(ctx?.snapshot);
+      toast.error(e.message || "Umbenennen fehlgeschlagen");
     },
   });
 
