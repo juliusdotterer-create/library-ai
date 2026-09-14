@@ -36,11 +36,27 @@ export function TrashPanel() {
       const { error } = await supabase.from("documents").update({ deleted_at: null }).eq("id", id).eq("user_id", uid);
       if (error) throw error;
     },
+    onMutate: ({ table, id }) => {
+      const snapshot = qc.getQueriesData({ queryKey: ["trash"] });
+      qc.setQueriesData({ queryKey: ["trash"] }, (old: unknown) => {
+        if (!old || typeof old !== "object") return old;
+        const t = old as { folders?: { id: string }[]; documents?: { id: string }[] };
+        return {
+          ...t,
+          folders: (t.folders ?? []).filter((f) => table !== "folders" || f.id !== id),
+          documents: (t.documents ?? []).filter((d) => table !== "documents" || d.id !== id),
+        };
+      });
+      return { snapshot };
+    },
     onSuccess: () => {
       invalidate();
       toast.success("Wiederhergestellt");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error, _v, ctx) => {
+      ctx?.snapshot?.forEach(([key, data]) => qc.setQueryData(key, data));
+      toast.error(e.message);
+    },
   });
 
   const [progress, setProgress] = useState<PurgeProgress | null>(null);
@@ -153,7 +169,7 @@ export function TrashPanel() {
       ) : (
         <>
           {topFolders.map((f, i) => (
-            <MotionItem key={f.id} delay={i * 0.04}>
+            <MotionItem key={f.id} delay={Math.min(i * 0.015, 0.08)}>
               <Row
                 icon={<Folder className="size-5 text-primary" />}
                 name={f.name}
@@ -164,7 +180,7 @@ export function TrashPanel() {
             </MotionItem>
           ))}
           {looseDocs.map((d, i) => (
-            <MotionItem key={d.id} delay={(topFolders.length + i) * 0.04}>
+            <MotionItem key={d.id} delay={Math.min((topFolders.length + i) * 0.015, 0.08)}>
               <Row
                 icon={<FileText className="size-5 text-muted-foreground" />}
                 name={d.name}

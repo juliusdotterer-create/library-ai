@@ -132,7 +132,20 @@ function LinksPage() {
       const { error } = await supabase.from("links").delete().eq("id", id).eq("user_id", uid);
       if (error) throw error;
     },
+    onMutate: (id) => {
+      const snapshot = qc.getQueriesData({ queryKey: ["links"] });
+      qc.setQueriesData({ queryKey: ["links"] }, (old: unknown) =>
+        Array.isArray(old)
+          ? (old as { id: string }[]).filter((l) => l.id !== id)
+          : old,
+      );
+      return { snapshot };
+    },
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["links"] }),
+    onError: (e: Error, _id, ctx) => {
+      ctx?.snapshot?.forEach(([key, data]) => qc.setQueryData(key, data));
+      toast.error(e.message || "Löschen fehlgeschlagen");
+    },
   });
 
   return (
@@ -211,7 +224,7 @@ function LinksPage() {
             return (
               <MotionItem
                 key={l.id}
-                delay={i * 0.04}
+                delay={Math.min(i * 0.015, 0.08)}
                 className="glass group flex items-center gap-3 rounded-3xl p-4 transition-transform hover:-translate-y-0.5"
               >
                 <span className="bg-primary-soft flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl">

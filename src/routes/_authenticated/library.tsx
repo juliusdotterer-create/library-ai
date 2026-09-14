@@ -164,6 +164,22 @@ function LibraryPage() {
     name: string;
   } | null>(null);
 
+  /** Optimistisch: Listen sofort anpassen, damit die UI nicht auf den Server wartet. */
+  const patchList = (
+    table: "folders" | "documents",
+    apply: (rows: Record<string, unknown>[]) => Record<string, unknown>[],
+  ) => {
+    const snapshot = qc.getQueriesData({ queryKey: [table] });
+    qc.setQueriesData({ queryKey: [table] }, (old: unknown) =>
+      Array.isArray(old) ? apply(old as Record<string, unknown>[]) : old,
+    );
+    return snapshot;
+  };
+
+  const restore = (snapshot?: [readonly unknown[], unknown][]) => {
+    snapshot?.forEach(([key, data]) => qc.setQueryData(key, data));
+  };
+
   const softDelete = useMutation({
     mutationFn: async ({ table, id }: { table: "folders" | "documents"; id: string }) => {
       if (!uid) throw new Error("Nicht angemeldet");
@@ -178,11 +194,17 @@ function LibraryPage() {
         .eq("user_id", uid);
       if (error) throw error;
     },
+    onMutate: ({ table, id }) => ({
+      snapshot: patchList(table, (rows) => rows.filter((r) => r.id !== id)),
+    }),
     onSuccess: () => {
       invalidate();
       toast.success("In den Papierkorb verschoben");
     },
-    onError: (e: Error) => toast.error(e.message || "Löschen fehlgeschlagen"),
+    onError: (e: Error, _v, ctx) => {
+      restore(ctx?.snapshot);
+      toast.error(e.message || "Löschen fehlgeschlagen");
+    },
   });
 
   const doRename = useMutation({
@@ -195,10 +217,21 @@ function LibraryPage() {
         .eq("user_id", uid);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onMutate: (r) => {
       setRename(null);
+      return {
+        snapshot: patchList(r.table, (rows) =>
+          rows.map((row) => (row.id === r.id ? { ...row, name: r.name } : row)),
+        ),
+      };
+    },
+    onSuccess: () => {
       invalidate();
       toast.success("Umbenannt");
+    },
+    onError: (e: Error, _v, ctx) => {
+      restore(ctx?.snapshot);
+      toast.error(e.message || "Umbenennen fehlgeschlagen");
     },
   });
 
@@ -229,12 +262,20 @@ function LibraryPage() {
         .eq("user_id", uid);
       if (error) throw error;
     },
+    onMutate: ({ id, value }) => ({
+      snapshot: patchList("folders", (rows) =>
+        rows.map((row) => (row.id === id ? { ...row, is_favorite: value } : row)),
+      ),
+    }),
     onSuccess: (_d, v) => {
       invalidate();
       void qc.invalidateQueries({ queryKey: ["favorite-folders", uid] });
       toast.success(v.value ? "Zu Favoriten hinzugefügt" : "Aus Favoriten entfernt");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error, _v, ctx) => {
+      restore(ctx?.snapshot);
+      toast.error(e.message);
+    },
   });
 
   const openFolder = async (id: string, name: string) => {
