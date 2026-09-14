@@ -199,3 +199,62 @@
 @utility bg-primary-soft {
   background-color: var(--primary-soft);
 }
+
+/* --- Schnellere Interaktion: sofortiges Tap-Feedback, kein 300ms-Verzug --- */
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button,
+  a,
+  [role="button"],
+  [role="tab"],
+  [role="menuitem"],
+  [role="option"],
+  label,
+  summary,
+  input[type="button"],
+  input[type="submit"],
+  input[type="checkbox"],
+  input[type="radio"],
+  select {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button,
+  [role="button"],
+  [role="tab"],
+  [role="menuitem"],
+  summary {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* Sofortige, sehr kurze Rückmeldung beim Drücken. */
+  button:not(:disabled):active,
+  a[role="button"]:active,
+  [role="button"]:not([aria-disabled="true"]):active,
+  [role="tab"]:active,
+  [role="menuitem"]:active {
+    transform: scale(0.975);
+  }
+
+  button,
+  [role="button"],
+  [role="tab"],
+  [role="menuitem"] {
+    transition-duration: 75ms;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    button:active,
+    a[role="button"]:active,
+    [role="button"]:active,
+    [role="tab"]:active,
+    [role="menuitem"]:active {
+      transform: none;
+    }
+  }
+}

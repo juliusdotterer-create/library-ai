@@ -259,7 +259,7 @@ function LehrplanPage() {
             <PlanSkeleton />
           ) : plans.data?.length ? (
             plans.data.map((p, i) => (
-              <MotionItem key={p.id} delay={i * 0.04} hover={false}>
+              <MotionItem key={p.id} delay={Math.min(i * 0.015, 0.08)} hover={false}>
                 <button
                   onClick={() => setActiveId(p.id)}
                   className={cn(

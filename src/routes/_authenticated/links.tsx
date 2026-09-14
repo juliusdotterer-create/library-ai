@@ -211,7 +211,7 @@ function LinksPage() {
             return (
               <MotionItem
                 key={l.id}
-                delay={i * 0.04}
+                delay={Math.min(i * 0.015, 0.08)}
                 className="glass group flex items-center gap-3 rounded-3xl p-4 transition-transform hover:-translate-y-0.5"
               >
                 <span className="bg-primary-soft flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl">

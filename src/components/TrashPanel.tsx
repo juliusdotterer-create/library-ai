@@ -153,7 +153,7 @@ export function TrashPanel() {
       ) : (
         <>
           {topFolders.map((f, i) => (
-            <MotionItem key={f.id} delay={i * 0.04}>
+            <MotionItem key={f.id} delay={Math.min(i * 0.015, 0.08)}>
               <Row
                 icon={<Folder className="size-5 text-primary" />}
                 name={f.name}
@@ -164,7 +164,7 @@ export function TrashPanel() {
             </MotionItem>
           ))}
           {looseDocs.map((d, i) => (
-            <MotionItem key={d.id} delay={(topFolders.length + i) * 0.04}>
+            <MotionItem key={d.id} delay={Math.min((topFolders.length + i) * 0.015, 0.08)}>
               <Row
                 icon={<FileText className="size-5 text-muted-foreground" />}
                 name={d.name}

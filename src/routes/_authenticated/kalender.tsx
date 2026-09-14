@@ -374,7 +374,7 @@ function KalenderPage() {
             dayEvents(selected).map((e, i) => (
               <MotionItem
                 key={e.id}
-                delay={i * 0.04}
+                delay={Math.min(i * 0.015, 0.08)}
                 className="group glass-soft relative flex items-start gap-3 overflow-hidden rounded-2xl p-3 transition-colors hover:bg-card/70"
               >
                 <span className="absolute inset-y-2 left-0 w-1 rounded-full bg-primary" />
