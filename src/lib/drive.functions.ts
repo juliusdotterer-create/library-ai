@@ -356,7 +356,7 @@ export const syncDriveItems = createServerFn({ method: "POST" })
     // Alle verknüpften Drive-Dokumente (ohne Papierkorb)
     const { data: docs } = await supabase
       .from("documents")
-      .select("id, name, external_id, external_mime, external_modified, folder_id")
+      .select("id, name, external_id, external_mime, external_modified, folder_id, drive_state")
       .eq("user_id", userId)
       .eq("source", "gdrive")
       .is("deleted_at", null)
