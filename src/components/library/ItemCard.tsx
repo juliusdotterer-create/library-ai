@@ -93,13 +93,21 @@ export function FolderCard({
   onToggleFavorite,
   onRename,
   onDelete,
+  onDriveSync,
 }: {
-  folder: { id: string; name: string; is_favorite?: boolean | null; created_at?: string | null };
+  folder: {
+    id: string;
+    name: string;
+    is_favorite?: boolean | null;
+    created_at?: string | null;
+    source?: string | null;
+  };
   view: ViewMode;
   onOpen: () => void;
   onToggleFavorite: () => void;
   onRename: () => void;
   onDelete: () => void;
+  onDriveSync?: () => void;
 }) {
   return (
     <MotionItem className={shell(view)}>
