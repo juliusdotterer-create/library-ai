@@ -73,7 +73,7 @@ export function DrivePanel() {
     }
     setBusy(true);
     try {
-      const { authorizationUrl } = await startFn();
+      const { authorizationUrl } = await startFn({ data: undefined });
       const completion = waitForOAuthCompletion(popup);
       popup.location.href = authorizationUrl;
       const code = await completion;
