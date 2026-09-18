@@ -585,6 +585,7 @@ function LibraryPage() {
                 onToggleFavorite={() => toggleFavorite.mutate({ id: f.id, value: !f.is_favorite })}
                 onRename={() => setRename({ table: "folders", id: f.id, name: f.name })}
                 onDelete={() => setConfirmDel({ table: "folders", id: f.id, name: f.name })}
+                onDriveSync={() => driveSync.mutate({ folderIds: [f.id] })}
               />
             ))}
 
@@ -596,6 +597,7 @@ function LibraryPage() {
                 onOpen={() => open(d)}
                 onRename={() => setRename({ table: "documents", id: d.id, name: d.name })}
                 onDelete={() => setConfirmDel({ table: "documents", id: d.id, name: d.name })}
+                onDriveSync={() => driveSync.mutate({ documentIds: [d.id] })}
               />
             ))}
 
