@@ -150,12 +150,12 @@ export const listUnindexedDocuments = createServerFn({ method: "POST" })
       if ((rows ?? []).length < page) break;
     }
 
-    const pending: { id: string; name: string; storage_path: string }[] = [];
+    const pending: { id: string; name: string; storage_path: string; source: string }[] = [];
     let total = 0;
     for (let from = 0; ; from += page) {
       const { data: rows, error } = await context.supabase
         .from("documents")
-        .select("id,name,storage_path,mime_type")
+        .select("id,name,storage_path,mime_type,source")
         .eq("user_id", context.userId)
         .is("deleted_at", null)
         .order("created_at", { ascending: false })
@@ -163,13 +163,14 @@ export const listUnindexedDocuments = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
       for (const r of rows ?? []) {
         const isPdf = r.mime_type === "application/pdf" || r.name.toLowerCase().endsWith(".pdf");
-        if (!isPdf || !r.storage_path) continue;
+        // Lokale Dateien brauchen einen Speicherpfad; Drive-Dateien laden wir per ID.
+        if (!isPdf || (!r.storage_path && r.source !== "gdrive")) continue;
         const isRetry = retry.has(r.id);
         if (data.onlyFailed && !isRetry) continue;
         if (!data.onlyFailed && indexed.has(r.id)) continue;
         total += 1;
         if (pending.length < data.limit) {
-          pending.push({ id: r.id, name: r.name, storage_path: r.storage_path });
+          pending.push({ id: r.id, name: r.name, storage_path: r.storage_path, source: r.source });
         }
       }
       if ((rows ?? []).length < page) break;
@@ -211,7 +212,7 @@ export const listOcrCandidates = createServerFn({ method: "POST" })
 
     const { data: docs, error } = await context.supabase
       .from("documents")
-      .select("id,name,storage_path")
+      .select("id,name,storage_path,source")
       .eq("user_id", context.userId)
       .is("deleted_at", null)
       .in("id", slice);
@@ -219,8 +220,8 @@ export const listOcrCandidates = createServerFn({ method: "POST" })
 
     return {
       pending: (docs ?? [])
-        .filter((d) => Boolean(d.storage_path))
-        .map((d) => ({ id: d.id, name: d.name, storage_path: d.storage_path })),
+        .filter((d) => Boolean(d.storage_path) || d.source === "gdrive")
+        .map((d) => ({ id: d.id, name: d.name, storage_path: d.storage_path, source: d.source })),
       total,
     };
   });

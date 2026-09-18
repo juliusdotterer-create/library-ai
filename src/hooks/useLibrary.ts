@@ -90,7 +90,7 @@ export function useDocuments(folderId: string | null) {
     queryFn: async () => {
       let q = supabase
         .from("documents")
-        .select("id,name,storage_path,mime_type,folder_id,kind,deleted_at,created_at")
+        .select("id,name,storage_path,mime_type,folder_id,kind,deleted_at,created_at,source,drive_state")
         .eq("user_id", user!.id)
         .is("deleted_at", null)
         .not("name", "ilike", "desktop.ini")

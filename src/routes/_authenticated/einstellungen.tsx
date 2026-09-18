@@ -8,6 +8,7 @@ import { TrashPanel } from "@/components/TrashPanel";
 import { TransferPanel } from "@/components/TransferPanel";
 import { WhitelistPanel } from "@/components/WhitelistPanel";
 import { ProfilePanel } from "@/components/ProfilePanel";
+import { DrivePanel } from "@/components/DrivePanel";
 import { TextIndexPanel } from "@/components/TextIndexPanel";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -71,6 +72,19 @@ function SettingsPage() {
         </div>
         <ProfilePanel />
       </section>
+
+      <section className="glass space-y-3 rounded-3xl p-5">
+        <div>
+          <h2 className="font-semibold">Google Drive</h2>
+          <p className="text-sm text-muted-foreground">
+            Verknüpfe Dateien aus deinem Google Drive mit der Library. Sie bleiben in Drive liegen
+            und werden hier nur geöffnet und durchsucht.
+          </p>
+        </div>
+        <DrivePanel />
+      </section>
+
+
 
 
       <section className="glass space-y-3 rounded-3xl p-5">
