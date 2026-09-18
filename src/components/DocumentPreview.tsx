@@ -83,19 +83,21 @@ export function DocumentPreview({
     let objectUrl: string | null = null;
     void (async () => {
       if (doc.source === "gdrive" && doc.id) {
-        const res = await getDriveFileContent({ data: { documentId: doc.id } });
-        if (cancelled) return;
-        if (!res.ok) {
+        try {
+          const res = await getDriveFileContent({ data: { documentId: doc.id } });
+          if (cancelled) return;
+          objectUrl = URL.createObjectURL(base64ToBlob(res.base64, res.mimeType));
+          setUrl(objectUrl);
+        } catch (e) {
+          if (cancelled) return;
           toast.error(
-            res.reason === "missing"
+            (e as Error).message === "DRIVE_FILE_MISSING"
               ? "Diese Datei wurde in Google Drive nicht gefunden."
               : "Datei konnte nicht aus Google Drive geladen werden",
           );
           onClose();
           return;
         }
-        objectUrl = URL.createObjectURL(base64ToBlob(res.dataBase64, res.mimeType));
-        setUrl(objectUrl);
         // Beim Öffnen gesehen-Status setzen („In Drive aktualisiert" verschwindet).
         void markDriveDocSeen({ data: { documentId: doc.id } }).catch(() => undefined);
         return;
