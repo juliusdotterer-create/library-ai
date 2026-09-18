@@ -422,8 +422,6 @@ export const syncDriveItems = createServerFn({ method: "POST" })
             .update({ status: "pending", content: "", pages: [], page_count: 0, attempts: 0 })
             .eq("document_id", doc.id);
           changed++;
-        } else if (doc.drive_state !== "ok") {
-          // „new" bleibt bis zum Öffnen; nur missing→ok zurücksetzen, wenn wieder da
         }
       } catch {
         failed++;
@@ -505,11 +503,8 @@ export const getDriveFileContent = createServerFn({ method: "GET" })
     if (!res.ok) throw new Error(`Datei konnte nicht geladen werden (${res.status})`);
     const buf = await res.arrayBuffer();
 
-    // Als gelesen/aktuell markieren
-    await supabase
-      .from("documents")
-      .update({ drive_state: "ok", external_modified: new Date().toISOString() })
-      .eq("id", doc.id);
+    // Als gelesen markieren (Badge verschwindet)
+    await supabase.from("documents").update({ drive_state: "ok" }).eq("id", doc.id);
 
     // Bytes als base64 zurückgeben (RPC kann keine Streams)
     const bytes = new Uint8Array(buf);
