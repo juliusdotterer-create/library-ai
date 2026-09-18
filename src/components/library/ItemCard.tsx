@@ -131,7 +131,12 @@ export function FolderCard({
       >
         <Star className={cn("size-4", folder.is_favorite && "fill-primary text-primary")} />
       </Button>
-      <RowMenu onRename={onRename} onDelete={onDelete} />
+      <RowMenu
+        onRename={onRename}
+        onDelete={onDelete}
+        onDriveSync={folder.source === "gdrive" ? onDriveSync : undefined}
+        driveSyncLabel="Ordner aus Drive aktualisieren"
+      />
     </MotionItem>
   );
 }
@@ -192,7 +197,12 @@ export function DocumentCard({
           {dateLabel(doc.created_at)}
         </span>
       )}
-      <RowMenu onOpen={onOpen} onRename={onRename} onDelete={onDelete} />
+      <RowMenu
+        onOpen={onOpen}
+        onRename={onRename}
+        onDelete={onDelete}
+        onDriveSync={doc.source === "gdrive" ? onDriveSync : undefined}
+      />
     </MotionItem>
   );
 }
