@@ -57,7 +57,7 @@ export function DrivePanel() {
   const completeFn = useServerFn(completeDriveConnection);
 
   const disconnect = useMutation({
-    mutationFn: useServerFn(disconnectDrive),
+    mutationFn: () => disconnectDrive({ data: undefined }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["drive-status"] });
       toast.success("Google Drive getrennt");
