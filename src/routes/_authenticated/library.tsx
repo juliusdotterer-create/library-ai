@@ -181,6 +181,7 @@ function LibraryPage() {
       invalidate();
       const parts: string[] = [];
       if (res.added) parts.push(`${res.added} neu`);
+      if (res.addedFolders) parts.push(`${res.addedFolders} Ordner neu`);
       if (res.changed) parts.push(`${res.changed} aktualisiert`);
       if (res.missing) parts.push(`${res.missing} nicht mehr gefunden`);
       if (!parts.length && !res.failed) {
