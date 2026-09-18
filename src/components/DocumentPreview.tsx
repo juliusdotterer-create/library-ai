@@ -90,11 +90,8 @@ export function DocumentPreview({
           setUrl(objectUrl);
         } catch (e) {
           if (cancelled) return;
-          toast.error(
-            (e as Error).message === "DRIVE_FILE_MISSING"
-              ? "Diese Datei wurde in Google Drive nicht gefunden."
-              : "Datei konnte nicht aus Google Drive geladen werden",
-          );
+          const msg = (e as Error).message ?? "";
+          toast.error(msg.includes("nicht gefunden") ? msg : "Datei konnte nicht aus Google Drive geladen werden");
           onClose();
           return;
         }
