@@ -348,6 +348,71 @@ export const importDriveItems = createServerFn({ method: "POST" })
 
 const SYNC_BATCH = 100;
 
+/**
+ * Legt einen Drive-Unterordner lokal an (falls noch nicht vorhanden) und
+ * importiert rekursiv seinen Inhalt. Gibt die Anzahl neu angelegter Ordner zurück.
+ */
+async function ensureDriveFolder(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  driveFolderId: string,
+  driveName: string,
+  localParentId: string,
+): Promise<number> {
+  const { data: existing } = await supabase
+    .from("folders")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("external_id", driveFolderId)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (existing) return 0;
+
+  const { data: row, error } = await supabase
+    .from("folders")
+    .insert({
+      user_id: userId,
+      parent_id: localParentId,
+      name: driveName,
+      source: "gdrive",
+      external_id: driveFolderId,
+    })
+    .select("id")
+    .single();
+  if (error && error.code !== "23505") throw error;
+  if (error || !row) return 0; // durch parallelen Lauf bereits angelegt
+
+  let created = 1;
+  const children = await listAllChildren(userId, driveFolderId);
+  for (const child of children) {
+    if (child.isFolder) {
+      created += await ensureDriveFolder(supabase, userId, child.id, child.name, row.id);
+      continue;
+    }
+    const exportInfo = GOOGLE_EXPORTS[child.mimeType];
+    const name =
+      exportInfo && !child.name.toLowerCase().endsWith(exportInfo.ext)
+        ? child.name + exportInfo.ext
+        : child.name;
+    const { error: docErr } = await supabase.from("documents").insert({
+      user_id: userId,
+      folder_id: row.id,
+      name,
+      storage_path: "",
+      mime_type: exportInfo?.mime ?? child.mimeType,
+      size_bytes: child.size,
+      source: "gdrive",
+      external_id: child.id,
+      external_mime: child.mimeType,
+      external_modified: child.modifiedTime,
+      drive_state: "new",
+    });
+    // Doppel-Import (Unique-Index) ist kein Fehler.
+    if (docErr && docErr.code !== "23505") throw docErr;
+  }
+  return created;
+}
+
 export type SyncScope = {
   documentIds?: string[];
   folderIds?: string[];
