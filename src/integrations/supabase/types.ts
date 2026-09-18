@@ -41,6 +41,36 @@ export type Database = {
         }
         Relationships: []
       }
+      app_user_connections: {
+        Row: {
+          connection_key_ciphertext: string
+          connector_id: string
+          created_at: string
+          id: string
+          reconnect_required: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          connection_key_ciphertext: string
+          connector_id: string
+          created_at?: string
+          id?: string
+          reconnect_required?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          connection_key_ciphertext?: string
+          connector_id?: string
+          created_at?: string
+          id?: string
+          reconnect_required?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       document_annotations: {
         Row: {
           created_at: string
@@ -171,6 +201,10 @@ export type Database = {
         Row: {
           created_at: string
           deleted_at: string | null
+          drive_state: string
+          external_id: string | null
+          external_mime: string | null
+          external_modified: string | null
           folder_id: string | null
           id: string
           kind: string
@@ -178,6 +212,7 @@ export type Database = {
           name: string
           notebook_id: string | null
           size_bytes: number | null
+          source: string
           storage_path: string
           updated_at: string
           user_id: string
@@ -185,6 +220,10 @@ export type Database = {
         Insert: {
           created_at?: string
           deleted_at?: string | null
+          drive_state?: string
+          external_id?: string | null
+          external_mime?: string | null
+          external_modified?: string | null
           folder_id?: string | null
           id?: string
           kind?: string
@@ -192,6 +231,7 @@ export type Database = {
           name: string
           notebook_id?: string | null
           size_bytes?: number | null
+          source?: string
           storage_path?: string
           updated_at?: string
           user_id: string
@@ -199,6 +239,10 @@ export type Database = {
         Update: {
           created_at?: string
           deleted_at?: string | null
+          drive_state?: string
+          external_id?: string | null
+          external_mime?: string | null
+          external_modified?: string | null
           folder_id?: string | null
           id?: string
           kind?: string
@@ -206,6 +250,7 @@ export type Database = {
           name?: string
           notebook_id?: string | null
           size_bytes?: number | null
+          source?: string
           storage_path?: string
           updated_at?: string
           user_id?: string
@@ -282,10 +327,12 @@ export type Database = {
           color: string | null
           created_at: string
           deleted_at: string | null
+          external_id: string | null
           id: string
           is_favorite: boolean
           name: string
           parent_id: string | null
+          source: string
           updated_at: string
           user_id: string
         }
@@ -293,10 +340,12 @@ export type Database = {
           color?: string | null
           created_at?: string
           deleted_at?: string | null
+          external_id?: string | null
           id?: string
           is_favorite?: boolean
           name: string
           parent_id?: string | null
+          source?: string
           updated_at?: string
           user_id: string
         }
@@ -304,10 +353,12 @@ export type Database = {
           color?: string | null
           created_at?: string
           deleted_at?: string | null
+          external_id?: string | null
           id?: string
           is_favorite?: boolean
           name?: string
           parent_id?: string | null
+          source?: string
           updated_at?: string
           user_id?: string
         }
