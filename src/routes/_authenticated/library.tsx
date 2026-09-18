@@ -175,7 +175,8 @@ function LibraryPage() {
   });
 
   const driveSync = useMutation({
-    mutationFn: () => syncDriveItems({ data: undefined }),
+    mutationFn: (scope?: { documentIds?: string[]; folderIds?: string[] }) =>
+      syncDriveItems({ data: scope ?? {} }),
     onSuccess: (res) => {
       invalidate();
       const parts: string[] = [];
@@ -443,17 +444,32 @@ function LibraryPage() {
             {view === "grid" ? <List className="size-4" /> : <LayoutGrid className="size-4" />}
           </Button>
           {driveConnected && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-2xl text-muted-foreground"
-              title="Google Drive abgleichen"
-              aria-label="Google Drive abgleichen"
-              disabled={driveSync.isPending}
-              onClick={() => driveSync.mutate()}
-            >
-              <RefreshCw className={cn("size-4", driveSync.isPending && "animate-spin")} />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-2xl text-muted-foreground"
+                  title="Google Drive abgleichen"
+                  aria-label="Google Drive abgleichen"
+                  disabled={driveSync.isPending}
+                >
+                  <RefreshCw className={cn("size-4", driveSync.isPending && "animate-spin")} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="glass rounded-2xl">
+                {current.id && (
+                  <DropdownMenuItem
+                    onClick={() => driveSync.mutate({ folderIds: [current.id!] })}
+                  >
+                    Diesen Ordner abgleichen
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onClick={() => driveSync.mutate(undefined)}>
+                  Alles abgleichen
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
 
           <Input
@@ -569,6 +585,7 @@ function LibraryPage() {
                 onToggleFavorite={() => toggleFavorite.mutate({ id: f.id, value: !f.is_favorite })}
                 onRename={() => setRename({ table: "folders", id: f.id, name: f.name })}
                 onDelete={() => setConfirmDel({ table: "folders", id: f.id, name: f.name })}
+                onDriveSync={() => driveSync.mutate({ folderIds: [f.id] })}
               />
             ))}
 
@@ -580,6 +597,7 @@ function LibraryPage() {
                 onOpen={() => open(d)}
                 onRename={() => setRename({ table: "documents", id: d.id, name: d.name })}
                 onDelete={() => setConfirmDel({ table: "documents", id: d.id, name: d.name })}
+                onDriveSync={() => driveSync.mutate({ documentIds: [d.id] })}
               />
             ))}
 

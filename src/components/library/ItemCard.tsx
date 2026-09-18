@@ -1,4 +1,15 @@
-import { Download, FileText, Folder, HardDrive, MoreVertical, NotebookPen, Pencil, Star, Trash2 } from "lucide-react";
+import {
+  Download,
+  FileText,
+  Folder,
+  HardDrive,
+  MoreVertical,
+  NotebookPen,
+  Pencil,
+  RefreshCw,
+  Star,
+  Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -22,10 +33,14 @@ export function RowMenu({
   onOpen,
   onRename,
   onDelete,
+  onDriveSync,
+  driveSyncLabel,
 }: {
   onOpen?: () => void;
   onRename: () => void;
   onDelete: () => void;
+  onDriveSync?: () => void;
+  driveSyncLabel?: string;
 }) {
   return (
     <DropdownMenu>
@@ -38,6 +53,11 @@ export function RowMenu({
         {onOpen && (
           <DropdownMenuItem onClick={onOpen}>
             <Download className="size-4" /> Öffnen
+          </DropdownMenuItem>
+        )}
+        {onDriveSync && (
+          <DropdownMenuItem onClick={onDriveSync}>
+            <RefreshCw className="size-4" /> {driveSyncLabel ?? "Aus Drive aktualisieren"}
           </DropdownMenuItem>
         )}
         <DropdownMenuItem onClick={onRename}>
@@ -73,13 +93,21 @@ export function FolderCard({
   onToggleFavorite,
   onRename,
   onDelete,
+  onDriveSync,
 }: {
-  folder: { id: string; name: string; is_favorite?: boolean | null; created_at?: string | null };
+  folder: {
+    id: string;
+    name: string;
+    is_favorite?: boolean | null;
+    created_at?: string | null;
+    source?: string | null;
+  };
   view: ViewMode;
   onOpen: () => void;
   onToggleFavorite: () => void;
   onRename: () => void;
   onDelete: () => void;
+  onDriveSync?: () => void;
 }) {
   return (
     <MotionItem className={shell(view)}>
@@ -103,7 +131,12 @@ export function FolderCard({
       >
         <Star className={cn("size-4", folder.is_favorite && "fill-primary text-primary")} />
       </Button>
-      <RowMenu onRename={onRename} onDelete={onDelete} />
+      <RowMenu
+        onRename={onRename}
+        onDelete={onDelete}
+        onDriveSync={folder.source === "gdrive" ? onDriveSync : undefined}
+        driveSyncLabel="Ordner aus Drive aktualisieren"
+      />
     </MotionItem>
   );
 }
@@ -114,6 +147,7 @@ export function DocumentCard({
   onOpen,
   onRename,
   onDelete,
+  onDriveSync,
 }: {
   doc: {
     id: string;
@@ -127,6 +161,7 @@ export function DocumentCard({
   onOpen: () => void;
   onRename: () => void;
   onDelete: () => void;
+  onDriveSync?: () => void;
 }) {
   const driveBadge =
     doc.source === "gdrive" ? (
@@ -164,7 +199,12 @@ export function DocumentCard({
           {dateLabel(doc.created_at)}
         </span>
       )}
-      <RowMenu onOpen={onOpen} onRename={onRename} onDelete={onDelete} />
+      <RowMenu
+        onOpen={onOpen}
+        onRename={onRename}
+        onDelete={onDelete}
+        onDriveSync={doc.source === "gdrive" ? onDriveSync : undefined}
+      />
     </MotionItem>
   );
 }
