@@ -9,6 +9,7 @@ import {
   Folder,
   FolderPlus,
   FolderUp,
+  HardDrive,
   LayoutGrid,
   List,
   NotebookPen,
@@ -441,6 +442,19 @@ function LibraryPage() {
           >
             {view === "grid" ? <List className="size-4" /> : <LayoutGrid className="size-4" />}
           </Button>
+          {driveConnected && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-2xl text-muted-foreground"
+              title="Google Drive abgleichen"
+              aria-label="Google Drive abgleichen"
+              disabled={driveSync.isPending}
+              onClick={() => driveSync.mutate()}
+            >
+              <RefreshCw className={cn("size-4", driveSync.isPending && "animate-spin")} />
+            </Button>
+          )}
 
           <Input
             ref={newFolderRef}
@@ -617,8 +631,8 @@ function LibraryPage() {
         title={confirmDel?.table === "folders" ? "Ordner löschen" : "Datei löschen"}
         description={
           confirmDel?.table === "folders"
-            ? `„${confirmDel?.name}“ wird mit allen Unterordnern und Dateien in den Papierkorb verschoben.`
-            : `„${confirmDel?.name}“ wird in den Papierkorb verschoben.`
+            ? `„${confirmDel?.name}“ wird mit allen Unterordnern und Dateien in den Papierkorb verschoben. In Google Drive bleibt alles unverändert.`
+            : `„${confirmDel?.name}“ wird in den Papierkorb verschoben. Bei Google-Drive-Dateien bleibt die Datei in Drive erhalten.`
         }
         confirmLabel="In den Papierkorb"
         onConfirm={async () => {
@@ -629,6 +643,12 @@ function LibraryPage() {
       />
 
       <DocumentPreview doc={preview} onClose={() => setPreview(null)} />
+      <DrivePicker
+        open={drivePickerOpen}
+        onOpenChange={setDrivePickerOpen}
+        importing={driveImport.isPending}
+        onImport={(items) => driveImport.mutate(items)}
+      />
       <FreeNotesOverlay
         key={current.id ?? "root"}
         open={freeNotes}
