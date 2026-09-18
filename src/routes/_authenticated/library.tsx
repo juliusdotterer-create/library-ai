@@ -175,7 +175,8 @@ function LibraryPage() {
   });
 
   const driveSync = useMutation({
-    mutationFn: () => syncDriveItems({ data: undefined }),
+    mutationFn: (scope?: { documentIds?: string[]; folderIds?: string[] }) =>
+      syncDriveItems({ data: scope ?? {} }),
     onSuccess: (res) => {
       invalidate();
       const parts: string[] = [];
