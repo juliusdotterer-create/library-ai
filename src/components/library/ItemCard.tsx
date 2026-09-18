@@ -115,24 +115,48 @@ export function DocumentCard({
   onRename,
   onDelete,
 }: {
-  doc: { id: string; name: string; kind?: string | null; created_at?: string | null };
+  doc: {
+    id: string;
+    name: string;
+    kind?: string | null;
+    created_at?: string | null;
+    source?: string;
+    drive_state?: string | null;
+  };
   view: ViewMode;
   onOpen: () => void;
   onRename: () => void;
   onDelete: () => void;
 }) {
+  const driveBadge =
+    doc.source === "gdrive" ? (
+      doc.drive_state === "missing" ? (
+        <span className="ml-2 inline-flex shrink-0 items-center rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
+          In Drive nicht gefunden
+        </span>
+      ) : doc.drive_state === "changed" ? (
+        <span className="ml-2 inline-flex shrink-0 items-center rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+          In Drive aktualisiert
+        </span>
+      ) : null
+    ) : null;
   return (
     <MotionItem className={shell(view)}>
       <button className="flex min-w-0 flex-1 items-center gap-3 text-left" onClick={onOpen}>
         <span className={iconBox(view, "muted")}>
           {doc.kind === "note" ? (
             <NotebookPen className={cn("text-primary", iconSize(view))} />
+          ) : doc.source === "gdrive" ? (
+            <HardDrive className={cn("text-primary", iconSize(view))} />
           ) : (
             <FileText className={cn("text-muted-foreground", iconSize(view))} />
           )}
         </span>
         <span className="min-w-0">
-          <span className="block truncate font-medium">{doc.name}</span>
+          <span className="block truncate font-medium">
+            {doc.name}
+            {driveBadge}
+          </span>
         </span>
       </button>
       {view === "list" && (
