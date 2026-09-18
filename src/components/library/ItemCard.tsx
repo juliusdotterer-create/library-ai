@@ -147,6 +147,7 @@ export function DocumentCard({
   onOpen,
   onRename,
   onDelete,
+  onDriveSync,
 }: {
   doc: {
     id: string;
@@ -160,6 +161,7 @@ export function DocumentCard({
   onOpen: () => void;
   onRename: () => void;
   onDelete: () => void;
+  onDriveSync?: () => void;
 }) {
   const driveBadge =
     doc.source === "gdrive" ? (
