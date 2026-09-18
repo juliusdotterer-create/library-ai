@@ -348,30 +348,81 @@ export const importDriveItems = createServerFn({ method: "POST" })
 
 const SYNC_BATCH = 100;
 
+export type SyncScope = {
+  documentIds?: string[];
+  folderIds?: string[];
+  /** Bei Ordnern auch alle Unterordner einbeziehen (Standard: true). */
+  recursive?: boolean;
+};
+
 export const syncDriveItems = createServerFn({ method: "POST" })
   .middleware([requireWhitelisted])
-  .handler(async ({ context }) => {
+  .inputValidator((input: SyncScope | undefined) => input ?? {})
+  .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const scoped = Boolean(data?.documentIds?.length || data?.folderIds?.length);
 
-    // Alle verknüpften Drive-Dokumente (ohne Papierkorb)
-    const { data: docs } = await supabase
+    // Bei Ordner-Auswahl: Unterordner rekursiv auflösen
+    let folderScope: string[] | null = null;
+    if (data?.folderIds?.length) {
+      folderScope = [...data.folderIds];
+      if (data.recursive !== false) {
+        const { data: all } = await supabase
+          .from("folders")
+          .select("id, parent_id")
+          .eq("user_id", userId)
+          .is("deleted_at", null);
+        const byParent = new Map<string, string[]>();
+        for (const f of all ?? []) {
+          const key = f.parent_id ?? "root";
+          byParent.set(key, [...(byParent.get(key) ?? []), f.id]);
+        }
+        const queue = [...folderScope];
+        const seen = new Set(folderScope);
+        while (queue.length) {
+          const id = queue.shift()!;
+          for (const child of byParent.get(id) ?? []) {
+            if (seen.has(child)) continue;
+            seen.add(child);
+            queue.push(child);
+          }
+        }
+        folderScope = [...seen];
+      }
+    }
+
+    // Verknüpfte Drive-Dokumente (ohne Papierkorb)
+    let docQuery = supabase
       .from("documents")
       .select("id, name, external_id, external_mime, external_modified, folder_id, drive_state")
       .eq("user_id", userId)
       .eq("source", "gdrive")
       .is("deleted_at", null)
-      .not("external_id", "is", null)
-      .limit(SYNC_BATCH);
+      .not("external_id", "is", null);
+    if (data?.documentIds?.length) {
+      docQuery = docQuery.in("id", data.documentIds);
+    } else if (folderScope) {
+      docQuery = docQuery.in("folder_id", folderScope);
+    } else if (scoped) {
+      docQuery = docQuery.in("id", []);
+    }
+    const { data: docs } = await docQuery.limit(SYNC_BATCH);
 
     // Verknüpfte Drive-Ordner mit lokalem Gegenstück
-    const { data: folders } = await supabase
+    let folderQuery = supabase
       .from("folders")
       .select("id, external_id")
       .eq("user_id", userId)
       .eq("source", "gdrive")
       .is("deleted_at", null)
-      .not("external_id", "is", null)
-      .limit(SYNC_BATCH);
+      .not("external_id", "is", null);
+    if (folderScope) {
+      folderQuery = folderQuery.in("id", folderScope);
+    } else if (scoped) {
+      folderQuery = folderQuery.in("id", []);
+    }
+    const { data: folders } = await folderQuery.limit(SYNC_BATCH);
+
 
     let added = 0;
     let changed = 0;
