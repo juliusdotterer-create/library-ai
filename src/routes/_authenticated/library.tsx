@@ -483,6 +483,11 @@ function LibraryPage() {
               <DropdownMenuItem onClick={() => folderInput.current?.click()}>
                 <FolderUp className="size-4" /> Ordner
               </DropdownMenuItem>
+              {driveConnected && (
+                <DropdownMenuItem onClick={() => setDrivePickerOpen(true)}>
+                  <HardDrive className="size-4" /> Aus Google Drive
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
 
