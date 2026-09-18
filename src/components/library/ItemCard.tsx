@@ -1,4 +1,15 @@
-import { Download, FileText, Folder, HardDrive, MoreVertical, NotebookPen, Pencil, Star, Trash2 } from "lucide-react";
+import {
+  Download,
+  FileText,
+  Folder,
+  HardDrive,
+  MoreVertical,
+  NotebookPen,
+  Pencil,
+  RefreshCw,
+  Star,
+  Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -22,10 +33,14 @@ export function RowMenu({
   onOpen,
   onRename,
   onDelete,
+  onDriveSync,
+  driveSyncLabel,
 }: {
   onOpen?: () => void;
   onRename: () => void;
   onDelete: () => void;
+  onDriveSync?: () => void;
+  driveSyncLabel?: string;
 }) {
   return (
     <DropdownMenu>
@@ -38,6 +53,11 @@ export function RowMenu({
         {onOpen && (
           <DropdownMenuItem onClick={onOpen}>
             <Download className="size-4" /> Öffnen
+          </DropdownMenuItem>
+        )}
+        {onDriveSync && (
+          <DropdownMenuItem onClick={onDriveSync}>
+            <RefreshCw className="size-4" /> {driveSyncLabel ?? "Aus Drive aktualisieren"}
           </DropdownMenuItem>
         )}
         <DropdownMenuItem onClick={onRename}>
