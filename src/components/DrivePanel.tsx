@@ -111,7 +111,7 @@ export function DrivePanel() {
             size="sm"
             className="rounded-xl"
             disabled={disconnect.isPending}
-            onClick={() => disconnect.mutate()}
+            onClick={() => disconnect.mutate(undefined)}
           >
             <Unplug className="size-4" /> Trennen
           </Button>
