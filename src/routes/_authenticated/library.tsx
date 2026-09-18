@@ -12,6 +12,7 @@ import {
   LayoutGrid,
   List,
   NotebookPen,
+  RefreshCw,
   Star,
   Upload,
 } from "lucide-react";
@@ -39,6 +40,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { DocumentPreview, type PreviewDoc } from "@/components/DocumentPreview";
 import { FreeNotesOverlay } from "@/components/FreeNotesOverlay";
+import { DrivePicker } from "@/components/DrivePicker";
+import { getDriveStatus, importDriveItems, syncDriveItems } from "@/lib/drive.functions";
 import {
   Dialog,
   DialogContent,
@@ -140,6 +143,58 @@ function LibraryPage() {
     uid,
     folderId: current.id,
     onDone: invalidate,
+  });
+
+  // ---- Google Drive ----
+  const [drivePickerOpen, setDrivePickerOpen] = useState(false);
+  const driveStatus = useQuery({
+    queryKey: ["drive-status", uid],
+    enabled: !!uid,
+    queryFn: () => getDriveStatus({ data: undefined }),
+    staleTime: 60_000,
+  });
+  const driveConnected = driveStatus.data?.connected === true;
+
+  const driveImport = useMutation({
+    mutationFn: (items: { id: string; name: string; mimeType: string }[]) =>
+      importDriveItems({ data: { targetFolderId: current.id, items } }),
+    onSuccess: (res) => {
+      setDrivePickerOpen(false);
+      invalidate();
+      toast.success(
+        `${res.createdDocs} Datei(en) und ${res.createdFolders} Ordner aus Drive hinzugefügt`,
+      );
+    },
+    onError: (e: Error) =>
+      toast.error(
+        e.message === "RECONNECT_REQUIRED"
+          ? "Google-Zugriff muss in den Einstellungen erneuert werden."
+          : e.message,
+      ),
+  });
+
+  const driveSync = useMutation({
+    mutationFn: () => syncDriveItems({ data: undefined }),
+    onSuccess: (res) => {
+      invalidate();
+      const parts: string[] = [];
+      if (res.added) parts.push(`${res.added} neu`);
+      if (res.changed) parts.push(`${res.changed} aktualisiert`);
+      if (res.missing) parts.push(`${res.missing} nicht mehr gefunden`);
+      if (!parts.length && !res.failed) {
+        toast.success("Drive-Abgleich abgeschlossen – alles aktuell");
+      } else if (res.failed) {
+        toast.error(`Abgleich teilweise fehlgeschlagen (${res.failed}). ${parts.join(", ")}`);
+      } else {
+        toast.success(`Drive-Abgleich: ${parts.join(", ")}`);
+      }
+    },
+    onError: (e: Error) =>
+      toast.error(
+        e.message === "RECONNECT_REQUIRED"
+          ? "Google-Zugriff muss in den Einstellungen erneuert werden."
+          : e.message,
+      ),
   });
 
   const createFolder = useMutation({
@@ -308,6 +363,7 @@ function LibraryPage() {
     mime_type: string | null;
     kind?: string | null;
     notebook_id?: string | null;
+    source?: string | null;
   }) => {
     if (d.kind === "note" && d.notebook_id) {
       setNoteDoc({ notebookId: d.notebook_id, name: d.name });
@@ -319,6 +375,7 @@ function LibraryPage() {
       storage_path: d.storage_path,
       mime_type: d.mime_type,
       folder_id: current.id,
+      source: d.source,
     });
   };
 
