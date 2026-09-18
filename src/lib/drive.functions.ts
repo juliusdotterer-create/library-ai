@@ -494,6 +494,7 @@ export const syncDriveItems = createServerFn({ method: "POST" })
 
 
     let added = 0;
+    let addedFolders = 0;
     let changed = 0;
     let missing = 0;
     let failed = 0;
@@ -548,11 +549,24 @@ export const syncDriveItems = createServerFn({ method: "POST" })
       }
     }
 
-    // Neue Dateien in verknüpften Drive-Ordnern einsammeln
+    // Neue Dateien UND Unterordner in verknüpften Drive-Ordnern einsammeln
     for (const folder of folders ?? []) {
       try {
         const children = await listAllChildren(userId, folder.external_id!);
         const fileChildren = children.filter((c) => !c.isFolder);
+        const subFolders = children.filter((c) => c.isFolder);
+
+        // Neue Unterordner (inkl. Inhalt) automatisch anlegen
+        for (const sub of subFolders) {
+          addedFolders += await ensureDriveFolder(
+            supabase,
+            userId,
+            sub.id,
+            sub.name,
+            folder.id,
+          );
+        }
+
         if (!fileChildren.length) continue;
         const { data: existing } = await supabase
           .from("documents")
@@ -591,7 +605,7 @@ export const syncDriveItems = createServerFn({ method: "POST" })
       }
     }
 
-    return { added, changed, missing, failed };
+    return { added, addedFolders, changed, missing, failed };
   });
 
 // ---------------------------------------------------------------- content
