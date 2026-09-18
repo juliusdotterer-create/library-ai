@@ -49,10 +49,9 @@ function waitForOAuthCompletion(popup: Window): Promise<string | null> {
 export function DrivePanel() {
   const qc = useQueryClient();
   const [busy, setBusy] = useState(false);
-  const statusFn = useServerFn(getDriveStatus);
   const { data: status } = useQuery({
     queryKey: ["drive-status"],
-    queryFn: () => statusFn(),
+    queryFn: () => getDriveStatus(),
   });
   const startFn = useServerFn(startDriveConnect);
   const completeFn = useServerFn(completeDriveConnection);
