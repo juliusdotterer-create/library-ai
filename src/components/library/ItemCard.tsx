@@ -1,4 +1,4 @@
-import { Download, FileText, Folder, MoreVertical, NotebookPen, Pencil, Star, Trash2 } from "lucide-react";
+import { Download, FileText, Folder, HardDrive, MoreVertical, NotebookPen, Pencil, Star, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
