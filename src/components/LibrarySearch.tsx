@@ -48,6 +48,7 @@ export function LibrarySearch({
       mime_type: string | null;
       folder_id?: string | null;
       page?: number | null;
+      source?: string | null;
       kind?: string | null;
       notebook_id?: string | null;
     },
@@ -64,6 +65,7 @@ export function LibrarySearch({
       storage_path: d.storage_path,
       mime_type: d.mime_type,
       folder_id: d.folder_id ?? null,
+      source: d.source ?? null,
       page: d.page ?? null,
       highlight: withHighlight ? debounced : null,
     });

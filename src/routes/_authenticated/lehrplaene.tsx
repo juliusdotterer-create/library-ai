@@ -95,7 +95,13 @@ function LehrplanPage() {
   const openDoc = (id: string) => {
     const d = docList.find((x) => x.id === id);
     if (!d) return;
-    setPreview({ id: d.id, name: d.name, storage_path: d.storage_path, mime_type: d.mime_type });
+    setPreview({
+      id: d.id,
+      name: d.name,
+      storage_path: d.storage_path,
+      mime_type: d.mime_type,
+      source: (d as { source?: string | null }).source ?? null,
+    });
   };
 
   const createPlan = useMutation({

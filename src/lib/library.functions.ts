@@ -71,7 +71,7 @@ export const searchLibrary = createServerFn({ method: "POST" })
 
     const { data: docs, error: docsErr } = await context.supabase
       .from("documents")
-      .select("id,name,storage_path,mime_type,folder_id,kind,notebook_id")
+      .select("id,name,storage_path,mime_type,folder_id,kind,notebook_id,source")
       .eq("user_id", context.userId)
       .is("deleted_at", null)
       .not("name", "ilike", "desktop.ini")
@@ -116,6 +116,7 @@ export const searchLibrary = createServerFn({ method: "POST" })
       storage_path: string;
       mime_type: string | null;
       folder_id: string | null;
+      source: string | null;
       path: string;
       page: number | null;
       snippet: string;
@@ -125,7 +126,7 @@ export const searchLibrary = createServerFn({ method: "POST" })
     if (contentIds.length) {
       const { data: hitDocs } = await context.supabase
         .from("documents")
-        .select("id,name,storage_path,mime_type,folder_id")
+        .select("id,name,storage_path,mime_type,folder_id,source")
         .eq("user_id", context.userId)
         .is("deleted_at", null)
         .in("id", contentIds.slice(0, 50));
@@ -146,6 +147,7 @@ export const searchLibrary = createServerFn({ method: "POST" })
             storage_path: d.storage_path,
             mime_type: d.mime_type,
             folder_id: d.folder_id,
+            source: d.source,
             path: folderPath(d.folder_id, allFolders),
             page: found.page,
             snippet: found.snippet,
@@ -163,6 +165,7 @@ export const searchLibrary = createServerFn({ method: "POST" })
           storage_path: d.storage_path,
           mime_type: d.mime_type,
           folder_id: d.folder_id,
+          source: d.source,
           kind: d.kind,
           notebook_id: d.notebook_id,
           path: folderPath(d.folder_id, allFolders),
