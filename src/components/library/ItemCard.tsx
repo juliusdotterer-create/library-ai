@@ -11,6 +11,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,6 +21,27 @@ import {
 import { MotionItem } from "@/components/MotionItem";
 import { cn } from "@/lib/utils";
 import type { ViewMode } from "@/hooks/useLibraryView";
+
+/** Auswahlkästchen für die Schnellauswahl (Mehrfachlöschen). */
+function SelectBox({
+  selected,
+  onChange,
+  label,
+}: {
+  selected: boolean;
+  onChange: (v: boolean) => void;
+  label: string;
+}) {
+  return (
+    <Checkbox
+      checked={selected}
+      onCheckedChange={(v) => onChange(v === true)}
+      aria-label={`${label} auswählen`}
+      className="size-5 shrink-0 rounded-md"
+      onClick={(e) => e.stopPropagation()}
+    />
+  );
+}
 
 /** Kurzes Datum für die Listenansicht. */
 function dateLabel(value?: string | null) {
@@ -94,6 +116,9 @@ export function FolderCard({
   onRename,
   onDelete,
   onDriveSync,
+  selectMode,
+  selected,
+  onSelectChange,
 }: {
   folder: {
     id: string;
@@ -109,10 +134,23 @@ export function FolderCard({
   onRename: () => void;
   onDelete: () => void;
   onDriveSync?: () => void;
+  selectMode?: boolean;
+  selected?: boolean;
+  onSelectChange?: (v: boolean) => void;
 }) {
   return (
-    <MotionItem className={shell(view)}>
-      <button className="flex min-w-0 flex-1 items-center gap-3 text-left" onClick={onOpen}>
+    <MotionItem className={cn(shell(view), selected && "ring-2 ring-primary")}>
+      {selectMode && (
+        <SelectBox
+          selected={!!selected}
+          onChange={(v) => onSelectChange?.(v)}
+          label={folder.name}
+        />
+      )}
+      <button
+        className="flex min-w-0 flex-1 items-center gap-3 text-left"
+        onClick={() => (selectMode ? onSelectChange?.(!selected) : onOpen())}
+      >
         <span className={iconBox(view, "primary")}>
           <Folder className={cn("text-primary", iconSize(view))} />
         </span>
@@ -149,6 +187,9 @@ export function DocumentCard({
   onRename,
   onDelete,
   onDriveSync,
+  selectMode,
+  selected,
+  onSelectChange,
 }: {
   doc: {
     id: string;
@@ -163,6 +204,9 @@ export function DocumentCard({
   onRename: () => void;
   onDelete: () => void;
   onDriveSync?: () => void;
+  selectMode?: boolean;
+  selected?: boolean;
+  onSelectChange?: (v: boolean) => void;
 }) {
   const driveBadge =
     doc.source === "gdrive" ? (
@@ -177,8 +221,14 @@ export function DocumentCard({
       ) : null
     ) : null;
   return (
-    <MotionItem className={shell(view)}>
-      <button className="flex min-w-0 flex-1 items-center gap-3 text-left" onClick={onOpen}>
+    <MotionItem className={cn(shell(view), selected && "ring-2 ring-primary")}>
+      {selectMode && (
+        <SelectBox selected={!!selected} onChange={(v) => onSelectChange?.(v)} label={doc.name} />
+      )}
+      <button
+        className="flex min-w-0 flex-1 items-center gap-3 text-left"
+        onClick={() => (selectMode ? onSelectChange?.(!selected) : onOpen())}
+      >
         <span className={iconBox(view, "muted")}>
           {doc.kind === "note" ? (
             <NotebookPen className={cn("text-primary", iconSize(view))} />

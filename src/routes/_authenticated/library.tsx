@@ -4,7 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   ArrowUpDown,
+  CheckSquare,
   ChevronRight,
+  Trash2,
+  X,
   FilePlus2,
   Folder,
   FolderPlus,
@@ -24,7 +27,7 @@ import { useDocuments, useFolders } from "@/hooks/useLibrary";
 import { cn } from "@/lib/utils";
 import { useLibraryView, sortItems, SORT_LABELS, type SortKey } from "@/hooks/useLibraryView";
 import { useLibraryUpload } from "@/hooks/useLibraryUpload";
-import { softDeleteFolder } from "@/lib/tree";
+import { restoreFolder, softDeleteFolder } from "@/lib/tree";
 import { ConfirmDelete } from "@/components/ConfirmDelete";
 import { EmptyState } from "@/components/EmptyState";
 import { PullToRefresh } from "@/components/PullToRefresh";
@@ -89,6 +92,7 @@ function LibraryPage() {
     table: "folders" | "documents";
     id: string;
     name: string;
+    prev?: string;
   } | null>(null);
 
   // Sprung aus der Suche: Pfad zum verlinkten Ordner aufbauen
@@ -238,6 +242,41 @@ function LibraryPage() {
     snapshot?.forEach(([key, data]) => qc.setQueryData(key, data));
   };
 
+  /** Rückgängig-Hinweis mit Knopf. */
+  const undoToast = (message: string, undo: () => Promise<void>) => {
+    toast.success(message, {
+      duration: 10000,
+      action: {
+        label: "Rückgängig",
+        onClick: () => {
+          void (async () => {
+            try {
+              await undo();
+              invalidate();
+              void qc.invalidateQueries({ queryKey: ["trash"] });
+              toast.success("Rückgängig gemacht");
+            } catch (e) {
+              toast.error((e as Error).message || "Rückgängig fehlgeschlagen");
+            }
+          })();
+        },
+      },
+    });
+  };
+
+  const restoreItems = async (folderIds: string[], documentIds: string[]) => {
+    if (!uid) throw new Error("Nicht angemeldet");
+    for (const id of folderIds) await restoreFolder(id, uid);
+    if (documentIds.length) {
+      const { error } = await supabase
+        .from("documents")
+        .update({ deleted_at: null })
+        .eq("user_id", uid)
+        .in("id", documentIds);
+      if (error) throw error;
+    }
+  };
+
   const softDelete = useMutation({
     mutationFn: async ({ table, id }: { table: "folders" | "documents"; id: string }) => {
       if (!uid) throw new Error("Nicht angemeldet");
@@ -255,9 +294,69 @@ function LibraryPage() {
     onMutate: ({ table, id }) => ({
       snapshot: patchList(table, (rows) => rows.filter((r) => r.id !== id)),
     }),
-    onSuccess: () => {
+    onSuccess: (_d, v) => {
       invalidate();
-      toast.success("In den Papierkorb verschoben");
+      undoToast("In den Papierkorb verschoben", () =>
+        restoreItems(v.table === "folders" ? [v.id] : [], v.table === "documents" ? [v.id] : []),
+      );
+    },
+    onError: (e: Error, _v, ctx) => {
+      restore(ctx?.snapshot);
+      toast.error(e.message || "Löschen fehlgeschlagen");
+    },
+  });
+
+  // ---- Schnellauswahl (Mehrfachlöschen) ----
+  const [selectMode, setSelectMode] = useState(false);
+  const [selFolders, setSelFolders] = useState<string[]>([]);
+  const [selDocs, setSelDocs] = useState<string[]>([]);
+  const selectedCount = selFolders.length + selDocs.length;
+  const clearSelection = () => {
+    setSelFolders([]);
+    setSelDocs([]);
+  };
+  useEffect(() => {
+    clearSelection();
+  }, [current.id]);
+
+  const toggleIn = (list: string[], id: string, on: boolean) =>
+    on ? [...new Set([...list, id])] : list.filter((x) => x !== id);
+
+  const bulkDelete = useMutation({
+    mutationFn: async () => {
+      if (!uid) throw new Error("Nicht angemeldet");
+      for (const id of selFolders) await softDeleteFolder(id, uid);
+      if (selDocs.length) {
+        const stamp = new Date().toISOString();
+        for (let i = 0; i < selDocs.length; i += 50) {
+          const part = selDocs.slice(i, i + 50);
+          const { error } = await supabase
+            .from("documents")
+            .update({ deleted_at: stamp })
+            .eq("user_id", uid)
+            .in("id", part);
+          if (error) throw error;
+        }
+      }
+      return { folderIds: [...selFolders], documentIds: [...selDocs] };
+    },
+    onMutate: () => {
+      const s1 = patchList("folders", (rows) =>
+        rows.filter((r) => !selFolders.includes(r.id as string)),
+      );
+      const s2 = patchList("documents", (rows) =>
+        rows.filter((r) => !selDocs.includes(r.id as string)),
+      );
+      return { snapshot: [...s1, ...s2] };
+    },
+    onSuccess: (v) => {
+      clearSelection();
+      setSelectMode(false);
+      invalidate();
+      undoToast(
+        `${v.folderIds.length + v.documentIds.length} Element(e) in den Papierkorb verschoben`,
+        () => restoreItems(v.folderIds, v.documentIds),
+      );
     },
     onError: (e: Error, _v, ctx) => {
       restore(ctx?.snapshot);
@@ -266,7 +365,12 @@ function LibraryPage() {
   });
 
   const doRename = useMutation({
-    mutationFn: async (r: { table: "folders" | "documents"; id: string; name: string }) => {
+    mutationFn: async (r: {
+      table: "folders" | "documents";
+      id: string;
+      name: string;
+      prev?: string;
+    }) => {
       if (!uid) throw new Error("Nicht angemeldet");
       const { error } = await supabase
         .from(r.table)
@@ -283,9 +387,21 @@ function LibraryPage() {
         ),
       };
     },
-    onSuccess: () => {
+    onSuccess: (_d, r) => {
       invalidate();
-      toast.success("Umbenannt");
+      if (!r.prev || r.prev === r.name) {
+        toast.success("Umbenannt");
+        return;
+      }
+      undoToast("Umbenannt", async () => {
+        if (!uid) throw new Error("Nicht angemeldet");
+        const { error } = await supabase
+          .from(r.table)
+          .update({ name: r.prev! })
+          .eq("id", r.id)
+          .eq("user_id", uid);
+        if (error) throw error;
+      });
     },
     onError: (e: Error, _v, ctx) => {
       restore(ctx?.snapshot);
@@ -444,6 +560,19 @@ function LibraryPage() {
           >
             {view === "grid" ? <List className="size-4" /> : <LayoutGrid className="size-4" />}
           </Button>
+          <Button
+            variant={selectMode ? "default" : "ghost"}
+            size="icon"
+            className={cn("rounded-2xl", !selectMode && "text-muted-foreground")}
+            title={selectMode ? "Auswahl beenden" : "Schnellauswahl"}
+            aria-label={selectMode ? "Auswahl beenden" : "Schnellauswahl"}
+            onClick={() => {
+              clearSelection();
+              setSelectMode((v) => !v);
+            }}
+          >
+            <CheckSquare className="size-4" />
+          </Button>
           {driveConnected && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -550,6 +679,46 @@ function LibraryPage() {
 
       <UploadProgressPanel progress={progress} indexing={indexing} />
 
+      {selectMode && (
+        <div className="glass sticky top-2 z-20 flex flex-wrap items-center gap-2 rounded-3xl p-3">
+          <span className="text-sm font-semibold">{selectedCount} ausgewählt</span>
+          <Button
+            variant="ghost"
+            className="rounded-2xl"
+            onClick={() => {
+              setSelFolders(sortedFolders.map((f) => f.id));
+              setSelDocs(sortedDocs.map((d) => d.id));
+            }}
+          >
+            Alle
+          </Button>
+          <Button variant="ghost" className="rounded-2xl" onClick={clearSelection}>
+            Keine
+          </Button>
+          <div className="flex-1" />
+          <Button
+            variant="destructive"
+            className="rounded-2xl"
+            disabled={!selectedCount || bulkDelete.isPending}
+            onClick={() => bulkDelete.mutate()}
+          >
+            <Trash2 className="size-4" /> In den Papierkorb
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-2xl"
+            aria-label="Auswahl beenden"
+            onClick={() => {
+              clearSelection();
+              setSelectMode(false);
+            }}
+          >
+            <X className="size-4" />
+          </Button>
+        </div>
+      )}
+
       {!current.id && !!favorites.data?.length && (
         <div className="glass flex flex-wrap items-center gap-2 rounded-3xl p-4">
           <span className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
@@ -584,9 +753,14 @@ function LibraryPage() {
                 view={view}
                 onOpen={() => setPath([...path, { id: f.id, name: f.name }])}
                 onToggleFavorite={() => toggleFavorite.mutate({ id: f.id, value: !f.is_favorite })}
-                onRename={() => setRename({ table: "folders", id: f.id, name: f.name })}
+                onRename={() =>
+                  setRename({ table: "folders", id: f.id, name: f.name, prev: f.name })
+                }
                 onDelete={() => setConfirmDel({ table: "folders", id: f.id, name: f.name })}
                 onDriveSync={() => driveSync.mutate({ folderIds: [f.id] })}
+                selectMode={selectMode}
+                selected={selFolders.includes(f.id)}
+                onSelectChange={(v) => setSelFolders((l) => toggleIn(l, f.id, v))}
               />
             ))}
 
@@ -596,9 +770,14 @@ function LibraryPage() {
                 doc={d}
                 view={view}
                 onOpen={() => open(d)}
-                onRename={() => setRename({ table: "documents", id: d.id, name: d.name })}
+                onRename={() =>
+                  setRename({ table: "documents", id: d.id, name: d.name, prev: d.name })
+                }
                 onDelete={() => setConfirmDel({ table: "documents", id: d.id, name: d.name })}
                 onDriveSync={() => driveSync.mutate({ documentIds: [d.id] })}
+                selectMode={selectMode}
+                selected={selDocs.includes(d.id)}
+                onSelectChange={(v) => setSelDocs((l) => toggleIn(l, d.id, v))}
               />
             ))}
 
