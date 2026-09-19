@@ -11,6 +11,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,6 +21,27 @@ import {
 import { MotionItem } from "@/components/MotionItem";
 import { cn } from "@/lib/utils";
 import type { ViewMode } from "@/hooks/useLibraryView";
+
+/** Auswahlkästchen für die Schnellauswahl (Mehrfachlöschen). */
+function SelectBox({
+  selected,
+  onChange,
+  label,
+}: {
+  selected: boolean;
+  onChange: (v: boolean) => void;
+  label: string;
+}) {
+  return (
+    <Checkbox
+      checked={selected}
+      onCheckedChange={(v) => onChange(v === true)}
+      aria-label={`${label} auswählen`}
+      className="size-5 shrink-0 rounded-md"
+      onClick={(e) => e.stopPropagation()}
+    />
+  );
+}
 
 /** Kurzes Datum für die Listenansicht. */
 function dateLabel(value?: string | null) {
