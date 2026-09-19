@@ -101,15 +101,17 @@ async function driveFetch(
 }
 
 /** Listet Dateien eines Drive-Ordners (paginiert intern komplett). */
-async function listAllChildren(userId: string, folderId: string): Promise<DriveItem[]> {
+const ALL_DRIVES_PARAMS = "supportsAllDrives=true&includeItemsFromAllDrives=true";
+
+async function listByQuery(userId: string, rawQuery: string): Promise<DriveItem[]> {
   const out: DriveItem[] = [];
   let pageToken: string | null = null;
   for (let page = 0; page < 20; page++) {
-    const q = encodeURIComponent(`'${folderId}' in parents and trashed = false`);
+    const q = encodeURIComponent(rawQuery);
     const fields = encodeURIComponent(
       "nextPageToken, files(id, name, mimeType, modifiedTime, size)",
     );
-    let path = `/drive/v3/files?q=${q}&fields=${fields}&pageSize=200&orderBy=${encodeURIComponent("folder, name")}`;
+    let path = `/drive/v3/files?q=${q}&fields=${fields}&pageSize=200&orderBy=${encodeURIComponent("folder, name")}&${ALL_DRIVES_PARAMS}`;
     if (pageToken) path += `&pageToken=${encodeURIComponent(pageToken)}`;
     const res = await driveFetch(userId, path);
     if (!res.ok) throw new Error(`Drive-Liste fehlgeschlagen (${res.status})`);
@@ -119,6 +121,14 @@ async function listAllChildren(userId: string, folderId: string): Promise<DriveI
     if (!pageToken) break;
   }
   return out;
+}
+
+async function listAllChildren(userId: string, folderId: string): Promise<DriveItem[]> {
+  return listByQuery(userId, `'${folderId}' in parents and trashed = false`);
+}
+
+async function listSharedWithMe(userId: string): Promise<DriveItem[]> {
+  return listByQuery(userId, "sharedWithMe = true and trashed = false");
 }
 
 // ---------------------------------------------------------------- connect
