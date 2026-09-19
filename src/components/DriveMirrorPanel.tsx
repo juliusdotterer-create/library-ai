@@ -143,7 +143,7 @@ export function DriveMirrorPanel() {
           if (!folder) return;
           if (folder.mimeType !== FOLDER_MIME) {
             toast.error(
-              "Bitte einen Ordner auswählen: Tippe bei „Klausuren" auf „Wählen" oder öffne den Ordner und nutze „Diesen Ordner verwenden".",
+              'Bitte einen Ordner auswählen: Tippe bei dem Ordner auf „Wählen“ oder öffne ihn und nutze „Diesen Ordner verwenden“.',
             );
             return;
           }
