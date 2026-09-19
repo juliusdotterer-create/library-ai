@@ -557,6 +557,19 @@ function LibraryPage() {
           >
             {view === "grid" ? <List className="size-4" /> : <LayoutGrid className="size-4" />}
           </Button>
+          <Button
+            variant={selectMode ? "default" : "ghost"}
+            size="icon"
+            className={cn("rounded-2xl", !selectMode && "text-muted-foreground")}
+            title={selectMode ? "Auswahl beenden" : "Schnellauswahl"}
+            aria-label={selectMode ? "Auswahl beenden" : "Schnellauswahl"}
+            onClick={() => {
+              clearSelection();
+              setSelectMode((v) => !v);
+            }}
+          >
+            <CheckSquare className="size-4" />
+          </Button>
           {driveConnected && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
