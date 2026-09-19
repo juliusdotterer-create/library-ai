@@ -42,13 +42,16 @@ export function DrivePicker({
   /** Ordner-Modus: erlaubt, den aktuell geöffneten Ordner direkt zu übernehmen. */
   folderPickMode?: boolean;
 }) {
-  const [path, setPath] = useState<Crumb[]>([{ id: null, name: "Mein Drive" }]);
+  const [path, setPath] = useState<Crumb[]>([MY_DRIVE_ROOT]);
   const [selected, setSelected] = useState<Map<string, DriveItem>>(new Map());
   const current = path[path.length - 1];
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["drive-children", current.id],
-    queryFn: () => listDriveChildren({ data: { folderId: current.id } }),
+    queryKey: ["drive-children", current.id, current.shared ?? false],
+    queryFn: () =>
+      listDriveChildren({
+        data: { folderId: current.id, shared: current.shared ?? false },
+      }),
     enabled: open,
   });
   const items = useMemo(() => data?.items ?? [], [data]);
