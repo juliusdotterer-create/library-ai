@@ -679,6 +679,46 @@ function LibraryPage() {
 
       <UploadProgressPanel progress={progress} indexing={indexing} />
 
+      {selectMode && (
+        <div className="glass sticky top-2 z-20 flex flex-wrap items-center gap-2 rounded-3xl p-3">
+          <span className="text-sm font-semibold">{selectedCount} ausgewählt</span>
+          <Button
+            variant="ghost"
+            className="rounded-2xl"
+            onClick={() => {
+              setSelFolders(sortedFolders.map((f) => f.id));
+              setSelDocs(sortedDocs.map((d) => d.id));
+            }}
+          >
+            Alle
+          </Button>
+          <Button variant="ghost" className="rounded-2xl" onClick={clearSelection}>
+            Keine
+          </Button>
+          <div className="flex-1" />
+          <Button
+            variant="destructive"
+            className="rounded-2xl"
+            disabled={!selectedCount || bulkDelete.isPending}
+            onClick={() => bulkDelete.mutate()}
+          >
+            <Trash2 className="size-4" /> In den Papierkorb
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-2xl"
+            aria-label="Auswahl beenden"
+            onClick={() => {
+              clearSelection();
+              setSelectMode(false);
+            }}
+          >
+            <X className="size-4" />
+          </Button>
+        </div>
+      )}
+
       {!current.id && !!favorites.data?.length && (
         <div className="glass flex flex-wrap items-center gap-2 rounded-3xl p-4">
           <span className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
