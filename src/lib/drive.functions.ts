@@ -743,6 +743,7 @@ export const mirrorDriveFolder = createServerFn({ method: "POST" })
     let linkedFolders = 0;
     let addedFolders = 0;
     let addedDocs = 0;
+    let linkedDocs = 0;
     let skippedDocs = 0;
     let failed = 0;
     let processed = 0;
@@ -774,10 +775,13 @@ export const mirrorDriveFolder = createServerFn({ method: "POST" })
             folderByName.set(normName(f.name), { id: f.id, external_id: f.external_id });
           }
         }
+        const docByName = new Map<string, { id: string; external_id: string | null }>();
         const docNames = new Set<string>();
         const docDriveIds = new Set<string>();
         for (const d of localDocs ?? []) {
-          docNames.add(normName(stripExt(d.name)));
+          const key = normName(stripExt(d.name));
+          docNames.add(key);
+          if (!docByName.has(key)) docByName.set(key, { id: d.id, external_id: d.external_id });
           if (d.external_id) docDriveIds.add(d.external_id);
         }
 
@@ -839,8 +843,39 @@ export const mirrorDriveFolder = createServerFn({ method: "POST" })
             exportInfo && !child.name.toLowerCase().endsWith(exportInfo.ext)
               ? child.name + exportInfo.ext
               : child.name;
-          if (docDriveIds.has(child.id) || docNames.has(normName(stripExt(name)))) {
+          const key = normName(stripExt(name));
+          if (docDriveIds.has(child.id)) {
             skippedDocs++;
+            continue;
+          }
+          const existing = docByName.get(key);
+          if (existing) {
+            // Gleichnamiges Dokument vorhanden: mit der Drive-Datei verknüpfen,
+            // damit der Abgleich es künftig aktuell hält.
+            if (!existing.external_id) {
+              const { error } = await supabase
+                .from("documents")
+                .update({
+                  source: "gdrive",
+                  external_id: child.id,
+                  external_mime: child.mimeType,
+                  external_modified: child.modifiedTime,
+                  drive_state: "ok",
+                })
+                .eq("id", existing.id)
+                .eq("user_id", userId);
+              if (!error) {
+                linkedDocs++;
+                existing.external_id = child.id;
+                docDriveIds.add(child.id);
+              } else if (error.code === "23505") {
+                skippedDocs++;
+              } else {
+                failed++;
+              }
+            } else {
+              skippedDocs++;
+            }
             continue;
           }
           const { error } = await supabase.from("documents").insert({
@@ -858,7 +893,9 @@ export const mirrorDriveFolder = createServerFn({ method: "POST" })
           });
           if (!error) {
             addedDocs++;
-            docNames.add(normName(stripExt(name)));
+            docNames.add(key);
+            docByName.set(key, { id: "", external_id: child.id });
+            docDriveIds.add(child.id);
           } else if (error.code === "23505") {
             skippedDocs++;
           } else {
@@ -877,6 +914,7 @@ export const mirrorDriveFolder = createServerFn({ method: "POST" })
       linkedFolders,
       addedFolders,
       addedDocs,
+      linkedDocs,
       skippedDocs,
       failed,
     };

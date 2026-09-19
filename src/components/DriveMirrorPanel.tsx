@@ -16,6 +16,7 @@ type Report = {
   linkedFolders: number;
   addedFolders: number;
   addedDocs: number;
+  linkedDocs: number;
   skippedDocs: number;
   failed: number;
   processed: number;
@@ -42,6 +43,7 @@ export function DriveMirrorPanel() {
       linkedFolders: 0,
       addedFolders: 0,
       addedDocs: 0,
+      linkedDocs: 0,
       skippedDocs: 0,
       failed: 0,
       processed: 0,
@@ -54,6 +56,7 @@ export function DriveMirrorPanel() {
         total.linkedFolders += res.linkedFolders;
         total.addedFolders += res.addedFolders;
         total.addedDocs += res.addedDocs;
+        total.linkedDocs += res.linkedDocs;
         total.skippedDocs += res.skippedDocs;
         total.failed += res.failed;
         total.processed += res.processed;
@@ -64,7 +67,7 @@ export function DriveMirrorPanel() {
       toast.success(
         cancelled.current
           ? "Abgleich abgebrochen – bisherige Ergebnisse sind gespeichert."
-          : `Fertig: ${total.addedDocs} neue Dokumente, ${total.addedFolders} neue Ordner.`,
+          : `Fertig: ${total.addedDocs} neue Dokumente, ${total.linkedDocs} verknüpft, ${total.addedFolders} neue Ordner.`,
       );
     } catch (e) {
       toast.error((e as Error).message);
@@ -124,8 +127,9 @@ export function DriveMirrorPanel() {
       {report ? (
         <p className="text-sm text-muted-foreground">
           {running ? `Ordner ${report.processed} verarbeitet … ` : "Ergebnis: "}
-          {report.linkedFolders} verknüpft · {report.addedFolders} neue Ordner ·{" "}
-          {report.addedDocs} neue Dokumente · {report.skippedDocs} vorhanden
+          {report.linkedFolders} Ordner verknüpft · {report.addedFolders} neue Ordner ·{" "}
+          {report.addedDocs} neue Dokumente · {report.linkedDocs} Dokumente verknüpft ·{" "}
+          {report.skippedDocs} vorhanden
           {report.failed ? ` · ${report.failed} übersprungen` : ""}
         </p>
       ) : null}
