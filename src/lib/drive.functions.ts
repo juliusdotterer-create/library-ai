@@ -658,9 +658,6 @@ export const getDriveFileContent = createServerFn({ method: "GET" })
     if (!res.ok) throw new Error(`Datei konnte nicht geladen werden (${res.status})`);
     const buf = await res.arrayBuffer();
 
-    // Als gelesen markieren (Badge verschwindet)
-    await supabase.from("documents").update({ drive_state: "ok" }).eq("id", doc.id);
-
     // Bytes als base64 zurückgeben (RPC kann keine Streams)
     const bytes = new Uint8Array(buf);
     let binary = "";
