@@ -21,11 +21,15 @@ export const sendPasswordResetForEmail = createServerFn({ method: "POST" })
     return { email, redirectTo };
   })
   .handler(async ({ data, context }) => {
-    const { data: isAdmin } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "admin",
-    });
-    if (!isAdmin) throw new Error("Nur Admins dürfen Zurücksetz-Links senden.");
+    // Rollen werden über die RLS-geschützte Tabelle als angemeldeter Nutzer geprüft.
+    const { data: roleRow } = await context.supabase
+      .from("user_roles")
+      .select("id")
+      .eq("user_id", context.userId)
+      .eq("role", "admin")
+      .maybeSingle();
+    if (!roleRow) throw new Error("Nur Admins dürfen Zurücksetz-Links senden.");
+
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.auth.resetPasswordForEmail(data.email, {
