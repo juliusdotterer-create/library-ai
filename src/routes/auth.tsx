@@ -45,6 +45,7 @@ function AuthPage() {
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [blocked, setBlocked] = useState(false);
+  const [forgot, setForgot] = useState(false);
 
   useEffect(() => {
     if (window.localStorage.getItem("access_blocked") === "1") {
