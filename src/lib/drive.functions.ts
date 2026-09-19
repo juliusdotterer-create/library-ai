@@ -843,8 +843,39 @@ export const mirrorDriveFolder = createServerFn({ method: "POST" })
             exportInfo && !child.name.toLowerCase().endsWith(exportInfo.ext)
               ? child.name + exportInfo.ext
               : child.name;
-          if (docDriveIds.has(child.id) || docNames.has(normName(stripExt(name)))) {
+          const key = normName(stripExt(name));
+          if (docDriveIds.has(child.id)) {
             skippedDocs++;
+            continue;
+          }
+          const existing = docByName.get(key);
+          if (existing) {
+            // Gleichnamiges Dokument vorhanden: mit der Drive-Datei verknüpfen,
+            // damit der Abgleich es künftig aktuell hält.
+            if (!existing.external_id) {
+              const { error } = await supabase
+                .from("documents")
+                .update({
+                  source: "gdrive",
+                  external_id: child.id,
+                  external_mime: child.mimeType,
+                  external_modified: child.modifiedTime,
+                  drive_state: "ok",
+                })
+                .eq("id", existing.id)
+                .eq("user_id", userId);
+              if (!error) {
+                linkedDocs++;
+                existing.external_id = child.id;
+                docDriveIds.add(child.id);
+              } else if (error.code === "23505") {
+                skippedDocs++;
+              } else {
+                failed++;
+              }
+            } else {
+              skippedDocs++;
+            }
             continue;
           }
           const { error } = await supabase.from("documents").insert({
