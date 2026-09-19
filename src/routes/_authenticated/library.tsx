@@ -697,9 +697,14 @@ function LibraryPage() {
                 view={view}
                 onOpen={() => setPath([...path, { id: f.id, name: f.name }])}
                 onToggleFavorite={() => toggleFavorite.mutate({ id: f.id, value: !f.is_favorite })}
-                onRename={() => setRename({ table: "folders", id: f.id, name: f.name })}
+                onRename={() =>
+                  setRename({ table: "folders", id: f.id, name: f.name, prev: f.name })
+                }
                 onDelete={() => setConfirmDel({ table: "folders", id: f.id, name: f.name })}
                 onDriveSync={() => driveSync.mutate({ folderIds: [f.id] })}
+                selectMode={selectMode}
+                selected={selFolders.includes(f.id)}
+                onSelectChange={(v) => setSelFolders((l) => toggleIn(l, f.id, v))}
               />
             ))}
 
@@ -709,9 +714,14 @@ function LibraryPage() {
                 doc={d}
                 view={view}
                 onOpen={() => open(d)}
-                onRename={() => setRename({ table: "documents", id: d.id, name: d.name })}
+                onRename={() =>
+                  setRename({ table: "documents", id: d.id, name: d.name, prev: d.name })
+                }
                 onDelete={() => setConfirmDel({ table: "documents", id: d.id, name: d.name })}
                 onDriveSync={() => driveSync.mutate({ documentIds: [d.id] })}
+                selectMode={selectMode}
+                selected={selDocs.includes(d.id)}
+                onSelectChange={(v) => setSelDocs((l) => toggleIn(l, d.id, v))}
               />
             ))}
 
