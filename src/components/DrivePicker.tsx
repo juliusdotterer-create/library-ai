@@ -27,6 +27,7 @@ export function DrivePicker({
   title = "Aus Google Drive hinzufügen",
   actionLabel = "Hinzufügen",
   busyLabel = "Importiere …",
+  folderPickMode = false,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -35,6 +36,8 @@ export function DrivePicker({
   title?: string;
   actionLabel?: string;
   busyLabel?: string;
+  /** Ordner-Modus: erlaubt, den aktuell geöffneten Ordner direkt zu übernehmen. */
+  folderPickMode?: boolean;
 }) {
   const [path, setPath] = useState<Crumb[]>([{ id: null, name: "Mein Drive" }]);
   const [selected, setSelected] = useState<Map<string, DriveItem>>(new Map());
