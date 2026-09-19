@@ -75,6 +75,19 @@ function AuthPage() {
     if (error) toast.error(error.message);
   };
 
+  const sendReset = async () => {
+    const value = email.trim().toLowerCase();
+    if (!value.includes("@")) return toast.error("Bitte deine E-Mail-Adresse eintragen.");
+    setBusy(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(value, {
+      redirectTo: `${window.location.origin}/passwort-neu`,
+    });
+    setBusy(false);
+    if (error) return toast.error(error.message);
+    toast.success("E-Mail ist unterwegs – schau in dein Postfach.");
+    setForgot(false);
+  };
+
   const signUp = async () => {
     setBusy(true);
     const { data, error } = await supabase.auth.signUp({
