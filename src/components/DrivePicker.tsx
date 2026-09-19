@@ -27,6 +27,7 @@ export function DrivePicker({
   title = "Aus Google Drive hinzufügen",
   actionLabel = "Hinzufügen",
   busyLabel = "Importiere …",
+  folderPickMode = false,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -35,6 +36,8 @@ export function DrivePicker({
   title?: string;
   actionLabel?: string;
   busyLabel?: string;
+  /** Ordner-Modus: erlaubt, den aktuell geöffneten Ordner direkt zu übernehmen. */
+  folderPickMode?: boolean;
 }) {
   const [path, setPath] = useState<Crumb[]>([{ id: null, name: "Mein Drive" }]);
   const [selected, setSelected] = useState<Map<string, DriveItem>>(new Map());
@@ -144,10 +147,28 @@ export function DrivePicker({
           )}
         </div>
 
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="text-sm text-muted-foreground">
             {selected.size} ausgewählt
           </span>
+          {folderPickMode && current.id ? (
+            <Button
+              variant="outline"
+              className="rounded-xl"
+              disabled={importing}
+              onClick={() =>
+                onImport([
+                  {
+                    id: current.id!,
+                    name: current.name,
+                    mimeType: "application/vnd.google-apps.folder",
+                  },
+                ])
+              }
+            >
+              Ordner „{current.name}" verwenden
+            </Button>
+          ) : null}
           <Button
             className="rounded-xl"
             disabled={!selected.size || importing}
