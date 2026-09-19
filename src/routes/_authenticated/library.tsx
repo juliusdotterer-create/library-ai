@@ -24,7 +24,7 @@ import { useDocuments, useFolders } from "@/hooks/useLibrary";
 import { cn } from "@/lib/utils";
 import { useLibraryView, sortItems, SORT_LABELS, type SortKey } from "@/hooks/useLibraryView";
 import { useLibraryUpload } from "@/hooks/useLibraryUpload";
-import { softDeleteFolder } from "@/lib/tree";
+import { restoreFolder, softDeleteFolder } from "@/lib/tree";
 import { ConfirmDelete } from "@/components/ConfirmDelete";
 import { EmptyState } from "@/components/EmptyState";
 import { PullToRefresh } from "@/components/PullToRefresh";
@@ -89,6 +89,7 @@ function LibraryPage() {
     table: "folders" | "documents";
     id: string;
     name: string;
+    prev?: string;
   } | null>(null);
 
   // Sprung aus der Suche: Pfad zum verlinkten Ordner aufbauen
