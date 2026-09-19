@@ -743,6 +743,7 @@ export const mirrorDriveFolder = createServerFn({ method: "POST" })
     let linkedFolders = 0;
     let addedFolders = 0;
     let addedDocs = 0;
+    let linkedDocs = 0;
     let skippedDocs = 0;
     let failed = 0;
     let processed = 0;
