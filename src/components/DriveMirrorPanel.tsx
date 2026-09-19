@@ -43,6 +43,7 @@ export function DriveMirrorPanel() {
       linkedFolders: 0,
       addedFolders: 0,
       addedDocs: 0,
+      linkedDocs: 0,
       skippedDocs: 0,
       failed: 0,
       processed: 0,
