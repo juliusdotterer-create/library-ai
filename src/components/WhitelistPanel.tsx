@@ -51,6 +51,20 @@ export function WhitelistPanel() {
     void load();
   };
 
+  const sendReset = async (row: Row) => {
+    setBusy(true);
+    try {
+      await sendPasswordResetForEmail({
+        data: { email: row.email, redirectTo: `${window.location.origin}/passwort-neu` },
+      });
+      toast.success(`Zurücksetz-Link an ${row.email} gesendet.`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Link konnte nicht gesendet werden.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex flex-col gap-2 sm:flex-row">
