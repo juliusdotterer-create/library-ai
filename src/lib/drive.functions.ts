@@ -503,7 +503,6 @@ export const syncDriveItems = createServerFn({ method: "POST" })
       .from("folders")
       .select("id, external_id")
       .eq("user_id", userId)
-      .eq("source", "gdrive")
       .is("deleted_at", null)
       .not("external_id", "is", null);
     if (folderScope) {
@@ -684,4 +683,187 @@ export const markDriveDocSeen = createServerFn({ method: "POST" })
       .eq("id", data.documentId)
       .eq("user_id", context.userId);
     return { ok: true };
+  });
+
+// ---------------------------------------------------------------- spiegeln
+
+/** Namen vergleichbar machen (Groß/Klein, Umlaute, Mehrfach-Leerzeichen). */
+function normName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/ä/g, "ae")
+    .replace(/ö/g, "oe")
+    .replace(/ü/g, "ue")
+    .replace(/ß/g, "ss")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function stripExt(name: string): string {
+  return name.replace(/\.[a-z0-9]{1,5}$/i, "");
+}
+
+export type MirrorPair = { driveFolderId: string; localFolderId: string };
+
+const mirrorSchema = z.object({
+  queue: z
+    .array(z.object({ driveFolderId: z.string().min(1), localFolderId: z.string().uuid() }))
+    .min(1)
+    .max(5000),
+});
+
+/**
+ * Spiegelt einen Drive-Ordnerbaum in einen bestehenden Library-Ordner:
+ * gleiche Namen werden verknüpft, Fehlendes wird ergänzt. Es wird nie gelöscht.
+ * Arbeitet mit Zeitbudget und gibt die restliche Warteschlange zurück.
+ */
+export const mirrorDriveFolder = createServerFn({ method: "POST" })
+  .middleware([requireWhitelisted])
+  .inputValidator((input: { queue: MirrorPair[] }) => mirrorSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const started = Date.now();
+    const BUDGET_MS = 20_000;
+    const queue: MirrorPair[] = [...data.queue];
+
+    let linkedFolders = 0;
+    let addedFolders = 0;
+    let addedDocs = 0;
+    let skippedDocs = 0;
+    let failed = 0;
+    let processed = 0;
+
+    while (queue.length && Date.now() - started < BUDGET_MS) {
+      const pair = queue.shift()!;
+      processed++;
+      try {
+        const children = await listAllChildren(userId, pair.driveFolderId);
+
+        const [{ data: localFolders }, { data: localDocs }] = await Promise.all([
+          supabase
+            .from("folders")
+            .select("id, name, external_id")
+            .eq("user_id", userId)
+            .eq("parent_id", pair.localFolderId)
+            .is("deleted_at", null),
+          supabase
+            .from("documents")
+            .select("id, name, external_id")
+            .eq("user_id", userId)
+            .eq("folder_id", pair.localFolderId)
+            .is("deleted_at", null),
+        ]);
+
+        const folderByName = new Map<string, { id: string; external_id: string | null }>();
+        for (const f of localFolders ?? []) {
+          if (!folderByName.has(normName(f.name))) {
+            folderByName.set(normName(f.name), { id: f.id, external_id: f.external_id });
+          }
+        }
+        const docNames = new Set<string>();
+        const docDriveIds = new Set<string>();
+        for (const d of localDocs ?? []) {
+          docNames.add(normName(stripExt(d.name)));
+          if (d.external_id) docDriveIds.add(d.external_id);
+        }
+
+        // Unterordner: verknüpfen oder anlegen
+        for (const sub of children.filter((c) => c.isFolder)) {
+          const match = folderByName.get(normName(sub.name));
+          if (match) {
+            if (!match.external_id) {
+              const { data: taken } = await supabase
+                .from("folders")
+                .select("id")
+                .eq("user_id", userId)
+                .eq("external_id", sub.id)
+                .is("deleted_at", null)
+                .maybeSingle();
+              if (!taken) {
+                const { error } = await supabase
+                  .from("folders")
+                  .update({ external_id: sub.id })
+                  .eq("id", match.id)
+                  .eq("user_id", userId);
+                if (!error) linkedFolders++;
+              }
+            }
+            queue.push({ driveFolderId: sub.id, localFolderId: match.id });
+            continue;
+          }
+          const { data: created, error } = await supabase
+            .from("folders")
+            .insert({
+              user_id: userId,
+              parent_id: pair.localFolderId,
+              name: sub.name,
+              source: "gdrive",
+              external_id: sub.id,
+            })
+            .select("id")
+            .single();
+          if (created) {
+            addedFolders++;
+            queue.push({ driveFolderId: sub.id, localFolderId: created.id });
+            continue;
+          }
+          if (error?.code === "23505") {
+            const { data: existing } = await supabase
+              .from("folders")
+              .select("id")
+              .eq("user_id", userId)
+              .eq("external_id", sub.id)
+              .maybeSingle();
+            if (existing) queue.push({ driveFolderId: sub.id, localFolderId: existing.id });
+          }
+        }
+
+        // Dateien: nur Fehlende ergänzen
+        for (const child of children.filter((c) => !c.isFolder)) {
+          const exportInfo = GOOGLE_EXPORTS[child.mimeType];
+          const name =
+            exportInfo && !child.name.toLowerCase().endsWith(exportInfo.ext)
+              ? child.name + exportInfo.ext
+              : child.name;
+          if (docDriveIds.has(child.id) || docNames.has(normName(stripExt(name)))) {
+            skippedDocs++;
+            continue;
+          }
+          const { error } = await supabase.from("documents").insert({
+            user_id: userId,
+            folder_id: pair.localFolderId,
+            name,
+            storage_path: "",
+            mime_type: exportInfo?.mime ?? child.mimeType,
+            size_bytes: child.size,
+            source: "gdrive",
+            external_id: child.id,
+            external_mime: child.mimeType,
+            external_modified: child.modifiedTime,
+            drive_state: "new",
+          });
+          if (!error) {
+            addedDocs++;
+            docNames.add(normName(stripExt(name)));
+          } else if (error.code === "23505") {
+            skippedDocs++;
+          } else {
+            failed++;
+          }
+        }
+      } catch {
+        failed++;
+      }
+    }
+
+    return {
+      queue,
+      done: queue.length === 0,
+      processed,
+      linkedFolders,
+      addedFolders,
+      addedDocs,
+      skippedDocs,
+      failed,
+    };
   });

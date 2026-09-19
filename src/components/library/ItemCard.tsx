@@ -101,6 +101,7 @@ export function FolderCard({
     is_favorite?: boolean | null;
     created_at?: string | null;
     source?: string | null;
+    external_id?: string | null;
   };
   view: ViewMode;
   onOpen: () => void;
@@ -134,7 +135,7 @@ export function FolderCard({
       <RowMenu
         onRename={onRename}
         onDelete={onDelete}
-        onDriveSync={folder.source === "gdrive" ? onDriveSync : undefined}
+        onDriveSync={folder.source === "gdrive" || folder.external_id ? onDriveSync : undefined}
         driveSyncLabel="Ordner aus Drive aktualisieren"
       />
     </MotionItem>

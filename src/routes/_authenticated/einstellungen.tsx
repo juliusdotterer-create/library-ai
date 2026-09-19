@@ -9,6 +9,7 @@ import { TransferPanel } from "@/components/TransferPanel";
 import { WhitelistPanel } from "@/components/WhitelistPanel";
 import { ProfilePanel } from "@/components/ProfilePanel";
 import { DrivePanel } from "@/components/DrivePanel";
+import { DriveMirrorPanel } from "@/components/DriveMirrorPanel";
 import { TextIndexPanel } from "@/components/TextIndexPanel";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -82,6 +83,7 @@ function SettingsPage() {
           </p>
         </div>
         <DrivePanel />
+        <DriveMirrorPanel />
       </section>
 
 

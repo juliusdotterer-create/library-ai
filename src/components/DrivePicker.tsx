@@ -24,11 +24,17 @@ export function DrivePicker({
   onOpenChange,
   onImport,
   importing,
+  title = "Aus Google Drive hinzufügen",
+  actionLabel = "Hinzufügen",
+  busyLabel = "Importiere …",
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onImport: (items: { id: string; name: string; mimeType: string }[]) => void;
   importing: boolean;
+  title?: string;
+  actionLabel?: string;
+  busyLabel?: string;
 }) {
   const [path, setPath] = useState<Crumb[]>([{ id: null, name: "Mein Drive" }]);
   const [selected, setSelected] = useState<Map<string, DriveItem>>(new Map());
@@ -67,7 +73,7 @@ export function DrivePicker({
       <DialogContent className="max-w-lg rounded-3xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <HardDrive className="size-4" /> Aus Google Drive hinzufügen
+            <HardDrive className="size-4" /> {title}
           </DialogTitle>
         </DialogHeader>
 
@@ -155,7 +161,7 @@ export function DrivePicker({
               )
             }
           >
-            {importing ? "Importiere …" : "Hinzufügen"}
+            {importing ? busyLabel : actionLabel}
           </Button>
         </div>
       </DialogContent>
