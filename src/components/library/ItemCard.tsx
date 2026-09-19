@@ -116,6 +116,9 @@ export function FolderCard({
   onRename,
   onDelete,
   onDriveSync,
+  selectMode,
+  selected,
+  onSelectChange,
 }: {
   folder: {
     id: string;
@@ -131,10 +134,23 @@ export function FolderCard({
   onRename: () => void;
   onDelete: () => void;
   onDriveSync?: () => void;
+  selectMode?: boolean;
+  selected?: boolean;
+  onSelectChange?: (v: boolean) => void;
 }) {
   return (
-    <MotionItem className={shell(view)}>
-      <button className="flex min-w-0 flex-1 items-center gap-3 text-left" onClick={onOpen}>
+    <MotionItem className={cn(shell(view), selected && "ring-2 ring-primary")}>
+      {selectMode && (
+        <SelectBox
+          selected={!!selected}
+          onChange={(v) => onSelectChange?.(v)}
+          label={folder.name}
+        />
+      )}
+      <button
+        className="flex min-w-0 flex-1 items-center gap-3 text-left"
+        onClick={() => (selectMode ? onSelectChange?.(!selected) : onOpen())}
+      >
         <span className={iconBox(view, "primary")}>
           <Folder className={cn("text-primary", iconSize(view))} />
         </span>
