@@ -775,10 +775,13 @@ export const mirrorDriveFolder = createServerFn({ method: "POST" })
             folderByName.set(normName(f.name), { id: f.id, external_id: f.external_id });
           }
         }
+        const docByName = new Map<string, { id: string; external_id: string | null }>();
         const docNames = new Set<string>();
         const docDriveIds = new Set<string>();
         for (const d of localDocs ?? []) {
-          docNames.add(normName(stripExt(d.name)));
+          const key = normName(stripExt(d.name));
+          docNames.add(key);
+          if (!docByName.has(key)) docByName.set(key, { id: d.id, external_id: d.external_id });
           if (d.external_id) docDriveIds.add(d.external_id);
         }
 
