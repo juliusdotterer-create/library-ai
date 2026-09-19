@@ -132,7 +132,7 @@ export function useAllDocuments() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("documents")
-        .select("id,name,storage_path,folder_id,mime_type")
+        .select("id,name,storage_path,folder_id,mime_type,source")
         .eq("user_id", user!.id)
         .is("deleted_at", null)
         .not("name", "ilike", "desktop.ini")
