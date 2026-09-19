@@ -134,6 +134,7 @@ export function DriveMirrorPanel() {
         open={pickerOpen}
         onOpenChange={setPickerOpen}
         importing={running}
+        folderPickMode
         title="Drive-Ordner zum Spiegeln wählen"
         actionLabel="Spiegeln"
         busyLabel="Gleiche ab …"
@@ -141,7 +142,9 @@ export function DriveMirrorPanel() {
           const folder = items.find((i) => i.mimeType === FOLDER_MIME) ?? items[0];
           if (!folder) return;
           if (folder.mimeType !== FOLDER_MIME) {
-            toast.error("Bitte einen Ordner auswählen.");
+            toast.error(
+              "Bitte einen Ordner auswählen: Tippe bei „Klausuren" auf „Wählen" oder öffne den Ordner und nutze „Diesen Ordner verwenden".",
+            );
             return;
           }
           void run(folder.id);
