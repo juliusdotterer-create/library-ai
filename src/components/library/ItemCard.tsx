@@ -135,7 +135,7 @@ export function FolderCard({
       <RowMenu
         onRename={onRename}
         onDelete={onDelete}
-        onDriveSync={folder.source === "gdrive" ? onDriveSync : undefined}
+        onDriveSync={folder.source === "gdrive" || folder.external_id ? onDriveSync : undefined}
         driveSyncLabel="Ordner aus Drive aktualisieren"
       />
     </MotionItem>
