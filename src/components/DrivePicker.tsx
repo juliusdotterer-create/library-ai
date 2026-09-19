@@ -68,7 +68,7 @@ export function DrivePicker({
   const reset = (v: boolean) => {
     onOpenChange(v);
     if (!v) {
-      setPath([{ id: null, name: "Mein Drive" }]);
+      setPath([MY_DRIVE_ROOT]);
       setSelected(new Map());
     }
   };
