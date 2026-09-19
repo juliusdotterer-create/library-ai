@@ -503,7 +503,6 @@ export const syncDriveItems = createServerFn({ method: "POST" })
       .from("folders")
       .select("id, external_id")
       .eq("user_id", userId)
-      .eq("source", "gdrive")
       .is("deleted_at", null)
       .not("external_id", "is", null);
     if (folderScope) {
