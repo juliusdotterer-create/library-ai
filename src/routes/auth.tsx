@@ -129,11 +129,32 @@ function AuthPage() {
 
           <TabsContent value="login" className="space-y-3">
             <Field label="E-Mail" value={email} onChange={setEmail} type="email" />
-            <Field label="Passwort" value={password} onChange={setPassword} type="password" />
-            <Button className="w-full rounded-2xl" disabled={busy} onClick={signIn}>
-              Anmelden
-            </Button>
+            {forgot ? null : (
+              <Field label="Passwort" value={password} onChange={setPassword} type="password" />
+            )}
+            {forgot ? (
+              <>
+                <p className="text-xs text-muted-foreground">
+                  Wir senden dir einen Link, mit dem du ein neues Passwort vergeben kannst.
+                </p>
+                <Button className="w-full rounded-2xl" disabled={busy} onClick={sendReset}>
+                  Link senden
+                </Button>
+              </>
+            ) : (
+              <Button className="w-full rounded-2xl" disabled={busy} onClick={signIn}>
+                Anmelden
+              </Button>
+            )}
+            <button
+              type="button"
+              className="w-full text-center text-xs text-muted-foreground underline-offset-4 hover:underline"
+              onClick={() => setForgot((v) => !v)}
+            >
+              {forgot ? "Zurück zur Anmeldung" : "Passwort vergessen?"}
+            </button>
           </TabsContent>
+
 
           <TabsContent value="signup" className="space-y-3">
             <Field label="Anzeigename" value={name} onChange={setName} />
