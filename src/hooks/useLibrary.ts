@@ -68,7 +68,7 @@ export function useFolders(parentId: string | null) {
     queryFn: async () => {
       let q = supabase
         .from("folders")
-        .select("id,name,parent_id,color,is_favorite,deleted_at,created_at,source")
+        .select("id,name,parent_id,color,is_favorite,deleted_at,created_at,source,external_id")
         .eq("user_id", user!.id)
         .is("deleted_at", null)
         .order("is_favorite", { ascending: false })
