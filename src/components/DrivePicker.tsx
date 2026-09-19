@@ -73,7 +73,7 @@ export function DrivePicker({
       <DialogContent className="max-w-lg rounded-3xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <HardDrive className="size-4" /> Aus Google Drive hinzufügen
+            <HardDrive className="size-4" /> {title}
           </DialogTitle>
         </DialogHeader>
 
