@@ -127,8 +127,9 @@ export function DriveMirrorPanel() {
       {report ? (
         <p className="text-sm text-muted-foreground">
           {running ? `Ordner ${report.processed} verarbeitet … ` : "Ergebnis: "}
-          {report.linkedFolders} verknüpft · {report.addedFolders} neue Ordner ·{" "}
-          {report.addedDocs} neue Dokumente · {report.skippedDocs} vorhanden
+          {report.linkedFolders} Ordner verknüpft · {report.addedFolders} neue Ordner ·{" "}
+          {report.addedDocs} neue Dokumente · {report.linkedDocs} Dokumente verknüpft ·{" "}
+          {report.skippedDocs} vorhanden
           {report.failed ? ` · ${report.failed} übersprungen` : ""}
         </p>
       ) : null}
