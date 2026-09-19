@@ -56,6 +56,7 @@ export function DriveMirrorPanel() {
         total.linkedFolders += res.linkedFolders;
         total.addedFolders += res.addedFolders;
         total.addedDocs += res.addedDocs;
+        total.linkedDocs += res.linkedDocs;
         total.skippedDocs += res.skippedDocs;
         total.failed += res.failed;
         total.processed += res.processed;
@@ -66,7 +67,7 @@ export function DriveMirrorPanel() {
       toast.success(
         cancelled.current
           ? "Abgleich abgebrochen – bisherige Ergebnisse sind gespeichert."
-          : `Fertig: ${total.addedDocs} neue Dokumente, ${total.addedFolders} neue Ordner.`,
+          : `Fertig: ${total.addedDocs} neue Dokumente, ${total.linkedDocs} verknüpft, ${total.addedFolders} neue Ordner.`,
       );
     } catch (e) {
       toast.error((e as Error).message);
