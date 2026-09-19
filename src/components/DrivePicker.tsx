@@ -147,10 +147,28 @@ export function DrivePicker({
           )}
         </div>
 
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="text-sm text-muted-foreground">
             {selected.size} ausgewählt
           </span>
+          {folderPickMode && current.id ? (
+            <Button
+              variant="outline"
+              className="rounded-xl"
+              disabled={importing}
+              onClick={() =>
+                onImport([
+                  {
+                    id: current.id!,
+                    name: current.name,
+                    mimeType: "application/vnd.google-apps.folder",
+                  },
+                ])
+              }
+            >
+              Ordner „{current.name}" verwenden
+            </Button>
+          ) : null}
           <Button
             className="rounded-xl"
             disabled={!selected.size || importing}
