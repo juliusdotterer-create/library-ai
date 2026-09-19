@@ -893,7 +893,9 @@ export const mirrorDriveFolder = createServerFn({ method: "POST" })
           });
           if (!error) {
             addedDocs++;
-            docNames.add(normName(stripExt(name)));
+            docNames.add(key);
+            docByName.set(key, { id: "", external_id: child.id });
+            docDriveIds.add(child.id);
           } else if (error.code === "23505") {
             skippedDocs++;
           } else {
@@ -912,6 +914,7 @@ export const mirrorDriveFolder = createServerFn({ method: "POST" })
       linkedFolders,
       addedFolders,
       addedDocs,
+      linkedDocs,
       skippedDocs,
       failed,
     };
