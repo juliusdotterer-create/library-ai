@@ -226,11 +226,15 @@ export const disconnectDrive = createServerFn({ method: "POST" })
 
 export const listDriveChildren = createServerFn({ method: "GET" })
   .middleware([requireWhitelisted])
-  .inputValidator((input: { folderId: string | null }) =>
-    z.object({ folderId: z.string().nullable() }).parse(input),
+  .inputValidator((input: { folderId: string | null; shared?: boolean }) =>
+    z
+      .object({ folderId: z.string().nullable(), shared: z.boolean().optional() })
+      .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const items = await listAllChildren(context.userId, data.folderId ?? "root");
+    const items = data.shared
+      ? await listSharedWithMe(context.userId)
+      : await listAllChildren(context.userId, data.folderId ?? "root");
     return { items };
   });
 
