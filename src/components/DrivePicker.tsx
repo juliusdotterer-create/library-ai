@@ -13,7 +13,10 @@ import {
 import { listDriveChildren, type DriveItem } from "@/lib/drive.functions";
 import { cn } from "@/lib/utils";
 
-type Crumb = { id: string | null; name: string };
+type Crumb = { id: string | null; name: string; shared?: boolean };
+
+const MY_DRIVE_ROOT: Crumb = { id: null, name: "Mein Drive" };
+const SHARED_ROOT: Crumb = { id: null, name: "Mit mir geteilt", shared: true };
 
 /**
  * Auswahlfenster für Google Drive: durch Ordner navigieren,
