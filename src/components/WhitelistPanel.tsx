@@ -95,17 +95,30 @@ export function WhitelistPanel() {
               <p className="truncate font-medium">{r.email}</p>
               {r.note ? <p className="truncate text-xs text-muted-foreground">{r.note}</p> : null}
             </div>
-            <ConfirmDelete
-              name={r.email}
-              title="Von Whitelist entfernen"
-              description={`„${r.email}“ wird aus der Zugangsliste entfernt. Bereits registrierte Nutzer bleiben aktiv.`}
-              confirmLabel="Entfernen"
-              onConfirm={() => remove(r)}
-            >
-              <Button variant="ghost" size="icon" className="rounded-xl" aria-label="Entfernen">
-                <Trash2 className="size-4" />
+            <div className="flex shrink-0 items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-xl"
+                disabled={busy}
+                aria-label="Zurücksetz-Link senden"
+                title="Zurücksetz-Link senden"
+                onClick={() => void sendReset(r)}
+              >
+                <KeyRound className="size-4" />
               </Button>
-            </ConfirmDelete>
+              <ConfirmDelete
+                name={r.email}
+                title="Von Whitelist entfernen"
+                description={`„${r.email}“ wird aus der Zugangsliste entfernt. Bereits registrierte Nutzer bleiben aktiv.`}
+                confirmLabel="Entfernen"
+                onConfirm={() => remove(r)}
+              >
+                <Button variant="ghost" size="icon" className="rounded-xl" aria-label="Entfernen">
+                  <Trash2 className="size-4" />
+                </Button>
+              </ConfirmDelete>
+            </div>
           </li>
         ))}
         {rows.length === 0 ? (
