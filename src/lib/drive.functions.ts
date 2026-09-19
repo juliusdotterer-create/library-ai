@@ -253,13 +253,23 @@ export const importDriveItems = createServerFn({ method: "POST" })
       if (folderCache.has(driveFolderId)) return folderCache.get(driveFolderId)!;
       const { data: existing } = await supabase
         .from("folders")
-        .select("id")
+        .select("id,deleted_at")
         .eq("user_id", userId)
         .eq("external_id", driveFolderId)
-        .is("deleted_at", null)
         .maybeSingle();
       if (existing) {
+        // Im Papierkorb liegende Drive-Ordner wieder herstellen statt Fehler werfen
+        if (existing.deleted_at) {
+          await supabase
+            .from("folders")
+            .update({ deleted_at: null, parent_id: localParent, name: driveName })
+            .eq("id", existing.id)
+            .eq("user_id", userId);
+          createdFolders++;
+        }
         folderCache.set(driveFolderId, existing.id);
+        const kids = await listAllChildren(userId, driveFolderId);
+        for (const child of kids) await importItem(child, existing.id);
         return existing.id;
       }
       const { data: row, error } = await supabase
@@ -273,7 +283,18 @@ export const importDriveItems = createServerFn({ method: "POST" })
         })
         .select("id")
         .single();
-      if (error) throw error;
+      if (error || !row) {
+        // Paralleler/doppelter Import: bestehende Zeile verwenden
+        const { data: again } = await supabase
+          .from("folders")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("external_id", driveFolderId)
+          .maybeSingle();
+        if (!again) throw error ?? new Error("Ordner konnte nicht angelegt werden");
+        folderCache.set(driveFolderId, again.id);
+        return again.id;
+      }
       createdFolders++;
       folderCache.set(driveFolderId, row.id);
       const children = await listAllChildren(userId, driveFolderId);
