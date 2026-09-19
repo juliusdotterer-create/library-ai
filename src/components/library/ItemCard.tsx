@@ -101,6 +101,7 @@ export function FolderCard({
     is_favorite?: boolean | null;
     created_at?: string | null;
     source?: string | null;
+    external_id?: string | null;
   };
   view: ViewMode;
   onOpen: () => void;
