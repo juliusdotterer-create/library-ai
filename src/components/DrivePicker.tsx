@@ -86,6 +86,29 @@ export function DrivePicker({
           </DialogTitle>
         </DialogHeader>
 
+        <div className="flex gap-1 rounded-xl bg-muted p-1 text-sm">
+          {[MY_DRIVE_ROOT, SHARED_ROOT].map((root) => (
+            <button
+              key={root.name}
+              className={cn(
+                "flex-1 rounded-lg px-2 py-1.5 transition-colors",
+                path[0].name === root.name
+                  ? "bg-background font-medium shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+              onClick={() => setPath([root])}
+            >
+              {root.name}
+            </button>
+          ))}
+        </div>
+
+        {path[0].shared ? (
+          <p className="text-xs text-muted-foreground">
+            Geteilte Inhalte lassen sich nur abgleichen, solange die Freigabe besteht.
+          </p>
+        ) : null}
+
         <div className="flex items-center gap-1 overflow-x-auto text-sm">
           {path.map((c, i) => (
             <span key={c.id ?? "root"} className="flex items-center gap-1 shrink-0">
