@@ -13,7 +13,10 @@ import {
 import { listDriveChildren, type DriveItem } from "@/lib/drive.functions";
 import { cn } from "@/lib/utils";
 
-type Crumb = { id: string | null; name: string };
+type Crumb = { id: string | null; name: string; shared?: boolean };
+
+const MY_DRIVE_ROOT: Crumb = { id: null, name: "Mein Drive" };
+const SHARED_ROOT: Crumb = { id: null, name: "Mit mir geteilt", shared: true };
 
 /**
  * Auswahlfenster für Google Drive: durch Ordner navigieren,
@@ -39,13 +42,16 @@ export function DrivePicker({
   /** Ordner-Modus: erlaubt, den aktuell geöffneten Ordner direkt zu übernehmen. */
   folderPickMode?: boolean;
 }) {
-  const [path, setPath] = useState<Crumb[]>([{ id: null, name: "Mein Drive" }]);
+  const [path, setPath] = useState<Crumb[]>([MY_DRIVE_ROOT]);
   const [selected, setSelected] = useState<Map<string, DriveItem>>(new Map());
   const current = path[path.length - 1];
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["drive-children", current.id],
-    queryFn: () => listDriveChildren({ data: { folderId: current.id } }),
+    queryKey: ["drive-children", current.id, current.shared ?? false],
+    queryFn: () =>
+      listDriveChildren({
+        data: { folderId: current.id, shared: current.shared ?? false },
+      }),
     enabled: open,
   });
   const items = useMemo(() => data?.items ?? [], [data]);
@@ -62,7 +68,7 @@ export function DrivePicker({
   const reset = (v: boolean) => {
     onOpenChange(v);
     if (!v) {
-      setPath([{ id: null, name: "Mein Drive" }]);
+      setPath([MY_DRIVE_ROOT]);
       setSelected(new Map());
     }
   };
@@ -79,6 +85,29 @@ export function DrivePicker({
             <HardDrive className="size-4" /> {title}
           </DialogTitle>
         </DialogHeader>
+
+        <div className="flex gap-1 rounded-xl bg-muted p-1 text-sm">
+          {[MY_DRIVE_ROOT, SHARED_ROOT].map((root) => (
+            <button
+              key={root.name}
+              className={cn(
+                "flex-1 rounded-lg px-2 py-1.5 transition-colors",
+                path[0].name === root.name
+                  ? "bg-background font-medium shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+              onClick={() => setPath([root])}
+            >
+              {root.name}
+            </button>
+          ))}
+        </div>
+
+        {path[0].shared ? (
+          <p className="text-xs text-muted-foreground">
+            Geteilte Inhalte lassen sich nur abgleichen, solange die Freigabe besteht.
+          </p>
+        ) : null}
 
         <div className="flex items-center gap-1 overflow-x-auto text-sm">
           {path.map((c, i) => (
