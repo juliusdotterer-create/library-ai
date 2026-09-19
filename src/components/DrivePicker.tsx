@@ -161,7 +161,7 @@ export function DrivePicker({
               )
             }
           >
-            {importing ? "Importiere …" : "Hinzufügen"}
+            {importing ? busyLabel : actionLabel}
           </Button>
         </div>
       </DialogContent>
