@@ -16,6 +16,7 @@ type Report = {
   linkedFolders: number;
   addedFolders: number;
   addedDocs: number;
+  linkedDocs: number;
   skippedDocs: number;
   failed: number;
   processed: number;
