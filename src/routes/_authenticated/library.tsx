@@ -4,7 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   ArrowUpDown,
+  CheckSquare,
   ChevronRight,
+  Trash2,
+  X,
   FilePlus2,
   Folder,
   FolderPlus,
