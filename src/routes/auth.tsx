@@ -45,6 +45,7 @@ function AuthPage() {
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [blocked, setBlocked] = useState(false);
+  const [forgot, setForgot] = useState(false);
 
   useEffect(() => {
     if (window.localStorage.getItem("access_blocked") === "1") {
@@ -72,6 +73,19 @@ function AuthPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setBusy(false);
     if (error) toast.error(error.message);
+  };
+
+  const sendReset = async () => {
+    const value = email.trim().toLowerCase();
+    if (!value.includes("@")) return toast.error("Bitte deine E-Mail-Adresse eintragen.");
+    setBusy(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(value, {
+      redirectTo: `${window.location.origin}/passwort-neu`,
+    });
+    setBusy(false);
+    if (error) return toast.error(error.message);
+    toast.success("E-Mail ist unterwegs – schau in dein Postfach.");
+    setForgot(false);
   };
 
   const signUp = async () => {
@@ -129,11 +143,32 @@ function AuthPage() {
 
           <TabsContent value="login" className="space-y-3">
             <Field label="E-Mail" value={email} onChange={setEmail} type="email" />
-            <Field label="Passwort" value={password} onChange={setPassword} type="password" />
-            <Button className="w-full rounded-2xl" disabled={busy} onClick={signIn}>
-              Anmelden
-            </Button>
+            {forgot ? null : (
+              <Field label="Passwort" value={password} onChange={setPassword} type="password" />
+            )}
+            {forgot ? (
+              <>
+                <p className="text-xs text-muted-foreground">
+                  Wir senden dir einen Link, mit dem du ein neues Passwort vergeben kannst.
+                </p>
+                <Button className="w-full rounded-2xl" disabled={busy} onClick={sendReset}>
+                  Link senden
+                </Button>
+              </>
+            ) : (
+              <Button className="w-full rounded-2xl" disabled={busy} onClick={signIn}>
+                Anmelden
+              </Button>
+            )}
+            <button
+              type="button"
+              className="w-full text-center text-xs text-muted-foreground underline-offset-4 hover:underline"
+              onClick={() => setForgot((v) => !v)}
+            >
+              {forgot ? "Zurück zur Anmeldung" : "Passwort vergessen?"}
+            </button>
           </TabsContent>
+
 
           <TabsContent value="signup" className="space-y-3">
             <Field label="Anzeigename" value={name} onChange={setName} />

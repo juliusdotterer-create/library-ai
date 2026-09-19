@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Plus, Trash2 } from "lucide-react";
+import { KeyRound, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ConfirmDelete } from "@/components/ConfirmDelete";
+import { sendPasswordResetForEmail } from "@/lib/admin.functions";
 
 type Row = { id: string; email: string; note: string | null; created_at: string };
 
@@ -50,6 +51,20 @@ export function WhitelistPanel() {
     void load();
   };
 
+  const sendReset = async (row: Row) => {
+    setBusy(true);
+    try {
+      await sendPasswordResetForEmail({
+        data: { email: row.email, redirectTo: `${window.location.origin}/passwort-neu` },
+      });
+      toast.success(`Zurücksetz-Link an ${row.email} gesendet.`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Link konnte nicht gesendet werden.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex flex-col gap-2 sm:flex-row">
@@ -80,17 +95,30 @@ export function WhitelistPanel() {
               <p className="truncate font-medium">{r.email}</p>
               {r.note ? <p className="truncate text-xs text-muted-foreground">{r.note}</p> : null}
             </div>
-            <ConfirmDelete
-              name={r.email}
-              title="Von Whitelist entfernen"
-              description={`„${r.email}“ wird aus der Zugangsliste entfernt. Bereits registrierte Nutzer bleiben aktiv.`}
-              confirmLabel="Entfernen"
-              onConfirm={() => remove(r)}
-            >
-              <Button variant="ghost" size="icon" className="rounded-xl" aria-label="Entfernen">
-                <Trash2 className="size-4" />
+            <div className="flex shrink-0 items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-xl"
+                disabled={busy}
+                aria-label="Zurücksetz-Link senden"
+                title="Zurücksetz-Link senden"
+                onClick={() => void sendReset(r)}
+              >
+                <KeyRound className="size-4" />
               </Button>
-            </ConfirmDelete>
+              <ConfirmDelete
+                name={r.email}
+                title="Von Whitelist entfernen"
+                description={`„${r.email}“ wird aus der Zugangsliste entfernt. Bereits registrierte Nutzer bleiben aktiv.`}
+                confirmLabel="Entfernen"
+                onConfirm={() => remove(r)}
+              >
+                <Button variant="ghost" size="icon" className="rounded-xl" aria-label="Entfernen">
+                  <Trash2 className="size-4" />
+                </Button>
+              </ConfirmDelete>
+            </div>
           </li>
         ))}
         {rows.length === 0 ? (
