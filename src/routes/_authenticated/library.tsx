@@ -238,6 +238,41 @@ function LibraryPage() {
     snapshot?.forEach(([key, data]) => qc.setQueryData(key, data));
   };
 
+  /** Rückgängig-Hinweis mit Knopf. */
+  const undoToast = (message: string, undo: () => Promise<void>) => {
+    toast.success(message, {
+      duration: 10000,
+      action: {
+        label: "Rückgängig",
+        onClick: () => {
+          void (async () => {
+            try {
+              await undo();
+              invalidate();
+              void qc.invalidateQueries({ queryKey: ["trash"] });
+              toast.success("Rückgängig gemacht");
+            } catch (e) {
+              toast.error((e as Error).message || "Rückgängig fehlgeschlagen");
+            }
+          })();
+        },
+      },
+    });
+  };
+
+  const restoreItems = async (folderIds: string[], documentIds: string[]) => {
+    if (!uid) throw new Error("Nicht angemeldet");
+    for (const id of folderIds) await restoreFolder(id, uid);
+    if (documentIds.length) {
+      const { error } = await supabase
+        .from("documents")
+        .update({ deleted_at: null })
+        .eq("user_id", uid)
+        .in("id", documentIds);
+      if (error) throw error;
+    }
+  };
+
   const softDelete = useMutation({
     mutationFn: async ({ table, id }: { table: "folders" | "documents"; id: string }) => {
       if (!uid) throw new Error("Nicht angemeldet");
@@ -255,9 +290,69 @@ function LibraryPage() {
     onMutate: ({ table, id }) => ({
       snapshot: patchList(table, (rows) => rows.filter((r) => r.id !== id)),
     }),
-    onSuccess: () => {
+    onSuccess: (_d, v) => {
       invalidate();
-      toast.success("In den Papierkorb verschoben");
+      undoToast("In den Papierkorb verschoben", () =>
+        restoreItems(v.table === "folders" ? [v.id] : [], v.table === "documents" ? [v.id] : []),
+      );
+    },
+    onError: (e: Error, _v, ctx) => {
+      restore(ctx?.snapshot);
+      toast.error(e.message || "Löschen fehlgeschlagen");
+    },
+  });
+
+  // ---- Schnellauswahl (Mehrfachlöschen) ----
+  const [selectMode, setSelectMode] = useState(false);
+  const [selFolders, setSelFolders] = useState<string[]>([]);
+  const [selDocs, setSelDocs] = useState<string[]>([]);
+  const selectedCount = selFolders.length + selDocs.length;
+  const clearSelection = () => {
+    setSelFolders([]);
+    setSelDocs([]);
+  };
+  useEffect(() => {
+    clearSelection();
+  }, [current.id]);
+
+  const toggleIn = (list: string[], id: string, on: boolean) =>
+    on ? [...new Set([...list, id])] : list.filter((x) => x !== id);
+
+  const bulkDelete = useMutation({
+    mutationFn: async () => {
+      if (!uid) throw new Error("Nicht angemeldet");
+      for (const id of selFolders) await softDeleteFolder(id, uid);
+      if (selDocs.length) {
+        const stamp = new Date().toISOString();
+        for (let i = 0; i < selDocs.length; i += 50) {
+          const part = selDocs.slice(i, i + 50);
+          const { error } = await supabase
+            .from("documents")
+            .update({ deleted_at: stamp })
+            .eq("user_id", uid)
+            .in("id", part);
+          if (error) throw error;
+        }
+      }
+      return { folderIds: [...selFolders], documentIds: [...selDocs] };
+    },
+    onMutate: () => {
+      const s1 = patchList("folders", (rows) =>
+        rows.filter((r) => !selFolders.includes(r.id as string)),
+      );
+      const s2 = patchList("documents", (rows) =>
+        rows.filter((r) => !selDocs.includes(r.id as string)),
+      );
+      return { snapshot: [...s1, ...s2] };
+    },
+    onSuccess: (v) => {
+      clearSelection();
+      setSelectMode(false);
+      invalidate();
+      undoToast(
+        `${v.folderIds.length + v.documentIds.length} Element(e) in den Papierkorb verschoben`,
+        () => restoreItems(v.folderIds, v.documentIds),
+      );
     },
     onError: (e: Error, _v, ctx) => {
       restore(ctx?.snapshot);
@@ -266,7 +361,12 @@ function LibraryPage() {
   });
 
   const doRename = useMutation({
-    mutationFn: async (r: { table: "folders" | "documents"; id: string; name: string }) => {
+    mutationFn: async (r: {
+      table: "folders" | "documents";
+      id: string;
+      name: string;
+      prev?: string;
+    }) => {
       if (!uid) throw new Error("Nicht angemeldet");
       const { error } = await supabase
         .from(r.table)
@@ -283,9 +383,21 @@ function LibraryPage() {
         ),
       };
     },
-    onSuccess: () => {
+    onSuccess: (_d, r) => {
       invalidate();
-      toast.success("Umbenannt");
+      if (!r.prev || r.prev === r.name) {
+        toast.success("Umbenannt");
+        return;
+      }
+      undoToast("Umbenannt", async () => {
+        if (!uid) throw new Error("Nicht angemeldet");
+        const { error } = await supabase
+          .from(r.table)
+          .update({ name: r.prev! })
+          .eq("id", r.id)
+          .eq("user_id", uid);
+        if (error) throw error;
+      });
     },
     onError: (e: Error, _v, ctx) => {
       restore(ctx?.snapshot);
