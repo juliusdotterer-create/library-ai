@@ -82,6 +82,7 @@ function SettingsPage() {
           </p>
         </div>
         <DrivePanel />
+        <DriveMirrorPanel />
       </section>
 
 
