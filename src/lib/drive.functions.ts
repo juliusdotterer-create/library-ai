@@ -763,7 +763,7 @@ export const mirrorDriveFolder = createServerFn({ method: "POST" })
             .is("deleted_at", null),
           supabase
             .from("documents")
-            .select("id, name, external_id")
+            .select("id, name, external_id, storage_path")
             .eq("user_id", userId)
             .eq("folder_id", pair.localFolderId)
             .is("deleted_at", null),
@@ -775,13 +775,22 @@ export const mirrorDriveFolder = createServerFn({ method: "POST" })
             folderByName.set(normName(f.name), { id: f.id, external_id: f.external_id });
           }
         }
-        const docByName = new Map<string, { id: string; external_id: string | null }>();
+        const docByName = new Map<
+          string,
+          { id: string; external_id: string | null; hasOwnFile: boolean }
+        >();
         const docNames = new Set<string>();
         const docDriveIds = new Set<string>();
         for (const d of localDocs ?? []) {
           const key = normName(stripExt(d.name));
           docNames.add(key);
-          if (!docByName.has(key)) docByName.set(key, { id: d.id, external_id: d.external_id });
+          if (!docByName.has(key)) {
+            docByName.set(key, {
+              id: d.id,
+              external_id: d.external_id,
+              hasOwnFile: !!d.storage_path,
+            });
+          }
           if (d.external_id) docDriveIds.add(d.external_id);
         }
 
