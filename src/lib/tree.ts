@@ -11,12 +11,10 @@ function chunk<T>(list: T[], size = ID_CHUNK): T[][] {
   return out;
 }
 
-async function allFolders(userId: string): Promise<FolderRow[]> {
-  const { data, error } = await supabase
-    .from("folders")
-    .select("id,parent_id")
-    .eq("user_id", userId)
-    .is("deleted_at", null);
+async function allFolders(userId: string, includeDeleted = false): Promise<FolderRow[]> {
+  let q = supabase.from("folders").select("id,parent_id").eq("user_id", userId);
+  if (!includeDeleted) q = q.is("deleted_at", null);
+  const { data, error } = await q;
   if (error) throw error;
   return data ?? [];
 }
