@@ -11,12 +11,10 @@ function chunk<T>(list: T[], size = ID_CHUNK): T[][] {
   return out;
 }
 
-async function allFolders(userId: string): Promise<FolderRow[]> {
-  const { data, error } = await supabase
-    .from("folders")
-    .select("id,parent_id")
-    .eq("user_id", userId)
-    .is("deleted_at", null);
+async function allFolders(userId: string, includeDeleted = false): Promise<FolderRow[]> {
+  let q = supabase.from("folders").select("id,parent_id").eq("user_id", userId);
+  if (!includeDeleted) q = q.is("deleted_at", null);
+  const { data, error } = await q;
   if (error) throw error;
   return data ?? [];
 }
@@ -30,8 +28,12 @@ export function descendantIds(rootId: string, folders: FolderRow[]): string[] {
   return ids;
 }
 
-export async function folderTreeIds(rootId: string, userId: string): Promise<string[]> {
-  return descendantIds(rootId, await allFolders(userId));
+export async function folderTreeIds(
+  rootId: string,
+  userId: string,
+  includeDeleted = false,
+): Promise<string[]> {
+  return descendantIds(rootId, await allFolders(userId, includeDeleted));
 }
 
 async function stampTree(userId: string, ids: string[], stamp: string | null) {
@@ -56,9 +58,9 @@ export async function softDeleteFolder(rootId: string, userId: string) {
   await stampTree(userId, await folderTreeIds(rootId, userId), new Date().toISOString());
 }
 
-/** Ordner samt Inhalt wiederherstellen. */
+/** Ordner samt Inhalt wiederherstellen (gelöschte Unterordner eingeschlossen). */
 export async function restoreFolder(rootId: string, userId: string) {
-  await stampTree(userId, await folderTreeIds(rootId, userId), null);
+  await stampTree(userId, await folderTreeIds(rootId, userId, true), null);
 }
 
 export type PurgeProgress = { done: number; total: number; label: string };
@@ -108,7 +110,7 @@ export async function purgeDocuments(
 
 /** Ordner samt Inhalt endgültig löschen (inkl. Dateien im Speicher). */
 export async function purgeFolder(rootId: string, userId: string, onProgress?: OnProgress) {
-  const ids = await folderTreeIds(rootId, userId);
+  const ids = await folderTreeIds(rootId, userId, true);
 
   const list: { id: string; storage_path: string | null }[] = [];
   for (const part of chunk(ids)) {
