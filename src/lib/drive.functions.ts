@@ -861,7 +861,7 @@ export const mirrorDriveFolder = createServerFn({ method: "POST" })
           if (existing) {
             // Gleichnamiges Dokument vorhanden: mit der Drive-Datei verknüpfen,
             // damit der Abgleich es künftig aktuell hält.
-            if (!existing.external_id) {
+            if (!existing.external_id && !existing.hasOwnFile) {
               const { error } = await supabase
                 .from("documents")
                 .update({
@@ -903,7 +903,7 @@ export const mirrorDriveFolder = createServerFn({ method: "POST" })
           if (!error) {
             addedDocs++;
             docNames.add(key);
-            docByName.set(key, { id: "", external_id: child.id });
+            docByName.set(key, { id: "", external_id: child.id, hasOwnFile: false });
             docDriveIds.add(child.id);
           } else if (error.code === "23505") {
             skippedDocs++;
