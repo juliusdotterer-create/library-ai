@@ -28,8 +28,12 @@ export function descendantIds(rootId: string, folders: FolderRow[]): string[] {
   return ids;
 }
 
-export async function folderTreeIds(rootId: string, userId: string): Promise<string[]> {
-  return descendantIds(rootId, await allFolders(userId));
+export async function folderTreeIds(
+  rootId: string,
+  userId: string,
+  includeDeleted = false,
+): Promise<string[]> {
+  return descendantIds(rootId, await allFolders(userId, includeDeleted));
 }
 
 async function stampTree(userId: string, ids: string[], stamp: string | null) {
