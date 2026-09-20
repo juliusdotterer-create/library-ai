@@ -58,9 +58,9 @@ export async function softDeleteFolder(rootId: string, userId: string) {
   await stampTree(userId, await folderTreeIds(rootId, userId), new Date().toISOString());
 }
 
-/** Ordner samt Inhalt wiederherstellen. */
+/** Ordner samt Inhalt wiederherstellen (gelöschte Unterordner eingeschlossen). */
 export async function restoreFolder(rootId: string, userId: string) {
-  await stampTree(userId, await folderTreeIds(rootId, userId), null);
+  await stampTree(userId, await folderTreeIds(rootId, userId, true), null);
 }
 
 export type PurgeProgress = { done: number; total: number; label: string };
