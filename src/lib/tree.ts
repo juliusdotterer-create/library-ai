@@ -110,7 +110,7 @@ export async function purgeDocuments(
 
 /** Ordner samt Inhalt endgültig löschen (inkl. Dateien im Speicher). */
 export async function purgeFolder(rootId: string, userId: string, onProgress?: OnProgress) {
-  const ids = await folderTreeIds(rootId, userId);
+  const ids = await folderTreeIds(rootId, userId, true);
 
   const list: { id: string; storage_path: string | null }[] = [];
   for (const part of chunk(ids)) {
