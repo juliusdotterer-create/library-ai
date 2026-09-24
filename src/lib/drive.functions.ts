@@ -385,7 +385,8 @@ export const importDriveItems = createServerFn({ method: "POST" })
 
 // ---------------------------------------------------------------- sync
 
-const SYNC_BATCH = 100;
+/** Pro Aufruf werden 50 Elemente geprüft; der Client ruft solange nach, bis `done`. */
+const SYNC_BATCH = 50;
 
 /**
  * Legt einen Drive-Unterordner lokal an (falls noch nicht vorhanden) und
