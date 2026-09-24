@@ -672,7 +672,27 @@ export const syncDriveItems = createServerFn({ method: "POST" })
       }
     }
 
-    return { added, addedFolders, changed, missing, failed };
+    // Fortsetzungsmarke für den nächsten Aufruf bestimmen
+    let cursor: SyncCursor | null = null;
+    if (phase === "docs") {
+      cursor =
+        docs.length === SYNC_BATCH
+          ? { phase: "docs", lastId: docs[docs.length - 1]!.id }
+          : { phase: "folders", lastId: null };
+    } else if (folders.length === SYNC_BATCH) {
+      cursor = { phase: "folders", lastId: folders[folders.length - 1]!.id };
+    }
+
+    return {
+      added,
+      addedFolders,
+      changed,
+      missing,
+      failed,
+      checked: docs.length + folders.length,
+      cursor,
+      done: cursor === null,
+    };
   });
 
 // ---------------------------------------------------------------- content
