@@ -179,8 +179,29 @@ function LibraryPage() {
   });
 
   const driveSync = useMutation({
-    mutationFn: (scope?: { documentIds?: string[]; folderIds?: string[] }) =>
-      syncDriveItems({ data: scope ?? {} }),
+    mutationFn: async (scope?: { documentIds?: string[]; folderIds?: string[] }) => {
+      const total = { added: 0, addedFolders: 0, changed: 0, missing: 0, failed: 0, checked: 0 };
+      let cursor: Awaited<ReturnType<typeof syncDriveItems>>["cursor"] = null;
+      const toastId = toast.loading("Drive-Abgleich läuft …");
+      try {
+        // In 50er-Paketen weiterlaufen, bis alles geprüft ist.
+        for (let i = 0; i < 2000; i++) {
+          const res = await syncDriveItems({ data: { ...(scope ?? {}), cursor } });
+          total.added += res.added;
+          total.addedFolders += res.addedFolders;
+          total.changed += res.changed;
+          total.missing += res.missing;
+          total.failed += res.failed;
+          total.checked += res.checked;
+          toast.loading(`Drive-Abgleich: ${total.checked} geprüft …`, { id: toastId });
+          if (res.done) break;
+          cursor = res.cursor;
+        }
+        return total;
+      } finally {
+        toast.dismiss(toastId);
+      }
+    },
     onSuccess: (res) => {
       invalidate();
       const parts: string[] = [];
@@ -189,11 +210,11 @@ function LibraryPage() {
       if (res.changed) parts.push(`${res.changed} aktualisiert`);
       if (res.missing) parts.push(`${res.missing} nicht mehr gefunden`);
       if (!parts.length && !res.failed) {
-        toast.success("Drive-Abgleich abgeschlossen – alles aktuell");
+        toast.success(`Drive-Abgleich abgeschlossen – ${res.checked} geprüft, alles aktuell`);
       } else if (res.failed) {
         toast.error(`Abgleich teilweise fehlgeschlagen (${res.failed}). ${parts.join(", ")}`);
       } else {
-        toast.success(`Drive-Abgleich: ${parts.join(", ")}`);
+        toast.success(`Drive-Abgleich: ${parts.join(", ")} (${res.checked} geprüft)`);
       }
     },
     onError: (e: Error) =>
