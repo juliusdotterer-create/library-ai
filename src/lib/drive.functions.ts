@@ -453,11 +453,20 @@ async function ensureDriveFolder(
   return created;
 }
 
+export type SyncCursor = {
+  /** Aktuelle Etappe: erst alle Dokumente, dann alle Ordner. */
+  phase: "docs" | "folders";
+  /** Letzte bereits geprüfte ID dieser Etappe. */
+  lastId: string | null;
+};
+
 export type SyncScope = {
   documentIds?: string[];
   folderIds?: string[];
   /** Bei Ordnern auch alle Unterordner einbeziehen (Standard: true). */
   recursive?: boolean;
+  /** Fortsetzungsmarke des vorherigen Aufrufs. */
+  cursor?: SyncCursor | null;
 };
 
 export const syncDriveItems = createServerFn({ method: "POST" })
