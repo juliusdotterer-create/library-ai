@@ -385,7 +385,8 @@ export const importDriveItems = createServerFn({ method: "POST" })
 
 // ---------------------------------------------------------------- sync
 
-const SYNC_BATCH = 100;
+/** Pro Aufruf werden 50 Elemente geprüft; der Client ruft solange nach, bis `done`. */
+const SYNC_BATCH = 50;
 
 /**
  * Legt einen Drive-Unterordner lokal an (falls noch nicht vorhanden) und
@@ -452,11 +453,20 @@ async function ensureDriveFolder(
   return created;
 }
 
+export type SyncCursor = {
+  /** Aktuelle Etappe: erst alle Dokumente, dann alle Ordner. */
+  phase: "docs" | "folders";
+  /** Letzte bereits geprüfte ID dieser Etappe. */
+  lastId: string | null;
+};
+
 export type SyncScope = {
   documentIds?: string[];
   folderIds?: string[];
   /** Bei Ordnern auch alle Unterordner einbeziehen (Standard: true). */
   recursive?: boolean;
+  /** Fortsetzungsmarke des vorherigen Aufrufs. */
+  cursor?: SyncCursor | null;
 };
 
 export const syncDriveItems = createServerFn({ method: "POST" })
@@ -495,36 +505,59 @@ export const syncDriveItems = createServerFn({ method: "POST" })
       }
     }
 
-    // Verknüpfte Drive-Dokumente (ohne Papierkorb)
-    let docQuery = supabase
-      .from("documents")
-      .select("id, name, external_id, external_mime, external_modified, folder_id, drive_state")
-      .eq("user_id", userId)
-      .eq("source", "gdrive")
-      .is("deleted_at", null)
-      .not("external_id", "is", null);
-    if (data?.documentIds?.length) {
-      docQuery = docQuery.in("id", data.documentIds);
-    } else if (folderScope) {
-      docQuery = docQuery.in("folder_id", folderScope);
-    } else if (scoped) {
-      docQuery = docQuery.in("id", []);
-    }
-    const { data: docs } = await docQuery.limit(SYNC_BATCH);
+    // Etappe: erst alle Dokumente in 50er-Paketen, danach alle Ordner.
+    const phase: "docs" | "folders" = data?.cursor?.phase ?? "docs";
+    const after = data?.cursor?.lastId ?? null;
 
-    // Verknüpfte Drive-Ordner mit lokalem Gegenstück
-    let folderQuery = supabase
-      .from("folders")
-      .select("id, external_id")
-      .eq("user_id", userId)
-      .is("deleted_at", null)
-      .not("external_id", "is", null);
-    if (folderScope) {
-      folderQuery = folderQuery.in("id", folderScope);
-    } else if (scoped) {
-      folderQuery = folderQuery.in("id", []);
+    let docs: {
+      id: string;
+      name: string;
+      external_id: string | null;
+      external_mime: string | null;
+      external_modified: string | null;
+      folder_id: string | null;
+      drive_state: string | null;
+    }[] = [];
+    let folders: { id: string; external_id: string | null }[] = [];
+
+    if (phase === "docs") {
+      // Verknüpfte Drive-Dokumente (ohne Papierkorb)
+      let docQuery = supabase
+        .from("documents")
+        .select("id, name, external_id, external_mime, external_modified, folder_id, drive_state")
+        .eq("user_id", userId)
+        .eq("source", "gdrive")
+        .is("deleted_at", null)
+        .not("external_id", "is", null);
+      if (data?.documentIds?.length) {
+        docQuery = docQuery.in("id", data.documentIds);
+      } else if (folderScope) {
+        docQuery = docQuery.in("folder_id", folderScope);
+      } else if (scoped) {
+        docQuery = docQuery.in("id", []);
+      }
+      if (after) docQuery = docQuery.gt("id", after);
+      const { data: rows } = await docQuery.order("id", { ascending: true }).limit(SYNC_BATCH);
+      docs = rows ?? [];
+    } else {
+      // Verknüpfte Drive-Ordner mit lokalem Gegenstück
+      let folderQuery = supabase
+        .from("folders")
+        .select("id, external_id")
+        .eq("user_id", userId)
+        .is("deleted_at", null)
+        .not("external_id", "is", null);
+      if (folderScope) {
+        folderQuery = folderQuery.in("id", folderScope);
+      } else if (scoped) {
+        folderQuery = folderQuery.in("id", []);
+      }
+      if (after) folderQuery = folderQuery.gt("id", after);
+      const { data: rows } = await folderQuery.order("id", { ascending: true }).limit(SYNC_BATCH);
+      folders = rows ?? [];
     }
-    const { data: folders } = await folderQuery.limit(SYNC_BATCH);
+
+
 
 
     let added = 0;
@@ -639,7 +672,27 @@ export const syncDriveItems = createServerFn({ method: "POST" })
       }
     }
 
-    return { added, addedFolders, changed, missing, failed };
+    // Fortsetzungsmarke für den nächsten Aufruf bestimmen
+    let cursor: SyncCursor | null = null;
+    if (phase === "docs") {
+      cursor =
+        docs.length === SYNC_BATCH
+          ? { phase: "docs", lastId: docs[docs.length - 1]!.id }
+          : { phase: "folders", lastId: null };
+    } else if (folders.length === SYNC_BATCH) {
+      cursor = { phase: "folders", lastId: folders[folders.length - 1]!.id };
+    }
+
+    return {
+      added,
+      addedFolders,
+      changed,
+      missing,
+      failed,
+      checked: docs.length + folders.length,
+      cursor,
+      done: cursor === null,
+    };
   });
 
 // ---------------------------------------------------------------- content
