@@ -45,7 +45,12 @@ import {
 import { DocumentPreview, type PreviewDoc } from "@/components/DocumentPreview";
 import { FreeNotesOverlay } from "@/components/FreeNotesOverlay";
 import { DrivePicker } from "@/components/DrivePicker";
-import { getDriveStatus, importDriveItems, syncDriveItems } from "@/lib/drive.functions";
+import {
+  deltaSyncDrive,
+  getDriveStatus,
+  importDriveItems,
+  syncDriveItems,
+} from "@/lib/drive.functions";
 import {
   Dialog,
   DialogContent,
@@ -184,6 +189,24 @@ function LibraryPage() {
       let cursor: Awaited<ReturnType<typeof syncDriveItems>>["cursor"] = null;
       const toastId = toast.loading("Drive-Abgleich läuft …");
       try {
+        // „Alles abgleichen": nur Änderungen seit dem letzten Mal abfragen.
+        if (!scope) {
+          let needsFull = false;
+          for (let i = 0; i < 200; i++) {
+            const res = await deltaSyncDrive({ data: {} });
+            total.added += res.added;
+            total.addedFolders += res.addedFolders;
+            total.changed += res.changed;
+            total.missing += res.missing;
+            total.failed += res.failed;
+            total.checked += res.checked;
+            if (res.needsFull) needsFull = true;
+            toast.loading(`Drive-Änderungen: ${total.checked} geprüft …`, { id: toastId });
+            if (res.done) break;
+          }
+          if (!needsFull) return total;
+          toast.loading("Erster vollständiger Abgleich läuft …", { id: toastId });
+        }
         // In 50er-Paketen weiterlaufen, bis alles geprüft ist.
         for (let i = 0; i < 2000; i++) {
           const res = await syncDriveItems({ data: { ...(scope ?? {}), cursor } });
