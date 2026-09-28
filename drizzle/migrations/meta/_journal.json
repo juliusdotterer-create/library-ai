@@ -15,6 +15,13 @@
       "when": 1789739766339,
       "tag": "0001_add_google_drive_support",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790609540296,
+      "tag": "0002_drive_sync_state",
+      "breakpoints": true
     }
   ]
 }
