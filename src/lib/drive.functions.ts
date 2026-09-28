@@ -981,3 +981,204 @@ export const mirrorDriveFolder = createServerFn({ method: "POST" })
       failed,
     };
   });
+
+// ---------------------------------------------------------------- delta sync (Changes API)
+
+type DriveChange = {
+  fileId?: string;
+  removed?: boolean;
+  file?: DriveFileRaw & { parents?: string[] };
+};
+
+export type DeltaSyncResult = {
+  /** Kein Änderungsstand vorhanden – einmal den vollständigen Abgleich laufen lassen. */
+  needsFull: boolean;
+  done: boolean;
+  checked: number;
+  added: number;
+  addedFolders: number;
+  changed: number;
+  missing: number;
+  failed: number;
+};
+
+async function fetchStartPageToken(userId: string): Promise<string> {
+  const res = await driveFetch(userId, `/drive/v3/changes/startPageToken?supportsAllDrives=true`);
+  if (!res.ok) throw new Error(`Drive-Änderungsstand fehlgeschlagen (${res.status}): ${await res.text()}`);
+  const body = (await res.json()) as { startPageToken?: string };
+  if (!body.startPageToken) throw new Error("Drive lieferte keinen Änderungsstand");
+  return body.startPageToken;
+}
+
+/**
+ * Fragt Google Drive nur nach Änderungen seit dem letzten Abgleich.
+ * Beim allerersten Aufruf wird der Stand gemerkt und `needsFull` zurückgegeben.
+ */
+export const deltaSyncDrive = createServerFn({ method: "POST" })
+  .middleware([requireWhitelisted])
+  .inputValidator((input: { reset?: boolean } | undefined) => input ?? {})
+  .handler(async ({ data, context }): Promise<DeltaSyncResult> => {
+    const { supabase, userId } = context;
+    const result: DeltaSyncResult = {
+      needsFull: false, done: false, checked: 0, added: 0, addedFolders: 0, changed: 0, missing: 0, failed: 0,
+    };
+
+    const { data: state } = await supabase
+      .from("drive_sync_state")
+      .select("page_token")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    const saveToken = async (token: string) => {
+      const { error } = await supabase
+        .from("drive_sync_state")
+        .upsert({ user_id: userId, page_token: token, updated_at: new Date().toISOString() });
+      if (error) throw error;
+    };
+
+    if (!state || data?.reset) {
+      // Stand VOR dem vollständigen Abgleich merken, damit nichts verloren geht.
+      await saveToken(await fetchStartPageToken(userId));
+      result.needsFull = true;
+      result.done = true;
+      return result;
+    }
+
+    const started = Date.now();
+    let pageToken: string | null = state.page_token;
+    const fields = encodeURIComponent(
+      "nextPageToken, newStartPageToken, changes(fileId, removed, file(id, name, mimeType, modifiedTime, size, trashed, parents))",
+    );
+
+    while (pageToken && Date.now() - started < 20_000) {
+      const res = await driveFetch(
+        userId,
+        `/drive/v3/changes?pageToken=${encodeURIComponent(pageToken)}&pageSize=500&fields=${fields}&${ALL_DRIVES_PARAMS}&includeRemoved=true`,
+      );
+      if (res.status === 404 || res.status === 410) {
+        // Änderungsstand abgelaufen → neu beginnen mit vollständigem Abgleich
+        await saveToken(await fetchStartPageToken(userId));
+        result.needsFull = true;
+        result.done = true;
+        return result;
+      }
+      if (!res.ok) throw new Error(`Drive-Änderungen fehlgeschlagen (${res.status}): ${await res.text()}`);
+      const body = (await res.json()) as {
+        changes?: DriveChange[];
+        nextPageToken?: string;
+        newStartPageToken?: string;
+      };
+      const changes = (body.changes ?? []).filter((c) => c.fileId);
+      result.checked += changes.length;
+
+      if (changes.length) {
+        const ids = [...new Set(changes.map((c) => c.fileId!))];
+        const parentIds = [...new Set(changes.flatMap((c) => c.file?.parents ?? []))];
+        const [{ data: knownDocs }, { data: knownFolders }, { data: parentFolders }] = await Promise.all([
+          supabase
+            .from("documents")
+            .select("id, external_id, external_modified")
+            .eq("user_id", userId)
+            .is("deleted_at", null)
+            .in("external_id", ids),
+          supabase
+            .from("folders")
+            .select("id, external_id")
+            .eq("user_id", userId)
+            .is("deleted_at", null)
+            .in("external_id", ids),
+          parentIds.length
+            ? supabase
+                .from("folders")
+                .select("id, external_id")
+                .eq("user_id", userId)
+                .is("deleted_at", null)
+                .in("external_id", parentIds)
+            : Promise.resolve({ data: [] as { id: string; external_id: string | null }[] }),
+        ]);
+        const docMap = new Map((knownDocs ?? []).map((d) => [d.external_id!, d]));
+        const folderSet = new Set((knownFolders ?? []).map((f) => f.external_id!));
+        const parentMap = new Map((parentFolders ?? []).map((f) => [f.external_id!, f.id]));
+
+        for (const c of changes) {
+          try {
+            const fileId = c.fileId!;
+            const f = c.file;
+            const gone = c.removed || f?.trashed;
+            const local = docMap.get(fileId);
+
+            if (gone) {
+              if (local) {
+                await supabase.from("documents").update({ drive_state: "missing" }).eq("id", local.id);
+                result.missing++;
+              }
+              continue;
+            }
+            if (!f) continue;
+
+            if (f.mimeType === DRIVE_FOLDER_MIME) {
+              if (folderSet.has(fileId)) continue;
+              const localParent = (f.parents ?? []).map((p) => parentMap.get(p)).find(Boolean);
+              if (!localParent) continue; // liegt nicht in einem verknüpften Ordner
+              result.addedFolders += await ensureDriveFolder(supabase, userId, fileId, f.name ?? "Ordner", localParent);
+              continue;
+            }
+
+            if (local) {
+              const remote = f.modifiedTime ?? null;
+              const prev = local.external_modified ?? null;
+              if (remote && (!prev || new Date(remote).getTime() > new Date(prev).getTime() + 1000)) {
+                await supabase
+                  .from("documents")
+                  .update({ drive_state: "changed", external_modified: remote })
+                  .eq("id", local.id);
+                await supabase
+                  .from("document_text")
+                  .update({ status: "pending", content: "", pages: [], page_count: 0, attempts: 0 })
+                  .eq("document_id", local.id);
+                result.changed++;
+              }
+              continue;
+            }
+
+            const localParent = (f.parents ?? []).map((p) => parentMap.get(p)).find(Boolean);
+            if (!localParent) continue;
+            const item = toItem(f);
+            const exportInfo = GOOGLE_EXPORTS[item.mimeType];
+            const name =
+              exportInfo && !item.name.toLowerCase().endsWith(exportInfo.ext)
+                ? item.name + exportInfo.ext
+                : item.name;
+            const { error } = await supabase.from("documents").insert({
+              user_id: userId,
+              folder_id: localParent,
+              name,
+              storage_path: "",
+              mime_type: exportInfo?.mime ?? item.mimeType,
+              size_bytes: item.size,
+              source: "gdrive",
+              external_id: item.id,
+              external_mime: item.mimeType,
+              external_modified: item.modifiedTime,
+              drive_state: "new",
+            });
+            if (!error) result.added++;
+            else if (error.code !== "23505") result.failed++;
+          } catch {
+            result.failed++;
+          }
+        }
+      }
+
+      if (body.newStartPageToken) {
+        await saveToken(body.newStartPageToken);
+        pageToken = null;
+        result.done = true;
+      } else {
+        pageToken = body.nextPageToken ?? null;
+        if (pageToken) await saveToken(pageToken);
+        else result.done = true;
+      }
+    }
+    return result;
+  });

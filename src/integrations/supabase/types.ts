@@ -272,6 +272,24 @@ export type Database = {
           },
         ]
       }
+      drive_sync_state: {
+        Row: {
+          page_token: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          page_token: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          page_token?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           all_day: boolean

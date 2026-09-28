@@ -35,6 +35,7 @@ import { LibrarySkeleton } from "@/components/Skeletons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DocumentCard, FolderCard } from "@/components/library/ItemCard";
+import { VirtualGrid } from "@/components/library/VirtualGrid";
 import { UploadProgressPanel } from "@/components/library/UploadProgressPanel";
 import {
   DropdownMenu,
@@ -45,7 +46,12 @@ import {
 import { DocumentPreview, type PreviewDoc } from "@/components/DocumentPreview";
 import { FreeNotesOverlay } from "@/components/FreeNotesOverlay";
 import { DrivePicker } from "@/components/DrivePicker";
-import { getDriveStatus, importDriveItems, syncDriveItems } from "@/lib/drive.functions";
+import {
+  deltaSyncDrive,
+  getDriveStatus,
+  importDriveItems,
+  syncDriveItems,
+} from "@/lib/drive.functions";
 import {
   Dialog,
   DialogContent,
@@ -184,6 +190,24 @@ function LibraryPage() {
       let cursor: Awaited<ReturnType<typeof syncDriveItems>>["cursor"] = null;
       const toastId = toast.loading("Drive-Abgleich läuft …");
       try {
+        // „Alles abgleichen": nur Änderungen seit dem letzten Mal abfragen.
+        if (!scope) {
+          let needsFull = false;
+          for (let i = 0; i < 200; i++) {
+            const res = await deltaSyncDrive({ data: {} });
+            total.added += res.added;
+            total.addedFolders += res.addedFolders;
+            total.changed += res.changed;
+            total.missing += res.missing;
+            total.failed += res.failed;
+            total.checked += res.checked;
+            if (res.needsFull) needsFull = true;
+            toast.loading(`Drive-Änderungen: ${total.checked} geprüft …`, { id: toastId });
+            if (res.done) break;
+          }
+          if (!needsFull) return total;
+          toast.loading("Erster vollständiger Abgleich läuft …", { id: toastId });
+        }
         // In 50er-Paketen weiterlaufen, bis alles geprüft ist.
         for (let i = 0; i < 2000; i++) {
           const res = await syncDriveItems({ data: { ...(scope ?? {}), cursor } });
@@ -762,12 +786,10 @@ function LibraryPage() {
         {folders.isLoading || docs.isLoading ? (
           <LibrarySkeleton view={view} />
         ) : (
-          <div
-            className={cn(
-              view === "grid" ? "grid gap-3 sm:grid-cols-2 lg:grid-cols-3" : "flex flex-col gap-2",
-            )}
-          >
-            {sortedFolders.map((f) => (
+          <VirtualGrid
+            grid={view === "grid"}
+            items={[
+            ...sortedFolders.map((f) => ({ key: "f" + f.id, node: (
               <FolderCard
                 key={f.id}
                 folder={f}
@@ -783,9 +805,8 @@ function LibraryPage() {
                 selected={selFolders.includes(f.id)}
                 onSelectChange={(v) => setSelFolders((l) => toggleIn(l, f.id, v))}
               />
-            ))}
-
-            {sortedDocs.map((d) => (
+            )})),
+            ...sortedDocs.map((d) => ({ key: "d" + d.id, node: (
               <DocumentCard
                 key={d.id}
                 doc={d}
@@ -800,9 +821,9 @@ function LibraryPage() {
                 selected={selDocs.includes(d.id)}
                 onSelectChange={(v) => setSelDocs((l) => toggleIn(l, d.id, v))}
               />
-            ))}
-
-            {!sortedFolders.length && !sortedDocs.length && (
+            )})),
+            ]}
+            after={!sortedFolders.length && !sortedDocs.length && (
               <EmptyState
                 icon={<Folder className="size-7" />}
                 title={current.id ? "Dieser Ordner ist leer" : "Deine Library ist noch leer"}
@@ -817,7 +838,7 @@ function LibraryPage() {
                 }}
               />
             )}
-          </div>
+          />
         )}
       </PullToRefresh>
 
