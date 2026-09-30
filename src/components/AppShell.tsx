@@ -138,23 +138,23 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* Mobile: kompakte Icon-Leiste am unteren Bildschirmrand */}
       <nav className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:hidden">
-        <div className="liquid-nav-shell mx-auto grid h-16 max-w-md grid-cols-4 items-center overflow-hidden rounded-[2rem] p-1">
+        <div className="liquid-nav-shell mx-auto grid h-16 max-w-md grid-cols-4 place-items-stretch overflow-hidden rounded-[2rem] p-1">
           {activeMobileIndex >= 0 && (
             <motion.div
               aria-hidden="true"
-              className="liquid-nav-lens pointer-events-none absolute inset-y-1 left-1 w-[calc(25%-0.5rem)] origin-center rounded-[1.4rem]"
+              className="liquid-nav-lens pointer-events-none absolute inset-y-1 left-1 w-[calc((100%-0.5rem)/4)] origin-center transform-gpu will-change-transform rounded-[1.4rem]"
               initial={false}
               animate={{
                 x: `${activeMobileIndex * 100}%`,
-                scaleX: reduceMotion ? 1 : [1, 1.12, 1],
+                scaleX: reduceMotion ? 1 : [1, 1.06, 1],
                 opacity: 1,
               }}
               transition={
                 reduceMotion
                   ? { duration: 0.12 }
                   : {
-                      x: { type: "spring", stiffness: 430, damping: 34, mass: 0.72 },
-                      scaleX: { duration: 0.38, times: [0, 0.45, 1], ease: "easeOut" },
+                      x: { type: "spring", stiffness: 320, damping: 30, mass: 0.78 },
+                      scaleX: { duration: 0.32, times: [0, 0.5, 1], ease: "easeInOut" },
                       opacity: { duration: 0.16 },
                     }
               }
@@ -173,13 +173,13 @@ export function AppShell({ children }: { children: ReactNode }) {
                 title={item.label}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "relative z-10 flex size-full min-h-12 items-center justify-center rounded-[1.4rem] transition-colors duration-200 active:scale-95",
+                  "relative z-10 grid h-full w-full min-w-0 place-items-center rounded-[1.4rem] p-0 transition-colors duration-200 active:scale-95",
                   active
                     ? "text-primary"
                     : "text-muted-foreground",
                 )}
               >
-                <item.icon className={cn("size-5 transition-transform duration-200", active && "scale-105")} />
+                <item.icon className={cn("block size-5 shrink-0 transition-transform duration-200", active && "scale-105")} />
               </Link>
             );
           })}
