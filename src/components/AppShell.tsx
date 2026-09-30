@@ -12,6 +12,7 @@ import {
   WifiOff,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
+import { motion, useReducedMotion } from "motion/react";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -33,10 +34,12 @@ const NAV = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
+  const reduceMotion = useReducedMotion();
   const { mode, toggleMode } = useTheme();
   const [searchOpen, setSearchOpen] = useState(false);
   const online = useOnlineStatus();
   const onLehrplaene = path.startsWith("/lehrplaene");
+  const activeMobileIndex = NAV.findIndex((item) => path.startsWith(item.to));
 
 
   return (
@@ -135,7 +138,31 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* Mobile: kompakte Icon-Leiste am unteren Bildschirmrand */}
       <nav className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:hidden">
-        <div className="glass mx-auto flex max-w-md items-center justify-around rounded-3xl px-2 py-2">
+        <div className="liquid-nav-shell mx-auto grid h-16 max-w-md grid-cols-4 items-center overflow-hidden rounded-[2rem] p-1">
+          {activeMobileIndex >= 0 && (
+            <motion.div
+              aria-hidden="true"
+              className="liquid-nav-lens pointer-events-none absolute inset-y-1 left-1 w-[calc(25%-0.5rem)] origin-center rounded-[1.4rem]"
+              initial={false}
+              animate={{
+                x: `${activeMobileIndex * 100}%`,
+                scaleX: reduceMotion ? 1 : [1, 1.12, 1],
+                opacity: 1,
+              }}
+              transition={
+                reduceMotion
+                  ? { duration: 0.12 }
+                  : {
+                      x: { type: "spring", stiffness: 430, damping: 34, mass: 0.72 },
+                      scaleX: { duration: 0.38, times: [0, 0.45, 1], ease: "easeOut" },
+                      opacity: { duration: 0.16 },
+                    }
+              }
+            >
+              <span className="liquid-nav-lens-glare absolute inset-0 rounded-[inherit]" />
+              <span className="liquid-nav-lens-refraction absolute inset-0 rounded-[inherit]" />
+            </motion.div>
+          )}
           {NAV.map((item) => {
             const active = path.startsWith(item.to);
             return (
@@ -144,14 +171,15 @@ export function AppShell({ children }: { children: ReactNode }) {
                 to={item.to}
                 aria-label={item.label}
                 title={item.label}
+                aria-current={active ? "page" : undefined}
                 className={cn(
-                  "rounded-2xl p-3 transition-all",
+                  "relative z-10 flex size-full min-h-12 items-center justify-center rounded-[1.4rem] transition-colors duration-200 active:scale-95",
                   active
-                    ? "bg-primary text-primary-foreground glow-primary"
+                    ? "text-primary"
                     : "text-muted-foreground",
                 )}
               >
-                <item.icon className="size-5" />
+                <item.icon className={cn("size-5 transition-transform duration-200", active && "scale-105")} />
               </Link>
             );
           })}
