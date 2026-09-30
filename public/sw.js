@@ -3,7 +3,7 @@
    - statische Assets: cache-first
    - Dokumente aus dem Speicher: cache-first ohne Signatur-Parameter
 */
-const VERSION = "v1";
+const VERSION = "v2";
 const SHELL_CACHE = `shell-${VERSION}`;
 const ASSET_CACHE = `assets-${VERSION}`;
 const DOC_CACHE = `docs-${VERSION}`;
@@ -98,7 +98,7 @@ self.addEventListener("fetch", (event) => {
         try {
           const res = await fetch(req);
           const cache = await caches.open(SHELL_CACHE);
-          cache.put("/", res.clone());
+          if (res.ok && url.pathname === "/") cache.put("/", res.clone());
           return res;
         } catch {
           return (await caches.match("/")) ?? Response.error();
