@@ -8,3 +8,7 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+## Project architecture
+
+- Keep the mobile primary navigation in `AppShell` as a route-derived four-column control with one shared Motion lens, so visual state cannot diverge from navigation state.
