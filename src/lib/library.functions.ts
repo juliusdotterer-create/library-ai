@@ -159,8 +159,10 @@ export const searchLibrary = createServerFn({ method: "POST" })
           const pages: string[] = Array.isArray(raw)
             ? (raw as unknown[]).map((p) => String(p ?? ""))
             : [];
-          const found = locate(pages, data.term);
-          if (!found) return null;
+          const found = locate(pages, data.term) ?? {
+            page: pages.length ? 1 : null,
+            snippet: pages[0] ? `${pages[0].slice(0, 160).trim()} …` : "",
+          };
           return {
             id: d.id,
             name: d.name,
