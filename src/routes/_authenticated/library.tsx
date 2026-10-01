@@ -696,21 +696,6 @@ function LibraryPage() {
                 >
                   Zuletzt neu aus Drive
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    setNewSummary({
-                      since: new Date().toISOString(),
-                      added: 4,
-                      addedFolders: 2,
-                      changed: 3,
-                      missing: 1,
-                    });
-                    setNewPreview(true);
-                    setNewOpen(true);
-                  }}
-                >
-                  Beispielansicht öffnen
-                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           )}
