@@ -1,4 +1,4 @@
-import { createFileRoute, useSearch } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -47,6 +47,14 @@ import { DocumentPreview, type PreviewDoc } from "@/components/DocumentPreview";
 import { FreeNotesOverlay } from "@/components/FreeNotesOverlay";
 import { DrivePicker } from "@/components/DrivePicker";
 import {
+  DriveNewItemsDialog,
+  loadSyncSummary,
+  markNewOpened,
+  openedNewIds,
+  saveSyncSummary,
+  type DriveSyncSummary,
+} from "@/components/library/DriveNewItemsDialog";
+import {
   deltaSyncDrive,
   getDriveStatus,
   importDriveItems,
@@ -83,6 +91,7 @@ type Crumb = { id: string | null; name: string };
 
 function LibraryPage() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const uid = user?.id;
   const search = useSearch({ strict: false }) as { folder?: string; create?: "folder" } | undefined;
@@ -184,9 +193,20 @@ function LibraryPage() {
       ),
   });
 
+  const [newSummary, setNewSummary] = useState<DriveSyncSummary | null>(null);
+  const [newOpen, setNewOpen] = useState(false);
+  const [lastSince, setLastSince] = useState<string | null>(null);
+  const [openedIds, setOpenedIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    setLastSince(loadSyncSummary()?.since ?? null);
+    setOpenedIds(openedNewIds());
+  }, []);
+
   const driveSync = useMutation({
     mutationFn: async (scope?: { documentIds?: string[]; folderIds?: string[] }) => {
-      const total = { added: 0, addedFolders: 0, changed: 0, missing: 0, failed: 0, checked: 0 };
+      // kleiner Puffer für Uhrabweichungen zwischen Gerät und Server
+      const since = new Date(Date.now() - 60_000).toISOString();
+      const total = { since, added: 0, addedFolders: 0, changed: 0, missing: 0, failed: 0, checked: 0 };
       let cursor: Awaited<ReturnType<typeof syncDriveItems>>["cursor"] = null;
       const toastId = toast.loading("Drive-Abgleich läuft …");
       try {
@@ -233,6 +253,19 @@ function LibraryPage() {
       if (res.addedFolders) parts.push(`${res.addedFolders} Ordner neu`);
       if (res.changed) parts.push(`${res.changed} aktualisiert`);
       if (res.missing) parts.push(`${res.missing} nicht mehr gefunden`);
+      if (res.added || res.addedFolders) {
+        const summary: DriveSyncSummary = {
+          since: res.since,
+          added: res.added,
+          addedFolders: res.addedFolders,
+          changed: res.changed,
+          missing: res.missing,
+        };
+        saveSyncSummary(summary);
+        setLastSince(summary.since);
+        setNewSummary(summary);
+        setNewOpen(true);
+      }
       if (!parts.length && !res.failed) {
         toast.success(`Drive-Abgleich abgeschlossen – ${res.checked} geprüft, alles aktuell`);
       } else if (res.failed) {
@@ -643,6 +676,19 @@ function LibraryPage() {
                 <DropdownMenuItem onClick={() => driveSync.mutate(undefined)}>
                   Alles abgleichen
                 </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    const s = loadSyncSummary();
+                    if (!s) {
+                      toast.info("Noch keine neuen Drive-Dokumente erfasst");
+                      return;
+                    }
+                    setNewSummary(s);
+                    setNewOpen(true);
+                  }}
+                >
+                  Zuletzt neu aus Drive
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           )}
@@ -811,7 +857,20 @@ function LibraryPage() {
                 key={d.id}
                 doc={d}
                 view={view}
-                onOpen={() => open(d)}
+                isNew={
+                  d.source === "gdrive" &&
+                  !!lastSince &&
+                  !!d.created_at &&
+                  d.created_at >= lastSince &&
+                  !openedIds.has(d.id)
+                }
+                onOpen={() => {
+                  if (d.source === "gdrive") {
+                    markNewOpened(d.id);
+                    setOpenedIds(openedNewIds());
+                  }
+                  open(d);
+                }}
                 onRename={() =>
                   setRename({ table: "documents", id: d.id, name: d.name, prev: d.name })
                 }
@@ -842,6 +901,21 @@ function LibraryPage() {
         )}
       </PullToRefresh>
 
+      <DriveNewItemsDialog
+        summary={newSummary}
+        uid={uid}
+        open={newOpen}
+        onOpenChange={setNewOpen}
+        onOpenDoc={(d) => {
+          markNewOpened(d.id);
+          setOpenedIds(openedNewIds());
+          setPreview({ ...d, folder_id: d.folder_id });
+        }}
+        onOpenFolder={(id) => {
+          setNewOpen(false);
+          void navigate({ to: "/library", search: { folder: id } });
+        }}
+      />
       <Dialog open={!!rename} onOpenChange={(o) => !o && setRename(null)}>
         <DialogContent className="glass rounded-3xl">
           <DialogHeader>
