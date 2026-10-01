@@ -1,4 +1,4 @@
-import { createFileRoute, useSearch } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -91,6 +91,7 @@ type Crumb = { id: string | null; name: string };
 
 function LibraryPage() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const uid = user?.id;
   const search = useSearch({ strict: false }) as { folder?: string; create?: "folder" } | undefined;
@@ -675,6 +676,19 @@ function LibraryPage() {
                 <DropdownMenuItem onClick={() => driveSync.mutate(undefined)}>
                   Alles abgleichen
                 </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    const s = loadSyncSummary();
+                    if (!s) {
+                      toast.info("Noch keine neuen Drive-Dokumente erfasst");
+                      return;
+                    }
+                    setNewSummary(s);
+                    setNewOpen(true);
+                  }}
+                >
+                  Zuletzt neu aus Drive
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           )}
@@ -843,7 +857,20 @@ function LibraryPage() {
                 key={d.id}
                 doc={d}
                 view={view}
-                onOpen={() => open(d)}
+                isNew={
+                  d.source === "gdrive" &&
+                  !!lastSince &&
+                  !!d.created_at &&
+                  d.created_at >= lastSince &&
+                  !openedIds.has(d.id)
+                }
+                onOpen={() => {
+                  if (d.source === "gdrive") {
+                    markNewOpened(d.id);
+                    setOpenedIds(openedNewIds());
+                  }
+                  open(d);
+                }}
                 onRename={() =>
                   setRename({ table: "documents", id: d.id, name: d.name, prev: d.name })
                 }
@@ -874,6 +901,21 @@ function LibraryPage() {
         )}
       </PullToRefresh>
 
+      <DriveNewItemsDialog
+        summary={newSummary}
+        uid={uid}
+        open={newOpen}
+        onOpenChange={setNewOpen}
+        onOpenDoc={(d) => {
+          markNewOpened(d.id);
+          setOpenedIds(openedNewIds());
+          setPreview({ ...d, folder_id: d.folder_id });
+        }}
+        onOpenFolder={(id) => {
+          setNewOpen(false);
+          void navigate({ to: "/library", search: { folder: id } });
+        }}
+      />
       <Dialog open={!!rename} onOpenChange={(o) => !o && setRename(null)}>
         <DialogContent className="glass rounded-3xl">
           <DialogHeader>
