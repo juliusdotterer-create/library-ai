@@ -153,6 +153,22 @@ function LibraryPage() {
     }
   }, [createFolderParam]);
 
+  // Beispielansicht „Jetzt auch verfügbar“ – geöffnet über die Einstellungen
+  useEffect(() => {
+    if (!(search as { newsDemo?: boolean } | undefined)?.newsDemo) return;
+    setNewSummary({
+      since: new Date().toISOString(),
+      added: 4,
+      addedFolders: 2,
+      changed: 3,
+      missing: 1,
+    });
+    setNewPreview(true);
+    setNewOpen(true);
+    void navigate({ to: "/library", search: {}, replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
+
   const folders = useFolders(current.id);
   const docs = useDocuments(current.id);
   const { sort, view, setSort, setView } = useLibraryView();
