@@ -1,6 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -35,6 +35,7 @@ export const Route = createFileRoute("/_authenticated/einstellungen")({
 });
 
 function SettingsPage() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { mode, hue, chroma, setTheme } = useTheme();
   const [isAdmin, setIsAdmin] = useState(false);
@@ -84,6 +85,17 @@ function SettingsPage() {
         </div>
         <DrivePanel />
         <DriveMirrorPanel />
+        <div className="flex justify-end pt-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="rounded-2xl text-xs text-muted-foreground hover:text-foreground"
+            onClick={() => void navigate({ to: "/library", search: { newsDemo: true } })}
+          >
+            <Sparkles className="size-3.5" />
+            Beispielansicht öffnen
+          </Button>
+        </div>
       </section>
 
 

@@ -69,10 +69,18 @@ import {
 } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/_authenticated/library")({
-  validateSearch: (search: Record<string, unknown>): { folder?: string; create?: "folder" } => ({
-    folder: typeof search.folder === "string" ? search.folder : undefined,
-    create: search.create === "folder" ? ("folder" as const) : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): {
+    folder?: string;
+    create?: "folder";
+    newsDemo?: boolean;
+  } => {
+    const raw = search["news-demo"] ?? search.newsDemo;
+    return {
+      folder: typeof search.folder === "string" ? search.folder : undefined,
+      create: search.create === "folder" ? ("folder" as const) : undefined,
+      newsDemo: raw === true || raw === "1" ? true : undefined,
+    };
+  },
   head: () => ({
     meta: [
       { title: "Library – Ordner & Dokumente" },
@@ -147,6 +155,22 @@ function LibraryPage() {
       newFolderRef.current?.focus();
     }
   }, [createFolderParam]);
+
+  // Beispielansicht „Jetzt auch verfügbar“ – geöffnet über die Einstellungen
+  useEffect(() => {
+    if (!(search as { newsDemo?: boolean } | undefined)?.newsDemo) return;
+    setNewSummary({
+      since: new Date().toISOString(),
+      added: 4,
+      addedFolders: 2,
+      changed: 3,
+      missing: 1,
+    });
+    setNewPreview(true);
+    setNewOpen(true);
+    void navigate({ to: "/library", search: {}, replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
 
   const folders = useFolders(current.id);
   const docs = useDocuments(current.id);
@@ -690,21 +714,6 @@ function LibraryPage() {
                   }}
                 >
                   Zuletzt neu aus Drive
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    setNewSummary({
-                      since: new Date().toISOString(),
-                      added: 4,
-                      addedFolders: 2,
-                      changed: 3,
-                      missing: 1,
-                    });
-                    setNewPreview(true);
-                    setNewOpen(true);
-                  }}
-                >
-                  Beispielansicht öffnen
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
