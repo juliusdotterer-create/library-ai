@@ -95,16 +95,36 @@ export const searchLibrary = createServerFn({ method: "POST" })
       context.userId,
     );
 
-    /* ---------- Volltextsuche im Dokumentinhalt (exakte Wortfolge) ---------- */
-    const { data: hits } = await context.supabase
-      .from("document_text")
-      .select("document_id,pages,source")
-      .eq("user_id", context.userId)
-      .eq("status", "done")
-      .textSearch("tsv", data.term, { type: "phrase", config: "german" })
-      .limit(50);
+    /* ---------- Volltextsuche im Dokumentinhalt (Wortanfänge + Teilwörter) ---------- */
+    const tokens = norm(data.term).split(" ").filter(Boolean);
+    const tsquery = tokens.length
+      ? tokens.map((t, i) => (i === tokens.length - 1 ? `${t}:*` : t)).join(" & ")
+      : null;
 
-    const hitRows = (hits ?? []) as { document_id: string; pages: unknown; source?: string | null }[];
+    let hitRows: { document_id: string; pages: unknown; source?: string | null }[] = [];
+
+    if (tsquery) {
+      const { data: hits } = await context.supabase
+        .from("document_text")
+        .select("document_id,pages,source")
+        .eq("user_id", context.userId)
+        .eq("status", "done")
+        .textSearch("tsv", tsquery, { type: "raw", config: "german" })
+        .limit(50);
+      hitRows = (hits ?? []) as typeof hitRows;
+    }
+
+    // Fallback: Teilwörter mitten im Wort (z. B. Stoppwörter, sehr kurze Begriffe)
+    if (!hitRows.length) {
+      const { data: likeHits } = await context.supabase
+        .from("document_text")
+        .select("document_id,pages,source")
+        .eq("user_id", context.userId)
+        .eq("status", "done")
+        .ilike("content", pattern)
+        .limit(50);
+      hitRows = (likeHits ?? []) as typeof hitRows;
+    }
     const hitDocIds = hitRows.map((h) => h.document_id);
     const nameHitIds = new Set((docs ?? []).map((d) => d.id));
     const contentIds = hitDocIds.filter((id) => !nameHitIds.has(id));
