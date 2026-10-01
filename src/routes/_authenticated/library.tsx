@@ -195,6 +195,7 @@ function LibraryPage() {
 
   const [newSummary, setNewSummary] = useState<DriveSyncSummary | null>(null);
   const [newOpen, setNewOpen] = useState(false);
+  const [newPreview, setNewPreview] = useState(false);
   const [lastSince, setLastSince] = useState<string | null>(null);
   const [openedIds, setOpenedIds] = useState<Set<string>>(new Set());
   useEffect(() => {
@@ -684,10 +685,26 @@ function LibraryPage() {
                       return;
                     }
                     setNewSummary(s);
+                    setNewPreview(false);
                     setNewOpen(true);
                   }}
                 >
                   Zuletzt neu aus Drive
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setNewSummary({
+                      since: new Date().toISOString(),
+                      added: 4,
+                      addedFolders: 2,
+                      changed: 3,
+                      missing: 1,
+                    });
+                    setNewPreview(true);
+                    setNewOpen(true);
+                  }}
+                >
+                  Beispielansicht öffnen
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -905,7 +922,11 @@ function LibraryPage() {
         summary={newSummary}
         uid={uid}
         open={newOpen}
-        onOpenChange={setNewOpen}
+        onOpenChange={(open) => {
+          setNewOpen(open);
+          if (!open) setNewPreview(false);
+        }}
+        preview={newPreview}
         onOpenDoc={(d) => {
           markNewOpened(d.id);
           setOpenedIds(openedNewIds());

@@ -59,6 +59,27 @@ export type NewDoc = {
   source: string | null;
 };
 
+const PREVIEW_DATA: { docs: NewDoc[]; newFolders: F[]; allFolders: F[] } = {
+  allFolders: [
+    { id: "preview-klausuren", name: "Klausuren", parent_id: null },
+    { id: "preview-strafrecht", name: "Strafrecht", parent_id: "preview-klausuren" },
+    { id: "preview-2026", name: "2026", parent_id: "preview-strafrecht" },
+    { id: "preview-zivilrecht", name: "Zivilrecht", parent_id: "preview-klausuren" },
+    { id: "preview-skripte", name: "Skripte", parent_id: null },
+    { id: "preview-verwaltungsrecht", name: "Verwaltungsrecht", parent_id: "preview-skripte" },
+  ],
+  newFolders: [
+    { id: "preview-2026", name: "2026", parent_id: "preview-strafrecht" },
+    { id: "preview-verwaltungsrecht", name: "Verwaltungsrecht", parent_id: "preview-skripte" },
+  ],
+  docs: [
+    { id: "preview-1", name: "Klausur Strafrecht – Frühjahr 2026.pdf", storage_path: "", mime_type: "application/pdf", folder_id: "preview-2026", source: "gdrive" },
+    { id: "preview-2", name: "Lösungsskizze – Fall 3.pdf", storage_path: "", mime_type: "application/pdf", folder_id: "preview-2026", source: "gdrive" },
+    { id: "preview-3", name: "Übersicht Verwaltungsakt.pdf", storage_path: "", mime_type: "application/pdf", folder_id: "preview-verwaltungsrecht", source: "gdrive" },
+    { id: "preview-4", name: "Schema Anfechtungsklage.docx", storage_path: "", mime_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", folder_id: "preview-verwaltungsrecht", source: "gdrive" },
+  ],
+};
+
 async function pageAll<T>(fetchPage: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>) {
   const out: T[] = [];
   for (let from = 0; ; from += 1000) {
@@ -77,6 +98,7 @@ export function DriveNewItemsDialog({
   onOpenChange,
   onOpenDoc,
   onOpenFolder,
+  preview = false,
 }: {
   summary: DriveSyncSummary | null;
   uid?: string;
@@ -84,13 +106,14 @@ export function DriveNewItemsDialog({
   onOpenChange: (o: boolean) => void;
   onOpenDoc: (d: NewDoc) => void;
   onOpenFolder: (id: string) => void;
+  preview?: boolean;
 }) {
   const [filter, setFilter] = useState("");
   const [closed, setClosed] = useState<Set<string>>(new Set());
 
   const q = useQuery({
     queryKey: ["drive-new", uid, summary?.since],
-    enabled: open && !!uid && !!summary,
+    enabled: open && !!uid && !!summary && !preview,
     queryFn: async () => {
       const since = summary!.since;
       const [docs, newFolders, allFolders] = await Promise.all([
@@ -129,10 +152,11 @@ export function DriveNewItemsDialog({
       return { docs, newFolders, allFolders };
     },
   });
+  const data = preview ? PREVIEW_DATA : q.data;
 
   const groups = useMemo(() => {
-    if (!q.data) return [];
-    const map = new Map(q.data.allFolders.map((f) => [f.id, f]));
+    if (!data) return [];
+    const map = new Map(data.allFolders.map((f) => [f.id, f]));
     const chain = (id: string | null) => {
       const parts: string[] = [];
       let cur = id;
@@ -160,8 +184,8 @@ export function DriveNewItemsDialog({
       if (doc) s.docs.push(doc);
       if (isNewFolder) s.isNewFolder = true;
     };
-    for (const f of q.data.newFolders) add(f.id, undefined, true);
-    for (const d of q.data.docs) {
+    for (const f of data.newFolders) add(f.id, undefined, true);
+    for (const d of data.docs) {
       if (t && !d.name.toLowerCase().includes(t)) continue;
       add(d.folder_id, d);
     }
@@ -174,7 +198,7 @@ export function DriveNewItemsDialog({
       }))
       .filter((g) => g.subs.length)
       .sort((a, b) => a.topic.localeCompare(b.topic));
-  }, [q.data, filter]);
+  }, [data, filter]);
 
   const stat = (n: number, label: string) => (
     <div className="glass rounded-2xl px-3 py-2 text-center">
@@ -189,12 +213,17 @@ export function DriveNewItemsDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="size-5 text-primary" /> Jetzt auch verfügbar
+            {preview && (
+              <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                Beispiel
+              </span>
+            )}
           </DialogTitle>
         </DialogHeader>
         {summary && (
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {stat(q.data?.docs.length ?? summary.added, "neue Dokumente")}
-            {stat(q.data?.newFolders.length ?? summary.addedFolders, "neue Unterordner")}
+            {stat(data?.docs.length ?? summary.added, "neue Dokumente")}
+            {stat(data?.newFolders.length ?? summary.addedFolders, "neue Unterordner")}
             {stat(summary.changed, "aktualisiert")}
             {stat(summary.missing, "nicht gefunden")}
           </div>
@@ -206,9 +235,9 @@ export function DriveNewItemsDialog({
           className="rounded-2xl"
         />
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
-          {q.isLoading && <p className="text-sm text-muted-foreground">Lade neue Einträge …</p>}
-          {q.error && <p className="text-sm text-destructive">{(q.error as Error).message}</p>}
-          {q.data && !groups.length && (
+          {!preview && q.isLoading && <p className="text-sm text-muted-foreground">Lade neue Einträge …</p>}
+          {!preview && q.error && <p className="text-sm text-destructive">{(q.error as Error).message}</p>}
+          {data && !groups.length && (
             <p className="text-sm text-muted-foreground">Keine neuen Dokumente oder Ordner.</p>
           )}
           {groups.map((g) => {
@@ -237,7 +266,7 @@ export function DriveNewItemsDialog({
                       <div key={s.folderId ?? "root"}>
                         <button
                           className="flex w-full items-center gap-2 rounded-xl px-1 py-1 text-left text-sm text-muted-foreground hover:bg-muted"
-                          onClick={() => s.folderId && onOpenFolder(s.folderId)}
+                          onClick={() => !preview && s.folderId && onOpenFolder(s.folderId)}
                         >
                           <Folder className="size-4 text-primary" />
                           <span className="flex-1 truncate">{s.path}</span>
@@ -253,7 +282,7 @@ export function DriveNewItemsDialog({
                             <li key={d.id}>
                               <button
                                 className="flex w-full items-center gap-2 rounded-xl px-1 py-1 text-left text-sm hover:bg-muted"
-                                onClick={() => onOpenDoc(d)}
+                                onClick={() => !preview && onOpenDoc(d)}
                               >
                                 <FileText className="size-4 shrink-0 text-muted-foreground" />
                                 <span className="truncate">{d.name}</span>
