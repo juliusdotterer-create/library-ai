@@ -109,7 +109,7 @@ export const searchLibrary = createServerFn({ method: "POST" })
         .select("document_id,pages,source")
         .eq("user_id", context.userId)
         .eq("status", "done")
-        .textSearch("tsv", tsquery, { type: "raw", config: "german" })
+        .textSearch("tsv", tsquery, { config: "german" })
         .limit(50);
       hitRows = (hits ?? []) as typeof hitRows;
     }
