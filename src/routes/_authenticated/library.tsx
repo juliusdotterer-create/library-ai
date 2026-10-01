@@ -73,11 +73,14 @@ export const Route = createFileRoute("/_authenticated/library")({
     folder?: string;
     create?: "folder";
     newsDemo?: boolean;
-  } => ({
-    folder: typeof search.folder === "string" ? search.folder : undefined,
-    create: search.create === "folder" ? ("folder" as const) : undefined,
-    newsDemo: search["news-demo"] === "1" ? true : undefined,
-  }),
+  } => {
+    const raw = search["news-demo"] ?? search.newsDemo;
+    return {
+      folder: typeof search.folder === "string" ? search.folder : undefined,
+      create: search.create === "folder" ? ("folder" as const) : undefined,
+      newsDemo: raw === true || raw === "1" ? true : undefined,
+    };
+  },
   head: () => ({
     meta: [
       { title: "Library – Ordner & Dokumente" },
