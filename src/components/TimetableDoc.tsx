@@ -1,12 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Download, FileUp, Maximize2, Trash2 } from "lucide-react";
+import { Download, FileUp, Maximize2, Scan, Trash2, ZoomIn, ZoomOut } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useTimetableDoc, queryKeys } from "@/hooks/useLibrary";
 import { Button } from "@/components/ui/button";
-import { PdfCanvasViewer } from "@/components/PdfCanvasViewer";
+import {
+  PDF_MAX_ZOOM,
+  PDF_MIN_ZOOM,
+  PdfCanvasViewer,
+} from "@/components/PdfCanvasViewer";
 import { DocumentPreview, type PreviewDoc } from "@/components/DocumentPreview";
 import { ConfirmDelete } from "@/components/ConfirmDelete";
 import { cn } from "@/lib/utils";
@@ -23,7 +27,27 @@ export function TimetableDoc() {
   const [url, setUrl] = useState<string | null>(null);
   const [full, setFull] = useState<PreviewDoc | null>(null);
   const [height, setHeight] = useState(420);
+  const [zoom, setZoom] = useState(1);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const zoomStorageKey = doc?.id ? `timetable-pdf-zoom:${doc.id}` : null;
+
+  useEffect(() => {
+    if (!zoomStorageKey) {
+      setZoom(1);
+      return;
+    }
+    const stored = Number(window.localStorage.getItem(zoomStorageKey));
+    setZoom(
+      Number.isFinite(stored) && stored >= PDF_MIN_ZOOM && stored <= PDF_MAX_ZOOM ? stored : 1,
+    );
+  }, [zoomStorageKey]);
+
+  const updateZoom = (next: number) => {
+    const clamped = Math.min(PDF_MAX_ZOOM, Math.max(PDF_MIN_ZOOM, next));
+    setZoom(clamped);
+    if (zoomStorageKey) window.localStorage.setItem(zoomStorageKey, String(clamped));
+  };
 
   useEffect(() => {
     setUrl(null);
@@ -190,23 +214,62 @@ export function TimetableDoc() {
         ) : isImage ? (
           <img src={url} alt={doc.name} className="size-full object-contain" />
         ) : isPdf ? (
-          <PdfCanvasViewer url={url} />
+          <PdfCanvasViewer url={url} zoom={zoom} onZoomChange={updateZoom} />
         ) : (
           <iframe src={url} title={doc.name} className="size-full bg-background" />
         )}
       </div>
 
-      <div className="mt-2 flex items-center gap-3">
-        <span className="text-[11px] text-muted-foreground">Höhe</span>
-        <input
-          type="range"
-          min={240}
-          max={900}
-          step={20}
-          value={height}
-          onChange={(e) => setHeight(Number(e.target.value))}
-          className="h-1 flex-1 accent-primary"
-        />
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        {isPdf && (
+          <div className="glass-soft flex shrink-0 items-center gap-1 rounded-2xl p-1">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="size-8 rounded-xl"
+              title="Verkleinern"
+              disabled={zoom <= PDF_MIN_ZOOM + 0.001}
+              onClick={() => updateZoom(zoom / 1.25)}
+            >
+              <ZoomOut className="size-4" />
+            </Button>
+            <span className="w-11 text-center text-[11px] tabular-nums text-muted-foreground">
+              {Math.round(zoom * 100)}%
+            </span>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="size-8 rounded-xl"
+              title="Vergrößern"
+              disabled={zoom >= PDF_MAX_ZOOM - 0.001}
+              onClick={() => updateZoom(zoom * 1.25)}
+            >
+              <ZoomIn className="size-4" />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="size-8 rounded-xl"
+              title="Breite anpassen"
+              disabled={Math.abs(zoom - 1) < 0.001}
+              onClick={() => updateZoom(1)}
+            >
+              <Scan className="size-4" />
+            </Button>
+          </div>
+        )}
+        <label className="flex min-w-40 flex-1 items-center gap-3">
+          <span className="text-[11px] text-muted-foreground">Höhe</span>
+          <input
+            type="range"
+            min={240}
+            max={900}
+            step={20}
+            value={height}
+            onChange={(e) => setHeight(Number(e.target.value))}
+            className="h-1 flex-1 accent-primary"
+          />
+        </label>
       </div>
 
       <DocumentPreview doc={full} onClose={() => setFull(null)} />
