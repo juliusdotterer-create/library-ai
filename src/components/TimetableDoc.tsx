@@ -205,8 +205,9 @@ export function TimetableDoc() {
         </ConfirmDelete>
       </div>
 
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-[auto_minmax(0,1fr)]">
       <div
-        className={cn("overflow-hidden rounded-2xl bg-card/40")}
+        className={cn("order-2 overflow-hidden rounded-2xl bg-card/40 sm:order-1 sm:col-span-2")}
         style={{ height }}
       >
         {!url ? (
@@ -220,9 +221,8 @@ export function TimetableDoc() {
         )}
       </div>
 
-      <div className="mt-2 flex flex-wrap items-center gap-2">
         {isPdf && (
-          <div className="glass-soft flex shrink-0 items-center gap-1 rounded-2xl p-1">
+          <div className="glass-soft order-1 flex w-fit shrink-0 items-center gap-1 rounded-2xl p-1 sm:order-2">
             <Button
               size="icon"
               variant="ghost"
@@ -258,7 +258,7 @@ export function TimetableDoc() {
             </Button>
           </div>
         )}
-        <label className="flex min-w-40 flex-1 items-center gap-3">
+        <label className={cn("order-3 flex min-w-0 items-center gap-3", !isPdf && "sm:col-span-2")}>
           <span className="text-[11px] text-muted-foreground">Höhe</span>
           <input
             type="range"
