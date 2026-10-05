@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { findHighlights, highlightTokens } from "@/lib/pdf-highlight";
 
 export const PDF_MIN_ZOOM = 0.5;
@@ -27,8 +27,7 @@ export function PdfCanvasViewer({
   const pagesRef = useRef<HTMLDivElement>(null);
   const zoomRef = useRef(zoom);
   const onZoomChangeRef = useRef(onZoomChange);
-  const pendingAnchorRef = useRef<{ x: number; y: number } | null>(null);
-  const previousZoomRef = useRef(zoom);
+  const pendingAnchorRef = useRef<{ x: number; y: number; previousZoom: number } | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [pages, setPages] = useState(0);
   const [viewportWidth, setViewportWidth] = useState(0);
@@ -54,6 +53,7 @@ export function PdfCanvasViewer({
     pendingAnchorRef.current = {
       x: (clientX ?? rect.left + rect.width / 2) - rect.left,
       y: (clientY ?? rect.top + rect.height / 2) - rect.top,
+      previousZoom: zoomRef.current,
     };
     onZoomChangeRef.current?.(next);
   }, []);
@@ -70,21 +70,6 @@ export function PdfCanvasViewer({
     viewport.addEventListener("wheel", onWheel, { passive: false });
     return () => viewport.removeEventListener("wheel", onWheel);
   }, [zoomAt]);
-
-  useLayoutEffect(() => {
-    const viewport = viewportRef.current;
-    const previous = previousZoomRef.current;
-    previousZoomRef.current = zoom;
-    if (!viewport || previous <= 0 || Math.abs(previous - zoom) < 0.001) return;
-    const anchor = pendingAnchorRef.current ?? {
-      x: viewport.clientWidth / 2,
-      y: viewport.clientHeight / 2,
-    };
-    const factor = zoom / previous;
-    viewport.scrollLeft = (viewport.scrollLeft + anchor.x) * factor - anchor.x;
-    viewport.scrollTop = (viewport.scrollTop + anchor.y) * factor - anchor.y;
-    pendingAnchorRef.current = null;
-  }, [zoom]);
 
   useEffect(() => {
     let cancelled = false;
@@ -149,6 +134,14 @@ export function PdfCanvasViewer({
           }
         }
         setStatus("ready");
+        const anchor = pendingAnchorRef.current;
+        const viewport = viewportRef.current;
+        if (anchor && viewport && anchor.previousZoom > 0) {
+          const factor = zoom / anchor.previousZoom;
+          viewport.scrollLeft = (viewport.scrollLeft + anchor.x) * factor - anchor.x;
+          viewport.scrollTop = (viewport.scrollTop + anchor.y) * factor - anchor.y;
+          pendingAnchorRef.current = null;
+        }
       } catch {
         if (!cancelled) setStatus("error");
       }
@@ -162,7 +155,7 @@ export function PdfCanvasViewer({
   return (
     <div
       ref={viewportRef}
-      className="size-full overflow-auto overscroll-contain p-2"
+      className="relative size-full overflow-auto overscroll-contain p-2"
       style={{ touchAction: "pan-x pan-y" }}
     >
       <div ref={pagesRef} className="mx-auto w-max min-w-full" />
