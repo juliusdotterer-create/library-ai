@@ -13,3 +13,4 @@
 
 - Keep the mobile primary navigation in `AppShell` as a route-derived four-column control with one shared Motion lens, so visual state cannot diverge from navigation state.
 - Keep `PdfCanvasViewer` zoom controlled by its parent so document-specific views can persist their own zoom preference.
+- Use the opt-in centered PDF mode for timetables to lock horizontal positioning without changing other document viewers; touch pinch updates the parent-controlled zoom.

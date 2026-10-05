@@ -16,12 +16,14 @@ export function PdfCanvasViewer({
   highlight,
   zoom = 1,
   onZoomChange,
+  centered = false,
 }: {
   url: string;
   initialPage?: number | null;
   highlight?: string | null;
   zoom?: number;
   onZoomChange?: (zoom: number) => void;
+  centered?: boolean;
 }) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const pagesRef = useRef<HTMLDivElement>(null);
@@ -72,6 +74,39 @@ export function PdfCanvasViewer({
   }, [zoomAt]);
 
   useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport || !onZoomChange) return;
+    let pinch: { distance: number; zoom: number } | null = null;
+    const distance = (touches: TouchList) => Math.hypot(
+      touches[0].clientX - touches[1].clientX,
+      touches[0].clientY - touches[1].clientY,
+    );
+    const onStart = (event: TouchEvent) => {
+      if (event.touches.length !== 2) return;
+      event.preventDefault();
+      pinch = { distance: distance(event.touches), zoom: zoomRef.current };
+    };
+    const onMove = (event: TouchEvent) => {
+      if (!pinch || event.touches.length !== 2) return;
+      event.preventDefault();
+      if (pinch.distance > 0) {
+        zoomAt(pinch.zoom * distance(event.touches) / pinch.distance);
+      }
+    };
+    const onEnd = () => { pinch = null; };
+    viewport.addEventListener("touchstart", onStart, { passive: false });
+    viewport.addEventListener("touchmove", onMove, { passive: false });
+    viewport.addEventListener("touchend", onEnd);
+    viewport.addEventListener("touchcancel", onEnd);
+    return () => {
+      viewport.removeEventListener("touchstart", onStart);
+      viewport.removeEventListener("touchmove", onMove);
+      viewport.removeEventListener("touchend", onEnd);
+      viewport.removeEventListener("touchcancel", onEnd);
+    };
+  }, [onZoomChange, zoomAt]);
+
+  useEffect(() => {
     let cancelled = false;
     const container = pagesRef.current;
     if (!container || !viewportWidth) return;
@@ -89,7 +124,7 @@ export function PdfCanvasViewer({
         if (cancelled) return;
         setPages(doc.numPages);
 
-        const width = Math.max(1, viewportWidth) * zoom;
+        const width = Math.max(1, viewportWidth - (centered ? 16 : 0)) * zoom;
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
         const tokens = highlightTokens(highlight ?? "");
 
@@ -106,6 +141,11 @@ export function PdfCanvasViewer({
           canvas.style.width = `${width}px`;
           canvas.style.height = "auto";
           canvas.style.display = "block";
+          if (centered) {
+            canvas.style.position = "relative";
+            canvas.style.left = "50%";
+            canvas.style.transform = "translateX(-50%)";
+          }
           canvas.style.borderRadius = "12px";
           canvas.style.marginBottom = "10px";
           canvas.style.background = "#fff";
@@ -138,7 +178,7 @@ export function PdfCanvasViewer({
         const viewport = viewportRef.current;
         if (anchor && viewport && anchor.previousZoom > 0) {
           const factor = zoom / anchor.previousZoom;
-          viewport.scrollLeft = (viewport.scrollLeft + anchor.x) * factor - anchor.x;
+          viewport.scrollLeft = centered ? 0 : (viewport.scrollLeft + anchor.x) * factor - anchor.x;
           viewport.scrollTop = (viewport.scrollTop + anchor.y) * factor - anchor.y;
           pendingAnchorRef.current = null;
         }
@@ -150,15 +190,16 @@ export function PdfCanvasViewer({
     return () => {
       cancelled = true;
     };
-  }, [url, initialPage, highlight, viewportWidth, zoom]);
+  }, [url, initialPage, highlight, viewportWidth, zoom, centered]);
 
   return (
     <div
       ref={viewportRef}
-      className="relative size-full overflow-auto overscroll-contain p-2"
-      style={{ touchAction: "pan-x pan-y" }}
+      className={`relative size-full overscroll-contain p-2 ${centered ? "overflow-x-hidden overflow-y-auto" : "overflow-auto"}`}
+      style={{ touchAction: onZoomChange ? "pan-y" : "pan-x pan-y" }}
+      onScroll={centered ? (event) => { event.currentTarget.scrollLeft = 0; } : undefined}
     >
-      <div ref={pagesRef} className="mx-auto w-max min-w-full" />
+      <div ref={pagesRef} className={centered ? "w-full overflow-x-clip" : "mx-auto w-max min-w-full"} />
       {status === "loading" && (
         <p className="absolute inset-x-0 top-1/2 text-center text-sm text-muted-foreground">
           PDF wird geladen…

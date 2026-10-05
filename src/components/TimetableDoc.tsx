@@ -168,9 +168,9 @@ export function TimetableDoc() {
 
   return (
     <div className="glass rounded-3xl p-3 sm:p-4">
-      <div className="mb-2 flex flex-wrap items-center gap-2">
+      <div className="mb-2 grid grid-cols-[minmax(0,1fr)_auto_auto_auto] items-center gap-2 sm:flex sm:flex-wrap">
         <span className="min-w-0 flex-1 truncate text-sm font-semibold">{doc.name}</span>
-        {pick}
+        <div className="col-start-1 row-start-2 sm:contents">{pick}</div>
         <Button
           size="icon"
           variant="ghost"
@@ -214,7 +214,7 @@ export function TimetableDoc() {
         ) : isImage ? (
           <img src={url} alt={doc.name} className="size-full object-contain" />
         ) : isPdf ? (
-          <PdfCanvasViewer url={url} zoom={zoom} onZoomChange={updateZoom} />
+          <PdfCanvasViewer url={url} zoom={zoom} onZoomChange={updateZoom} centered />
         ) : (
           <iframe src={url} title={doc.name} className="size-full bg-background" />
         )}
