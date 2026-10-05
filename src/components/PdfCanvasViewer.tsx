@@ -1,5 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { findHighlights, highlightTokens } from "@/lib/pdf-highlight";
+
+export const PDF_MIN_ZOOM = 0.5;
+export const PDF_MAX_ZOOM = 4;
+
+const clampZoom = (value: number) => Math.min(PDF_MAX_ZOOM, Math.max(PDF_MIN_ZOOM, value));
 
 /**
  * Renders every page of a PDF into canvases (scrollable).
@@ -9,20 +14,83 @@ export function PdfCanvasViewer({
   url,
   initialPage,
   highlight,
+  zoom = 1,
+  onZoomChange,
 }: {
   url: string;
   initialPage?: number | null;
   highlight?: string | null;
+  zoom?: number;
+  onZoomChange?: (zoom: number) => void;
 }) {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const pagesRef = useRef<HTMLDivElement>(null);
+  const zoomRef = useRef(zoom);
+  const onZoomChangeRef = useRef(onZoomChange);
+  const pendingAnchorRef = useRef<{ x: number; y: number } | null>(null);
+  const previousZoomRef = useRef(zoom);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [pages, setPages] = useState(0);
+  const [viewportWidth, setViewportWidth] = useState(0);
+
+  zoomRef.current = zoom;
+  onZoomChangeRef.current = onZoomChange;
+
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    const measure = () => setViewportWidth(viewport.clientWidth);
+    const observer = new ResizeObserver(measure);
+    observer.observe(viewport);
+    measure();
+    return () => observer.disconnect();
+  }, []);
+
+  const zoomAt = useCallback((nextValue: number, clientX?: number, clientY?: number) => {
+    const viewport = viewportRef.current;
+    const next = clampZoom(nextValue);
+    if (!viewport || Math.abs(next - zoomRef.current) < 0.001) return;
+    const rect = viewport.getBoundingClientRect();
+    pendingAnchorRef.current = {
+      x: (clientX ?? rect.left + rect.width / 2) - rect.left,
+      y: (clientY ?? rect.top + rect.height / 2) - rect.top,
+    };
+    onZoomChangeRef.current?.(next);
+  }, []);
+
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    const onWheel = (event: WheelEvent) => {
+      if (!event.ctrlKey && !event.metaKey) return;
+      event.preventDefault();
+      const dy = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? 100 : 1);
+      zoomAt(zoomRef.current * Math.exp(-dy * 0.0015), event.clientX, event.clientY);
+    };
+    viewport.addEventListener("wheel", onWheel, { passive: false });
+    return () => viewport.removeEventListener("wheel", onWheel);
+  }, [zoomAt]);
+
+  useLayoutEffect(() => {
+    const viewport = viewportRef.current;
+    const previous = previousZoomRef.current;
+    previousZoomRef.current = zoom;
+    if (!viewport || previous <= 0 || Math.abs(previous - zoom) < 0.001) return;
+    const anchor = pendingAnchorRef.current ?? {
+      x: viewport.clientWidth / 2,
+      y: viewport.clientHeight / 2,
+    };
+    const factor = zoom / previous;
+    viewport.scrollLeft = (viewport.scrollLeft + anchor.x) * factor - anchor.x;
+    viewport.scrollTop = (viewport.scrollTop + anchor.y) * factor - anchor.y;
+    pendingAnchorRef.current = null;
+  }, [zoom]);
 
   useEffect(() => {
     let cancelled = false;
-    const container = containerRef.current;
-    if (!container) return;
-    container.innerHTML = "";
+    const container = pagesRef.current;
+    if (!container || !viewportWidth) return;
+    container.replaceChildren();
     setStatus("loading");
 
     void (async () => {
@@ -36,7 +104,7 @@ export function PdfCanvasViewer({
         if (cancelled) return;
         setPages(doc.numPages);
 
-        const width = container.clientWidth || 360;
+        const width = Math.max(1, viewportWidth) * zoom;
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
         const tokens = highlightTokens(highlight ?? "");
 
@@ -50,7 +118,7 @@ export function PdfCanvasViewer({
           const canvas = document.createElement("canvas");
           canvas.width = viewport.width;
           canvas.height = viewport.height;
-          canvas.style.width = "100%";
+          canvas.style.width = `${width}px`;
           canvas.style.height = "auto";
           canvas.style.display = "block";
           canvas.style.borderRadius = "12px";
@@ -89,21 +157,25 @@ export function PdfCanvasViewer({
     return () => {
       cancelled = true;
     };
-  }, [url, initialPage, highlight]);
+  }, [url, initialPage, highlight, viewportWidth, zoom]);
 
   return (
-    <div className="size-full overflow-y-auto p-2">
+    <div
+      ref={viewportRef}
+      className="size-full overflow-auto overscroll-contain p-2"
+      style={{ touchAction: "pan-x pan-y" }}
+    >
+      <div ref={pagesRef} className="mx-auto w-max min-w-full" />
       {status === "loading" && (
-        <p className="py-8 text-center text-sm text-muted-foreground">PDF wird geladen…</p>
-      )}
-      {status === "error" && (
-        <p className="py-8 text-center text-sm text-muted-foreground">
-          PDF konnte nicht angezeigt werden.
+        <p className="absolute inset-x-0 top-1/2 text-center text-sm text-muted-foreground">
+          PDF wird geladen…
         </p>
       )}
-      <div ref={containerRef} />
+      {status === "error" && (
+        <p className="py-8 text-center text-sm text-muted-foreground">PDF konnte nicht angezeigt werden.</p>
+      )}
       {status === "ready" && pages > 0 && (
-        <p className="pb-2 text-center text-xs text-muted-foreground">{pages} Seiten</p>
+        <p className="min-w-full pb-2 text-center text-xs text-muted-foreground">{pages} Seiten</p>
       )}
     </div>
   );
