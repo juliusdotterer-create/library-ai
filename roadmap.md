@@ -4,4 +4,4 @@
 - [x] Dauerhaften Zoom für die eingebettete Stundenplan-PDF ergänzen und prüfen.
 - [x] Handy-Stundenplan mit gespeichertem Zoom und fester horizontaler Zentrierung prüfen; Touch-Zoom ergänzt.
 - [x] Zoomsteuerung auf dem Handy oberhalb der Stundenplan-PDF platzieren und prüfen.
-- [ ] Stundenplan beim Zoomen links ausrichten und die feste Position prüfen.
+- [x] Stundenplan beim Zoomen links ausrichten und die feste Position prüfen.
