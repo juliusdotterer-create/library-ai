@@ -215,7 +215,7 @@ export function TimetableDoc() {
         ) : isImage ? (
           <img src={url} alt={doc.name} className="size-full object-contain" />
         ) : isPdf ? (
-          <PdfCanvasViewer url={url} zoom={zoom} onZoomChange={updateZoom} centered />
+          <PdfCanvasViewer url={url} zoom={zoom} onZoomChange={updateZoom} alignLeft />
         ) : (
           <iframe src={url} title={doc.name} className="size-full bg-background" />
         )}

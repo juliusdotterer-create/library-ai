@@ -17,6 +17,7 @@ export function PdfCanvasViewer({
   zoom = 1,
   onZoomChange,
   centered = false,
+  alignLeft = false,
 }: {
   url: string;
   initialPage?: number | null;
@@ -24,7 +25,9 @@ export function PdfCanvasViewer({
   zoom?: number;
   onZoomChange?: (zoom: number) => void;
   centered?: boolean;
+  alignLeft?: boolean;
 }) {
+  const lockHorizontal = centered || alignLeft;
   const viewportRef = useRef<HTMLDivElement>(null);
   const pagesRef = useRef<HTMLDivElement>(null);
   const zoomRef = useRef(zoom);
@@ -124,7 +127,7 @@ export function PdfCanvasViewer({
         if (cancelled) return;
         setPages(doc.numPages);
 
-        const width = Math.max(1, viewportWidth - (centered ? 16 : 0)) * zoom;
+        const width = Math.max(1, viewportWidth - (lockHorizontal ? 16 : 0)) * zoom;
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
         const tokens = highlightTokens(highlight ?? "");
 
@@ -141,7 +144,7 @@ export function PdfCanvasViewer({
           canvas.style.width = `${width}px`;
           canvas.style.height = "auto";
           canvas.style.display = "block";
-          if (centered) {
+          if (centered && !alignLeft) {
             canvas.style.position = "relative";
             canvas.style.left = "50%";
             canvas.style.transform = "translateX(-50%)";
@@ -178,7 +181,7 @@ export function PdfCanvasViewer({
         const viewport = viewportRef.current;
         if (anchor && viewport && anchor.previousZoom > 0) {
           const factor = zoom / anchor.previousZoom;
-          viewport.scrollLeft = centered ? 0 : (viewport.scrollLeft + anchor.x) * factor - anchor.x;
+          viewport.scrollLeft = lockHorizontal ? 0 : (viewport.scrollLeft + anchor.x) * factor - anchor.x;
           viewport.scrollTop = (viewport.scrollTop + anchor.y) * factor - anchor.y;
           pendingAnchorRef.current = null;
         }
@@ -190,16 +193,16 @@ export function PdfCanvasViewer({
     return () => {
       cancelled = true;
     };
-  }, [url, initialPage, highlight, viewportWidth, zoom, centered]);
+  }, [url, initialPage, highlight, viewportWidth, zoom, centered, alignLeft, lockHorizontal]);
 
   return (
     <div
       ref={viewportRef}
-      className={`relative size-full overscroll-contain p-2 ${centered ? "overflow-x-hidden overflow-y-auto" : "overflow-auto"}`}
+      className={`relative size-full overscroll-contain p-2 ${lockHorizontal ? "overflow-x-hidden overflow-y-auto" : "overflow-auto"}`}
       style={{ touchAction: onZoomChange ? "pan-y" : "pan-x pan-y" }}
-      onScroll={centered ? (event) => { event.currentTarget.scrollLeft = 0; } : undefined}
+      onScroll={lockHorizontal ? (event) => { event.currentTarget.scrollLeft = 0; } : undefined}
     >
-      <div ref={pagesRef} className={centered ? "w-full overflow-x-clip" : "mx-auto w-max min-w-full"} />
+      <div ref={pagesRef} className={lockHorizontal ? "w-full overflow-x-clip" : "mx-auto w-max min-w-full"} />
       {status === "loading" && (
         <p className="absolute inset-x-0 top-1/2 text-center text-sm text-muted-foreground">
           PDF wird geladen…
