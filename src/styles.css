@@ -216,6 +216,12 @@
   border: 1px solid var(--glass-border);
 }
 
+/* Native Datums-/Uhrzeit-Symbole in dunklem Modus aufhellen */
+.dark input[type="date"]::-webkit-calendar-picker-indicator,
+.dark input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) opacity(0.75);
+}
+
 @utility glow-primary {
   box-shadow: var(--glow);
 }
