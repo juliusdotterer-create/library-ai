@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { getRequest } from "@tanstack/react-start/server";
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
@@ -31,9 +32,27 @@ export const sendPasswordResetForEmail = createServerFn({ method: "POST" })
     if (!roleRow) throw new Error("Nur Admins dürfen Zurücksetz-Links senden.");
 
 
+    // Zieladresse muss auf diese App zeigen.
+    const reqOrigin = new URL(getRequest().url).origin;
+    let target: URL;
+    try {
+      target = new URL(data.redirectTo);
+    } catch {
+      throw new Error("Ungültige Zieladresse");
+    }
+    if (target.origin !== reqOrigin) throw new Error("Ungültige Zieladresse");
+
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Nur an freigeschaltete Adressen senden.
+    const { data: allowed } = await supabaseAdmin
+      .from("allowed_emails")
+      .select("id")
+      .ilike("email", data.email)
+      .maybeSingle();
+    if (!allowed) throw new Error("Adresse ist nicht freigeschaltet.");
+
     const { error } = await supabaseAdmin.auth.resetPasswordForEmail(data.email, {
-      redirectTo: data.redirectTo,
+      redirectTo: `${reqOrigin}/passwort-neu`,
     });
     if (error) throw new Error(error.message);
     return { sent: true };

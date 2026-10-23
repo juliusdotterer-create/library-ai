@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import DOMPurify from "dompurify";
 
 /** Zeigt Word-Dateien (.docx und alte .doc) direkt als formatierten Text an. */
 export function DocxViewer({
@@ -30,7 +31,7 @@ export function DocxViewer({
           try {
             const result = extractLegacyDocHtml(buffer);
             if (cancelled) return;
-            setHtml(result);
+            setHtml(DOMPurify.sanitize(result));
             return;
           } catch (err) {
             // Eine „.doc", die in Wahrheit eine .docx ist -> mammoth versuchen
@@ -48,7 +49,7 @@ export function DocxViewer({
         if (!fn) throw new Error("mammoth");
         const result = await fn({ arrayBuffer: buffer });
         if (cancelled) return;
-        setHtml(result.value || "<p><em>Dieses Dokument enthält keinen lesbaren Text.</em></p>");
+        setHtml(DOMPurify.sanitize(result.value) || "<p><em>Dieses Dokument enthält keinen lesbaren Text.</em></p>");
       } catch (err) {
         const message = (err as Error)?.message ?? "";
         if (!cancelled)
