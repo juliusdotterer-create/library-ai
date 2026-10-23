@@ -72,7 +72,7 @@ function SettingsPage() {
             Name, E-Mail-Adresse und Passwort deines Accounts.
           </p>
         </div>
-        <ProfilePanel />
+        <ProfilePanel isAdmin={isAdmin} />
       </section>
 
       <section className="glass space-y-3 rounded-3xl p-5">

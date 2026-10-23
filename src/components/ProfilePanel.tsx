@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { isEmailAllowed } from "@/lib/access.functions";
 import { useAuth } from "@/hooks/useAuth";
 
-export function ProfilePanel() {
+export function ProfilePanel({ isAdmin = false }: { isAdmin?: boolean }) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [currentEmail, setCurrentEmail] = useState("");
@@ -165,6 +165,7 @@ export function ProfilePanel() {
         </div>
       </div>
 
+      {isAdmin ? (
       <div className="space-y-2">
         <Label className="text-xs text-muted-foreground">E-Mail ändern</Label>
         <Input value={currentEmail} readOnly disabled className="rounded-2xl" />
@@ -192,6 +193,7 @@ export function ProfilePanel() {
           mehr rein.
         </p>
       </div>
+      ) : null}
 
       <div className="space-y-2">
         <Label className="text-xs text-muted-foreground">Passwort ändern</Label>

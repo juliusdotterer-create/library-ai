@@ -61,7 +61,14 @@ export const isEmailAllowed = createServerFn({ method: "POST" })
     }
     return { email };
   })
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const { data: roleRow } = await context.supabase
+      .from("user_roles")
+      .select("id")
+      .eq("user_id", context.userId)
+      .eq("role", "admin")
+      .maybeSingle();
+    if (!roleRow) throw new Error("Nur Admins dürfen die E-Mail-Adresse ändern.");
     if (OWNER_EMAIL && data.email === OWNER_EMAIL) return { allowed: true };
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: row } = await supabaseAdmin
