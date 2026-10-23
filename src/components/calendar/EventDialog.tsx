@@ -79,12 +79,12 @@ export function EventDialog({
         <div className="space-y-3">
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">Titel</Label>
-            <Input autoFocus className="rounded-2xl" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} />
+            <Input autoFocus className="rounded-2xl bg-field border-field-border" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} />
           </div>
           <div className="grid grid-cols-[1fr_auto] items-end gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Datum</Label>
-              <Input type="date" className="rounded-2xl" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} />
+              <Input type="date" className="rounded-2xl bg-field border-field-border" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} />
             </div>
             <label className="flex h-9 items-center gap-2 text-xs text-muted-foreground">
               <Switch checked={f.all_day} onCheckedChange={(v) => setF({ ...f, all_day: v })} />
@@ -95,11 +95,11 @@ export function EventDialog({
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Beginn</Label>
-                <Input type="time" className="rounded-2xl" value={f.start} onChange={(e) => setF({ ...f, start: e.target.value })} />
+                <Input type="time" className="rounded-2xl bg-field border-field-border" value={f.start} onChange={(e) => setF({ ...f, start: e.target.value })} />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Ende</Label>
-                <Input type="time" className="rounded-2xl" value={f.end} onChange={(e) => setF({ ...f, end: e.target.value })} />
+                <Input type="time" className="rounded-2xl bg-field border-field-border" value={f.end} onChange={(e) => setF({ ...f, end: e.target.value })} />
               </div>
             </div>
           )}
@@ -123,7 +123,7 @@ export function EventDialog({
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">Notiz</Label>
-            <Textarea className="rounded-2xl" value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} />
+            <Textarea className="rounded-2xl bg-field border-field-border" value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} />
           </div>
         </div>
         <DialogFooter className="flex-row gap-2 sm:justify-between">
