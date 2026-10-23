@@ -10,8 +10,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Logo } from "@/components/Logo";
 
 function safeNext(value: unknown): string | null {
-  if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//")) return null;
-  return value;
+  if (typeof value !== "string" || !/^\/(?![\/\\])/.test(value) || /[\\\s]/.test(value)) return null;
+  try {
+    const u = new URL(value, "https://local.invalid");
+    if (u.origin !== "https://local.invalid") return null;
+    return u.pathname + u.search + u.hash;
+  } catch {
+    return null;
+  }
 }
 
 export const Route = createFileRoute("/auth")({
