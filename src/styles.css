@@ -24,6 +24,11 @@
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
+  --color-event-orange: var(--event-orange);
+  --color-event-blue: var(--event-blue);
+  --color-event-green: var(--event-green);
+  --color-event-violet: var(--event-violet);
+  --color-event-rose: var(--event-rose);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
@@ -51,6 +56,11 @@
 }
 
 :root {
+  --event-orange: oklch(0.68 0.16 50);
+  --event-blue: oklch(0.62 0.14 250);
+  --event-green: oklch(0.62 0.13 155);
+  --event-violet: oklch(0.6 0.15 300);
+  --event-rose: oklch(0.63 0.17 10);
   --accent-h: 55;
   --accent-c: 0.16;
   --radius: 1rem;

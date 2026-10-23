@@ -1,60 +1,63 @@
-import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import {
+  addDays,
   addMonths,
+  addWeeks,
+  addYears,
   endOfMonth,
   endOfWeek,
+  endOfYear,
   format,
-  isSameDay,
   isSameMonth,
-  isToday,
+  isSameYear,
   startOfMonth,
   startOfWeek,
-  subMonths,
+  startOfYear,
 } from "date-fns";
 import { de } from "date-fns/locale";
-import { CalendarArrowUp, CalendarPlus, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
+import { CalendarArrowUp, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useEvents } from "@/hooks/useLibrary";
-import { MotionItem } from "@/components/MotionItem";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { TimetableGrid } from "@/components/TimetableGrid";
-import { EmptyState } from "@/components/EmptyState";
 import { CalendarSkeleton } from "@/components/Skeletons";
+import { DayWeekGrid, MonthGrid, YearGrid } from "@/components/calendar/CalendarViews";
+import { EventDialog, draftFrom, type EventDraft } from "@/components/calendar/EventDialog";
+import type { CalEvent } from "@/components/calendar/types";
 import { cn } from "@/lib/utils";
 import { buildIcs, downloadIcs, icsFileName, type IcsEvent } from "@/lib/ics";
 
+const VIEWS = ["tag", "woche", "monat", "jahr", "stundenplan"] as const;
+type View = (typeof VIEWS)[number];
+const LABEL: Record<View, string> = {
+  tag: "Tag",
+  woche: "Woche",
+  monat: "Monat",
+  jahr: "Jahr",
+  stundenplan: "Stundenplan",
+};
 
 export const Route = createFileRoute("/_authenticated/kalender")({
   validateSearch: (search: Record<string, unknown>) => ({
-    view: search.view === "stundenplan" ? ("stundenplan" as const) : ("monat" as const),
+    view: (VIEWS as readonly string[]).includes(String(search.view))
+      ? (search.view as View)
+      : ("monat" as View),
     date: typeof search.date === "string" ? search.date : undefined,
-    create: search.create === "1" || search.create === 1,
+    create: search.create === "1" || search.create === 1 || search.create === true,
   }),
   head: () => ({
     meta: [
       { title: "Kalender – Termine & Stundenpläne" },
       {
         name: "description",
-        content:
-          "Trage Termine, Klausuren und Lernblöcke ein und pflege deinen wöchentlichen Stundenplan.",
+        content: "Termine in Tages-, Wochen-, Monats- und Jahresansicht planen und den Stundenplan pflegen.",
       },
       { property: "og:title", content: "Kalender – Termine & Stundenpläne" },
-      { property: "og:description", content: "Monatsansicht und Stundenplan deines Studienarchivs." },
+      { property: "og:description", content: "Tag, Woche, Monat, Jahr und Stundenplan deines Studienarchivs." },
     ],
   }),
   component: KalenderPage,
@@ -62,61 +65,70 @@ export const Route = createFileRoute("/_authenticated/kalender")({
 
 function KalenderPage() {
   const { user } = useAuth();
-  const uid = user?.id;
   const qc = useQueryClient();
-  const search = useSearch({ strict: false }) as
-    | { view?: "monat" | "stundenplan"; date?: string; create?: boolean }
-    | undefined;
-  const view = search?.view ?? "monat";
+  const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
-  const parsedDate = search?.date ? new Date(search.date) : new Date();
-  const initialDate = Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
-  const [month, setMonth] = useState(initialDate);
-  const [selected, setSelected] = useState(initialDate);
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ title: "", notes: "", time: "09:00" });
+  const view = search.view;
+  const parsed = search.date ? new Date(search.date) : new Date();
+  const date = Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+
+  const [dialog, setDialog] = useState<{ open: boolean; draft: EventDraft; event: CalEvent | null }>({
+    open: false,
+    draft: draftFrom(null),
+    event: null,
+  });
+
+  const go = (v: View, d: Date = date) =>
+    void navigate({ search: (p) => ({ ...p, view: v, date: format(d, "yyyy-MM-dd"), create: false }) });
 
   useEffect(() => {
-    if (!search?.date && !search?.create) return;
-    if (search.date) {
-      const target = new Date(search.date);
-      if (!Number.isNaN(target.getTime())) {
-        setMonth(target);
-        setSelected(target);
-      }
-    }
-    if (search.create) setOpen(true);
-    void navigate({ search: { view, date: undefined, create: false }, replace: true });
-  }, [navigate, search?.create, search?.date, view]);
+    if (!search.create) return;
+    setDialog({ open: true, draft: draftFrom(null, date), event: null });
+    void navigate({ search: (p) => ({ ...p, create: false }), replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search.create]);
 
+  // Zeitraum laden: Monatsraster deckt Tag/Woche/Monat ab, Jahr ganz.
   const range = useMemo(() => {
-    const start = startOfWeek(startOfMonth(month), { weekStartsOn: 1 });
-    const end = endOfWeek(endOfMonth(month), { weekStartsOn: 1 });
-    const days: Date[] = [];
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) days.push(new Date(d));
-    return { start, end, days };
-  }, [month]);
+    if (view === "jahr") {
+      return { start: new Date(startOfYear(date).getTime() - 1000), end: endOfYear(date) };
+    }
+    const ws = startOfWeek(date, { weekStartsOn: 1 });
+    const ms = startOfWeek(startOfMonth(date), { weekStartsOn: 1 });
+    const start = ws < ms ? ws : ms;
+    const end = endOfWeek(endOfMonth(addDays(ws, 6) > endOfMonth(date) ? addDays(ws, 6) : date), {
+      weekStartsOn: 1,
+    });
+    return { start, end };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, format(date, "yyyy-MM-dd")]);
 
   const events = useEvents(range.start.toISOString(), range.end.toISOString());
+  const list = (events.data ?? []) as CalEvent[];
 
-
-  const create = useMutation({
-    mutationFn: async () => {
+  const save = useMutation({
+    mutationFn: async (d: EventDraft) => {
       if (!user) throw new Error("Nicht angemeldet");
-      const [h, m] = form.time.split(":").map(Number);
-      const start = new Date(selected);
-      start.setHours(h || 0, m || 0, 0, 0);
-      const { error } = await supabase.from("events").insert({
-        user_id: user.id,
-        title: form.title,
-        notes: form.notes || null,
-        start_at: start.toISOString(),
-      });
+      const [y, mo, da] = d.date.split("-").map(Number);
+      const at = (t: string) => {
+        const [h, m] = t.split(":").map(Number);
+        return new Date(y, mo - 1, da, d.all_day ? 0 : h || 0, d.all_day ? 0 : m || 0);
+      };
+      const row = {
+        title: d.title.trim(),
+        notes: d.notes.trim() || null,
+        start_at: at(d.start).toISOString(),
+        end_at: d.all_day ? null : at(d.end).toISOString(),
+        all_day: d.all_day,
+        color: d.color,
+      };
+      const { error } = d.id
+        ? await supabase.from("events").update(row).eq("id", d.id).eq("user_id", user.id)
+        : await supabase.from("events").insert({ ...row, user_id: user.id });
       if (error) throw error;
     },
     onSuccess: () => {
-      setOpen(false);
-      setForm({ title: "", notes: "", time: "09:00" });
+      setDialog((s) => ({ ...s, open: false }));
       void qc.invalidateQueries({ queryKey: ["events"] });
       toast.success("Termin gespeichert");
     },
@@ -125,45 +137,69 @@ function KalenderPage() {
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      if (!uid) throw new Error("Nicht angemeldet");
-      const { error } = await supabase.from("events").delete().eq("id", id).eq("user_id", uid);
+      if (!user) throw new Error("Nicht angemeldet");
+      const { error } = await supabase.from("events").delete().eq("id", id).eq("user_id", user.id);
       if (error) throw error;
     },
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["events"] }),
+    onSuccess: () => {
+      setDialog((s) => ({ ...s, open: false }));
+      void qc.invalidateQueries({ queryKey: ["events"] });
+      toast.success("Termin gelöscht");
+    },
   });
 
-  const dayEvents = (d: Date) =>
-    (events.data ?? []).filter((e) => isSameDay(new Date(e.start_at), d));
-
-  /** Exportiert Termine als .ics für den Handy-Kalender. */
-  const exportIcs = async (list: IcsEvent[], filename: string) => {
-    if (!list.length) {
-      toast.error("Keine Termine zum Exportieren.");
-      return;
-    }
+  const exportIcs = async (items: IcsEvent[], filename: string) => {
+    if (!items.length) return void toast.error("Keine Termine zum Exportieren.");
     try {
-      await downloadIcs(filename, buildIcs(list));
-      toast.success(
-        list.length === 1 ? "Termin exportiert" : `${list.length} Termine exportiert`,
-      );
+      await downloadIcs(filename, buildIcs(items));
+      toast.success(items.length === 1 ? "Termin exportiert" : `${items.length} Termine exportiert`);
     } catch {
       toast.error("Export fehlgeschlagen");
     }
   };
 
+  const openNew = (at?: Date) => setDialog({ open: true, draft: draftFrom(null, at ?? date), event: null });
+  const openEvent = (e: CalEvent) => setDialog({ open: true, draft: draftFrom(e), event: e });
+
+  const step = (dir: 1 | -1) => {
+    const fn = { tag: addDays, woche: addWeeks, monat: addMonths, jahr: addYears, stundenplan: addDays }[view];
+    go(view, fn(date, dir));
+  };
+
+  const weekStart = startOfWeek(date, { weekStartsOn: 1 });
+  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+
+  const title =
+    view === "tag"
+      ? format(date, "EEEE, d. MMMM", { locale: de })
+      : view === "woche"
+        ? `${format(weekStart, "d. MMM", { locale: de })} – ${format(addDays(weekStart, 6), "d. MMM", { locale: de })}`
+        : view === "monat"
+          ? format(date, "LLLL", { locale: de })
+          : format(date, "yyyy");
+
+  const visible =
+    view === "tag"
+      ? list.filter((e) => format(new Date(e.start_at), "yyyy-MM-dd") === format(date, "yyyy-MM-dd"))
+      : view === "woche"
+        ? list.filter((e) => new Date(e.start_at) >= weekStart && new Date(e.start_at) < addDays(weekStart, 7))
+        : view === "monat"
+          ? list.filter((e) => isSameMonth(new Date(e.start_at), date))
+          : list.filter((e) => isSameYear(new Date(e.start_at), date));
+
   return (
     <div className="space-y-3 sm:space-y-4">
-      <div className="glass inline-flex gap-1 rounded-2xl p-1">
-        {(["monat", "stundenplan"] as const).map((v) => (
+      <div className="glass flex w-full gap-1 overflow-x-auto rounded-2xl p-1 sm:inline-flex sm:w-auto">
+        {VIEWS.map((v) => (
           <button
             key={v}
-            onClick={() => void navigate({ search: (prev) => ({ ...prev, view: v }) })}
+            onClick={() => go(v)}
             className={cn(
-              "rounded-xl px-3 py-1.5 text-xs font-medium transition-colors sm:text-sm",
-              view === v ? "bg-primary text-primary-foreground" : "text-muted-foreground",
+              "flex-1 shrink-0 rounded-xl px-3 py-1.5 text-xs font-medium transition-colors sm:flex-none sm:text-sm",
+              view === v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
             )}
           >
-            {v === "monat" ? "Monat" : "Stundenplan"}
+            {LABEL[v]}
           </button>
         ))}
       </div>
@@ -171,255 +207,69 @@ function KalenderPage() {
       {view === "stundenplan" ? (
         <TimetableGrid />
       ) : (
-        <div className="grid gap-3 sm:gap-5 lg:grid-cols-[1fr_20rem]">
-      <div className="glass rounded-3xl p-2 sm:p-4">
-
-
-        <div className="mb-2 flex items-center justify-between sm:mb-3">
-          <div className="flex items-baseline gap-2">
-            <h1 className="text-xl font-semibold tracking-tight capitalize sm:text-3xl">
-              {format(month, "LLLL", { locale: de })}
-            </h1>
-            <span className="text-xl font-light text-muted-foreground/70 sm:text-3xl">
-              {format(month, "yyyy")}
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 rounded-full px-3 text-xs text-muted-foreground hover:text-foreground"
-              onClick={() => {
-                const now = new Date();
-                setMonth(now);
-                setSelected(now);
-              }}
-            >
-              Heute
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 rounded-full px-3 text-xs text-muted-foreground hover:text-foreground"
-              title="Alle Termine des Monats in den Handy-Kalender übernehmen"
-              onClick={() =>
-                void exportIcs(
-                  (events.data ?? []).filter((e) => isSameMonth(new Date(e.start_at), month)),
-                  `kalender-${format(month, "yyyy-MM")}.ics`,
-                )
-              }
-            >
-              <CalendarArrowUp className="mr-1 size-4" />
-              In Kalender
-            </Button>
-            <div className="glass-soft flex rounded-full p-0.5">
+        <div className="glass rounded-3xl p-2 sm:p-4">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex min-w-0 items-baseline gap-2">
+              <h1 className="truncate text-xl font-semibold capitalize tracking-tight sm:text-3xl">{title}</h1>
+              {view !== "jahr" && view !== "tag" && (
+                <span className="text-xl font-light text-muted-foreground/70 sm:text-3xl">{format(date, "yyyy")}</span>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5">
               <Button
                 variant="ghost"
-                size="icon"
-                className="h-7 w-7 rounded-full sm:h-8 sm:w-8"
-                onClick={() => setMonth(subMonths(month, 1))}
+                size="sm"
+                className="h-8 rounded-full px-3 text-xs text-muted-foreground"
+                onClick={() => go(view, new Date())}
               >
-                <ChevronLeft className="size-4" />
+                Heute
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 rounded-full sm:h-8 sm:w-8"
-                onClick={() => setMonth(addMonths(month, 1))}
+                className="h-8 w-8 rounded-full text-muted-foreground"
+                title="Sichtbare Termine in den Handy-Kalender übernehmen"
+                onClick={() => void exportIcs(visible, `kalender-${format(date, "yyyy-MM-dd")}.ics`)}
               >
-                <ChevronRight className="size-4" />
+                <CalendarArrowUp className="size-4" />
               </Button>
-            </div>
-          </div>
-        </div>
-
-        <div className="mb-1 grid grid-cols-7 sm:mb-2">
-          {["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((d, i) => (
-            <span
-              key={d}
-              className={cn(
-                "py-0.5 text-center text-[10px] font-semibold uppercase tracking-widest sm:text-xs",
-                i >= 5 ? "text-muted-foreground/50" : "text-muted-foreground",
-              )}
-            >
-              {d}
-            </span>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
-          {range.days.map((d) => {
-            const evts = dayEvents(d);
-            const today = isToday(d);
-            const isSelected = isSameDay(d, selected);
-            const inMonth = isSameMonth(d, month);
-            return (
-              <button
-                key={d.toISOString()}
-                onClick={() => setSelected(d)}
-                className={cn(
-                  "group flex min-h-10 flex-col items-stretch rounded-2xl p-1 text-left transition-all duration-200 sm:min-h-16 sm:p-1.5",
-                  inMonth ? "bg-card/60 hover:bg-card" : "opacity-35",
-                  isSelected && "bg-primary-soft ring-1 ring-primary/40",
-                )}
-              >
-                <span
-                  className={cn(
-                    "flex h-5 w-5 items-center justify-center self-start rounded-full text-[11px] font-medium transition-colors sm:h-6 sm:w-6 sm:text-xs",
-                    today && !isSelected && "bg-primary text-primary-foreground shadow-sm",
-                    isSelected && "text-accent-foreground font-semibold",
-                    !today && !isSelected && "group-hover:bg-muted",
-                  )}
-                >
-                  {format(d, "d")}
-                </span>
-                <span className="mt-0.5 flex flex-1 flex-col gap-0.5 sm:mt-1 sm:gap-0.5">
-                  {evts.slice(0, 2).map((e) => (
-                    <span
-                      key={e.id}
-                      className="flex items-center gap-1 truncate rounded-full bg-primary-soft px-1 py-0.5 text-[9px] font-medium text-accent-foreground sm:px-1.5 sm:text-[10px]"
-                    >
-                      <span className="size-1 shrink-0 rounded-full bg-primary" />
-                      <span className="truncate">{e.title}</span>
-                    </span>
-                  ))}
-                  {evts.length > 2 && (
-                    <span className="px-1.5 text-[9px] font-medium text-muted-foreground sm:text-[11px]">
-                      +{evts.length - 2} weitere
-                    </span>
-                  )}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <aside className="glass h-fit rounded-3xl p-3 sm:p-5">
-        <div className="mb-3 flex items-start justify-between sm:mb-4">
-          <div className="flex items-center gap-3">
-            <span
-              className={cn(
-                "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-lg font-semibold sm:h-12 sm:w-12 sm:text-xl",
-                isToday(selected)
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "bg-primary-soft text-accent-foreground",
-              )}
-            >
-              {format(selected, "d")}
-            </span>
-            <div>
-              <h2 className="text-sm font-semibold capitalize leading-tight sm:text-base">
-                {format(selected, "EEEE", { locale: de })}
-              </h2>
-              <p className="text-[10px] capitalize text-muted-foreground sm:text-xs">
-                {format(selected, "d. MMMM yyyy", { locale: de })}
-              </p>
-            </div>
-          </div>
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button size="icon" className="h-8 w-8 rounded-2xl sm:h-9 sm:w-9">
-                <CalendarPlus className="size-4" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="glass rounded-3xl">
-              <DialogHeader>
-                <DialogTitle>Neuer Termin</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-3">
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Titel</Label>
-                  <Input
-                    className="rounded-2xl"
-                    value={form.title}
-                    onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Uhrzeit</Label>
-                  <Input
-                    type="time"
-                    className="rounded-2xl"
-                    value={form.time}
-                    onChange={(e) => setForm({ ...form, time: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Notiz</Label>
-                  <Textarea
-                    className="rounded-2xl"
-                    value={form.notes}
-                    onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button
-                  className="rounded-2xl"
-                  disabled={!form.title.trim()}
-                  onClick={() => create.mutate()}
-                >
-                  Speichern
+              <div className="glass-soft flex rounded-full p-0.5">
+                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" aria-label="Zurück" onClick={() => step(-1)}>
+                  <ChevronLeft className="size-4" />
                 </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
+                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" aria-label="Weiter" onClick={() => step(1)}>
+                  <ChevronRight className="size-4" />
+                </Button>
+              </div>
+              <Button size="icon" className="h-8 w-8 rounded-2xl" aria-label="Neuer Termin" onClick={() => openNew()}>
+                <Plus className="size-4" />
+              </Button>
+            </div>
+          </div>
 
-        <div className="space-y-2">
           {events.isLoading ? (
             <CalendarSkeleton />
-          ) : dayEvents(selected).length ? (
-            dayEvents(selected).map((e, i) => (
-              <MotionItem
-                key={e.id}
-                delay={Math.min(i * 0.015, 0.08)}
-                className="group glass-soft relative flex items-start gap-3 overflow-hidden rounded-2xl p-3 transition-colors hover:bg-card/70"
-              >
-                <span className="absolute inset-y-2 left-0 w-1 rounded-full bg-primary" />
-                <div className="min-w-0 flex-1 pl-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-accent-foreground sm:text-[11px]">
-                    {format(new Date(e.start_at), "HH:mm")} Uhr
-                  </p>
-                  <p className="mt-0.5 truncate text-sm font-medium">{e.title}</p>
-                  {e.notes && (
-                    <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground sm:text-xs">{e.notes}</p>
-                  )}
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  title="In Handy-Kalender übernehmen"
-                  className="h-8 w-8 shrink-0 rounded-2xl text-muted-foreground/50 transition-colors hover:text-foreground"
-                  onClick={() => void exportIcs([e], icsFileName(e.title))}
-                >
-                  <CalendarArrowUp className="size-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 shrink-0 rounded-2xl text-muted-foreground/50 transition-colors hover:text-destructive"
-                  onClick={() => remove.mutate(e.id)}
-                >
-                  <Trash2 className="size-4" />
-                </Button>
-              </MotionItem>
-            ))
+          ) : view === "tag" ? (
+            <DayWeekGrid days={[date]} events={list} onSlot={openNew} onEvent={openEvent} />
+          ) : view === "woche" ? (
+            <DayWeekGrid days={weekDays} events={list} onSlot={openNew} onEvent={openEvent} onDay={(d) => go("tag", d)} />
+          ) : view === "monat" ? (
+            <MonthGrid month={date} events={list} onDay={(d) => go("tag", d)} onEvent={openEvent} />
           ) : (
-            <EmptyState
-              icon={<CalendarPlus className="size-7" />}
-              title="Keine Termine"
-              description="An diesem Tag steht noch nichts an. Füge einen neuen Termin hinzu."
-              action={{ label: "Termin erstellen", onClick: () => setOpen(true) }}
-              className="py-8"
-            />
+            <YearGrid year={date} events={list} onMonth={(m) => go("monat", m)} />
           )}
         </div>
-      </aside>
-        </div>
       )}
+
+      <EventDialog
+        open={dialog.open}
+        onOpenChange={(o) => setDialog((s) => ({ ...s, open: o }))}
+        initial={dialog.draft}
+        saving={save.isPending}
+        onSave={(d) => save.mutate(d)}
+        onDelete={dialog.event ? () => remove.mutate(dialog.event!.id) : undefined}
+        onExport={dialog.event ? () => void exportIcs([dialog.event!], icsFileName(dialog.event!.title)) : undefined}
+      />
     </div>
   );
 }
-
