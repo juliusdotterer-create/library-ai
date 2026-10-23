@@ -15,3 +15,4 @@
 - Keep `PdfCanvasViewer` zoom controlled by its parent so document-specific views can persist their own zoom preference.
 - Use the opt-in left-aligned PDF mode for timetables to lock horizontal positioning without changing other document viewers; touch pinch updates the parent-controlled zoom.
 - Calendar views (Tag/Woche/Monat/Jahr) live in `src/components/calendar/` and are selected via the `view`/`date` search params on `/kalender`, so navigation and back button stay in sync.
+- Entry form fields use the solid `--field`/`--field-border` tokens (`bg-field border-field-border`) instead of transparent glass, so they stay readable over any backdrop.
