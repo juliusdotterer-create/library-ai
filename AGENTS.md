@@ -14,3 +14,4 @@
 - Keep the mobile primary navigation in `AppShell` as a route-derived four-column control with one shared Motion lens, so visual state cannot diverge from navigation state.
 - Keep `PdfCanvasViewer` zoom controlled by its parent so document-specific views can persist their own zoom preference.
 - Use the opt-in left-aligned PDF mode for timetables to lock horizontal positioning without changing other document viewers; touch pinch updates the parent-controlled zoom.
+- Calendar views (Tag/Woche/Monat/Jahr) live in `src/components/calendar/` and are selected via the `view`/`date` search params on `/kalender`, so navigation and back button stay in sync.
