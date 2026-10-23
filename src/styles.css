@@ -40,6 +40,8 @@
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
+  --color-field: var(--field);
+  --color-field-border: var(--field-border);
   --color-ring: var(--ring);
   --color-ring-offset-background: var(--background);
   --color-glass: var(--glass);
@@ -87,6 +89,9 @@
 
   --border: oklch(0.9 0.01 80);
   --input: oklch(0.92 0.01 80);
+  /* Solide Eingabefelder (Termin-Formular) – kein Durchscheinen des Glasgrunds */
+  --field: oklch(0.996 0.004 85);
+  --field-border: oklch(0.86 0.014 80);
   --ring: oklch(0.64 var(--accent-c) var(--accent-h));
 
   --glass: oklch(1 0 0 / 55%);
@@ -137,6 +142,8 @@
 
   --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 16%);
+  --field: oklch(0.275 0.016 60);
+  --field-border: oklch(1 0 0 / 16%);
   --ring: oklch(0.72 var(--accent-c) var(--accent-h));
 
   --glass: oklch(0.3 0.014 60 / 55%);
