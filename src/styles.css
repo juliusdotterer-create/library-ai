@@ -58,6 +58,7 @@
 }
 
 :root {
+  color-scheme: light;
   --event-orange: oklch(0.68 0.16 50);
   --event-blue: oklch(0.62 0.14 250);
   --event-green: oklch(0.62 0.13 155);
@@ -120,6 +121,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --background: oklch(0.19 0.012 60);
   --foreground: oklch(0.95 0.008 85);
   --card: oklch(0.235 0.014 60);
