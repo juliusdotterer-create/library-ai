@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { findHighlights, highlightTokens } from "@/lib/pdf-highlight";
-import { detectTimetableDay, localDateKey, type DayRegion, type TimetableText } from "@/lib/timetable-today";
+import { detectTimetableDay, type DayRegion, type TimetableText } from "@/lib/timetable-today";
 import CompatiblePdfWorker from "@/lib/pdf-compat.worker?worker";
 
 export const PDF_MIN_ZOOM = 0.5;
@@ -39,6 +39,7 @@ export function PdfCanvasViewer({
   const zoomRef = useRef(zoom);
   const onZoomChangeRef = useRef(onZoomChange);
   const onTodayDetectionRef = useRef(onTodayDetection);
+  const positionedDayRef = useRef<string | null>(null);
   const pendingAnchorRef = useRef<{ x: number; y: number; previousZoom: number } | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [pages, setPages] = useState(0);
@@ -142,10 +143,7 @@ export function PdfCanvasViewer({
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
         const tokens = highlightTokens(highlight ?? "");
         let hasDates = false;
-        // Today first, then the next days (weekends/holidays have no row in the PDF).
-        const candidates = todayDate ? Array.from({ length: 8 }, (_, n) => {
-          const d = new Date(`${todayDate}T12:00:00`); d.setDate(d.getDate() + n); return localDateKey(d);
-        }) : [];
+        const candidates = todayDate ? [todayDate] : [];
         const pages: { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D; ratio: number; byDay: Map<string, DayRegion[]> }[] = [];
 
         for (let i = 1; i <= doc.numPages; i++) {
@@ -229,6 +227,20 @@ export function PdfCanvasViewer({
               }
               p.ctx.restore();
             }
+          }
+          const positionKey = `${url}:${todayDate}`;
+          const viewport = viewportRef.current;
+          if (viewport && positionedDayRef.current !== positionKey) {
+            const targetPage = hit ? pages.find(p => p.byDay.has(hit)) : undefined;
+            const region = hit ? targetPage?.byDay.get(hit)?.[0] : undefined;
+            if (targetPage && region) {
+              const pageTop = targetPage.canvas.getBoundingClientRect().top - viewport.getBoundingClientRect().top + viewport.scrollTop;
+              viewport.scrollTo({ top: Math.max(0, pageTop + region.y * targetPage.ratio / dpr - 24), left: 0, behavior: "instant" });
+            } else {
+              viewport.scrollTo({ top: 0, left: 0, behavior: "instant" });
+            }
+            positionedDayRef.current = positionKey;
+            pendingAnchorRef.current = null;
           }
           onTodayDetectionRef.current?.(hit ? "found" : hasDates ? "absent" : "unreadable", hit);
         }
