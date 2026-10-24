@@ -14,6 +14,7 @@ import {
 import { DocumentPreview, type PreviewDoc } from "@/components/DocumentPreview";
 import { ConfirmDelete } from "@/components/ConfirmDelete";
 import { cn } from "@/lib/utils";
+import { localDateKey } from "@/lib/timetable-today";
 
 /**
  * Dauerhaft eingeblendetes Stundenplan-Dokument (PDF/Bild) inkl. Upload,
@@ -28,9 +29,26 @@ export function TimetableDoc() {
   const [full, setFull] = useState<PreviewDoc | null>(null);
   const [height, setHeight] = useState(420);
   const [zoom, setZoom] = useState(1);
+  const [todayDate, setTodayDate] = useState<string>();
+  const [todayDetection, setTodayDetection] = useState<"found" | "absent" | "unreadable" | "error" | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const zoomStorageKey = doc?.id ? `timetable-pdf-zoom:${doc.id}` : null;
+
+  useEffect(() => {
+    const refresh = () => setTodayDate(localDateKey(new Date()));
+    refresh();
+    const timer = window.setInterval(refresh, 15_000);
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, []);
+
+  useEffect(() => setTodayDetection(null), [url, todayDate]);
 
   useEffect(() => {
     if (!zoomStorageKey) {
@@ -205,6 +223,13 @@ export function TimetableDoc() {
         </ConfirmDelete>
       </div>
 
+      {isPdf && todayDate && (
+        <p role="status" className="mb-2 text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">Heute: {new Date(`${todayDate}T12:00:00`).toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "2-digit", year: "numeric" })}</span>
+          {todayDetection === "found" ? " · Im Stundenplan markiert" : todayDetection === "absent" ? " · Kein Eintrag für heute" : todayDetection === "unreadable" ? " · Keine lesbaren Datumszeilen gefunden" : todayDetection === "error" ? " · PDF konnte nicht gelesen werden" : " · Datum wird gesucht …"}
+        </p>
+      )}
+
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-[auto_minmax(0,1fr)]">
       <div
         className={cn("order-2 overflow-hidden rounded-2xl bg-card/40 sm:order-1 sm:col-span-2")}
@@ -215,7 +240,7 @@ export function TimetableDoc() {
         ) : isImage ? (
           <img src={url} alt={doc.name} className="size-full object-contain" />
         ) : isPdf ? (
-          <PdfCanvasViewer url={url} zoom={zoom} onZoomChange={updateZoom} alignLeft />
+          <PdfCanvasViewer url={url} zoom={zoom} onZoomChange={updateZoom} alignLeft todayDate={todayDate} onTodayDetection={setTodayDetection} />
         ) : (
           <iframe src={url} title={doc.name} className="size-full bg-background" />
         )}
