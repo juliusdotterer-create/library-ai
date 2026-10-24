@@ -30,4 +30,14 @@ describe("current timetable date", () => {
     assert.equal(missing.regions.length, 0);
     assert.equal(detectTimetableDay(data, 595, 842, "2026-10-26").regions.length, 1);
   });
+});import { readTodayCache, writeTodayCache } from "./timetable-today";
+describe("today cache", () => {
+  test("keeps only the current day per document", () => {
+    const m = new Map<string, string>();
+    const s = { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v), removeItem: (k: string) => void m.delete(k), key: (i: number) => [...m.keys()][i] ?? null, get length() { return m.size; } } as unknown as Storage;
+    writeTodayCache(s, "doc", "2026-10-23", { status: "found", pages: { 1: [] } });
+    writeTodayCache(s, "doc", "2026-10-24", { status: "absent", pages: {} });
+    assert.equal(readTodayCache(s, "doc", "2026-10-23"), null);
+    assert.equal(readTodayCache(s, "doc", "2026-10-24")?.status, "absent");
+  });
 });
