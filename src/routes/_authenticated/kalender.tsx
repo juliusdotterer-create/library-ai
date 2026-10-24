@@ -69,8 +69,10 @@ function KalenderPage() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const view = search.view;
-  const parsed = search.date ? new Date(search.date) : new Date();
-  const date = Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+  // Date-only URL strings ("2026-10-23") must parse as LOCAL midnight, not UTC —
+  // new Date("2026-10-23") shifts to 01:00/02:00 in UTC+1/+2 and west of UTC it moves the day back one.
+  const parsed = search.date ? parseLocalDate(search.date) : new Date();
+  const date = parsed ?? new Date();
 
   const [dialog, setDialog] = useState<{ open: boolean; draft: EventDraft; event: CalEvent | null }>({
     open: false,
