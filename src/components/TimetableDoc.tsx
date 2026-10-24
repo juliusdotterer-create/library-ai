@@ -31,6 +31,7 @@ export function TimetableDoc() {
   const [zoom, setZoom] = useState(1);
   const [todayDate, setTodayDate] = useState<string>();
   const [todayDetection, setTodayDetection] = useState<"found" | "absent" | "unreadable" | "error" | null>(null);
+  const [markedDay, setMarkedDay] = useState<string | undefined>();
   const inputRef = useRef<HTMLInputElement>(null);
 
   const zoomStorageKey = doc?.id ? `timetable-pdf-zoom:${doc.id}` : null;
@@ -226,7 +227,7 @@ export function TimetableDoc() {
       {isPdf && todayDate && (
         <p role="status" className="mb-2 text-xs text-muted-foreground">
           <span className="font-medium text-foreground">Heute: {new Date(`${todayDate}T12:00:00`).toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "2-digit", year: "numeric" })}</span>
-          {todayDetection === "found" ? " · Im Stundenplan markiert" : todayDetection === "absent" ? " · Kein Eintrag für heute" : todayDetection === "unreadable" ? " · Keine lesbaren Datumszeilen gefunden" : todayDetection === "error" ? " · PDF konnte nicht gelesen werden" : " · Datum wird gesucht …"}
+          {todayDetection === "found" ? (markedDay && markedDay !== todayDate ? ` · Heute kein Eintrag – nächster Tag markiert: ${new Date(`${markedDay}T12:00:00`).toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "2-digit" })}` : " · Im Stundenplan markiert") : todayDetection === "absent" ? " · Kein Eintrag für heute" : todayDetection === "unreadable" ? " · Keine lesbaren Datumszeilen gefunden" : todayDetection === "error" ? " · PDF konnte nicht gelesen werden" : " · Datum wird gesucht …"}
         </p>
       )}
 
@@ -240,7 +241,7 @@ export function TimetableDoc() {
         ) : isImage ? (
           <img src={url} alt={doc.name} className="size-full object-contain" />
         ) : isPdf ? (
-          <PdfCanvasViewer url={url} zoom={zoom} onZoomChange={updateZoom} alignLeft todayDate={todayDate} onTodayDetection={setTodayDetection} />
+          <PdfCanvasViewer url={url} zoom={zoom} onZoomChange={updateZoom} alignLeft todayDate={todayDate} onTodayDetection={(r, k) => { setTodayDetection(r); setMarkedDay(k); }} />
         ) : (
           <iframe src={url} title={doc.name} className="size-full bg-background" />
         )}
