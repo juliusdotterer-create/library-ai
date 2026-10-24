@@ -23,4 +23,11 @@ describe("current timetable date", () => {
     assert.equal(localDateKey(new Date(2026, 9, 23, 23, 59)), "2026-10-23");
     assert.equal(localDateKey(new Date(2026, 9, 24, 0, 0)), "2026-10-24");
   });
+  test("missing Saturday does not select the following Monday", () => {
+    const data = [item("Fr 23.10.", 35, 240), item("Mo 26.10.", 35, 320)];
+    const missing = detectTimetableDay(data, 595, 842, "2026-10-24");
+    assert.equal(missing.hasDates, true);
+    assert.equal(missing.regions.length, 0);
+    assert.equal(detectTimetableDay(data, 595, 842, "2026-10-26").regions.length, 1);
+  });
 });
