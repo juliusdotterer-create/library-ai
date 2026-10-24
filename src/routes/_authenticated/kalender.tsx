@@ -41,6 +41,14 @@ const LABEL: Record<View, string> = {
   stundenplan: "Stundenplan",
 };
 
+/** Parses "yyyy-MM-dd" as local midnight (never UTC) so the calendar day and default times stay correct. */
+function parseLocalDate(s: string): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s.trim());
+  if (!m) return null;
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
 export const Route = createFileRoute("/_authenticated/kalender")({
   validateSearch: (search: Record<string, unknown>) => ({
     view: (VIEWS as readonly string[]).includes(String(search.view))
@@ -69,8 +77,10 @@ function KalenderPage() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const view = search.view;
-  const parsed = search.date ? new Date(search.date) : new Date();
-  const date = Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+  // Date-only URL strings ("2026-10-23") must parse as LOCAL midnight, not UTC —
+  // new Date("2026-10-23") shifts to 01:00/02:00 in UTC+1/+2 and west of UTC it moves the day back one.
+  const parsed = search.date ? parseLocalDate(search.date) : new Date();
+  const date = parsed ?? new Date();
 
   const [dialog, setDialog] = useState<{ open: boolean; draft: EventDraft; event: CalEvent | null }>({
     open: false,
