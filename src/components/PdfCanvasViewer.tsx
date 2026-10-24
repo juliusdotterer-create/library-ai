@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { findHighlights, highlightTokens } from "@/lib/pdf-highlight";
-import { detectTimetableDay, type DayRegion, type TimetableText } from "@/lib/timetable-today";
+import { detectTimetableDay, readTodayCache, writeTodayCache, type DayRegion, type TimetableText } from "@/lib/timetable-today";
 import CompatiblePdfWorker from "@/lib/pdf-compat.worker?worker";
 
 export const PDF_MIN_ZOOM = 0.5;
@@ -22,6 +22,7 @@ export function PdfCanvasViewer({
   alignLeft = false,
   todayDate,
   onTodayDetection,
+  todayCacheKey,
 }: {
   url: string;
   initialPage?: number | null;
@@ -32,6 +33,8 @@ export function PdfCanvasViewer({
   alignLeft?: boolean;
   todayDate?: string;
   onTodayDetection?: (result: "found" | "absent" | "unreadable" | "error", dateKey?: string) => void;
+  /** Stable document key; caches the date search per day so it runs once. */
+  todayCacheKey?: string;
 }) {
   const lockHorizontal = centered || alignLeft;
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -144,6 +147,8 @@ export function PdfCanvasViewer({
         const tokens = highlightTokens(highlight ?? "");
         let hasDates = false;
         const candidates = todayDate ? [todayDate] : [];
+        const cached = todayDate && todayCacheKey ? readTodayCache(window.localStorage, todayCacheKey, todayDate) : null;
+        if (cached) hasDates = cached.status !== "unreadable";
         const pages: { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D; ratio: number; byDay: Map<string, DayRegion[]> }[] = [];
 
         for (let i = 1; i <= doc.numPages; i++) {
@@ -186,7 +191,11 @@ export function PdfCanvasViewer({
             }
           }
 
-          if (todayDate) {
+          if (todayDate && cached) {
+            const byDay = new Map<string, DayRegion[]>();
+            if (cached.pages[i]?.length) byDay.set(todayDate, cached.pages[i]);
+            pages.push({ canvas, ctx, ratio: scale * dpr, byDay });
+          } else if (todayDate) {
             const content = await page.getTextContent();
             if (cancelled) return;
             const textItems: TimetableText[] = [];
@@ -213,6 +222,11 @@ export function PdfCanvasViewer({
         setStatus("ready");
         if (todayDate) {
           const hit = candidates.find(k => pages.some(p => p.byDay.has(k)));
+          if (!cached && todayCacheKey) {
+            const stored: Record<number, DayRegion[]> = {};
+            pages.forEach((p, n) => { const r = p.byDay.get(todayDate); if (r) stored[n + 1] = r; });
+            writeTodayCache(window.localStorage, todayCacheKey, todayDate, { status: hit ? "found" : hasDates ? "absent" : "unreadable", pages: stored });
+          }
           if (hit) {
             const color = getComputedStyle(viewportRef.current ?? container).getPropertyValue("--primary").trim();
             for (const p of pages) {
@@ -266,7 +280,7 @@ export function PdfCanvasViewer({
       void loadingTask?.destroy().catch(() => undefined);
       worker?.terminate();
     };
-  }, [url, initialPage, highlight, viewportWidth, zoom, centered, alignLeft, lockHorizontal, todayDate]);
+  }, [url, initialPage, highlight, viewportWidth, zoom, centered, alignLeft, lockHorizontal, todayDate, todayCacheKey]);
 
   return (
     <div
