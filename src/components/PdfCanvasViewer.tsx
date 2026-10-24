@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { findHighlights, highlightTokens } from "@/lib/pdf-highlight";
-import { detectTimetableDay, type TimetableText } from "@/lib/timetable-today";
+import { detectTimetableDay, localDateKey, type DayRegion, type TimetableText } from "@/lib/timetable-today";
 import CompatiblePdfWorker from "@/lib/pdf-compat.worker?worker";
 
 export const PDF_MIN_ZOOM = 0.5;
@@ -31,7 +31,7 @@ export function PdfCanvasViewer({
   centered?: boolean;
   alignLeft?: boolean;
   todayDate?: string;
-  onTodayDetection?: (result: "found" | "absent" | "unreadable" | "error") => void;
+  onTodayDetection?: (result: "found" | "absent" | "unreadable" | "error", dateKey?: string) => void;
 }) {
   const lockHorizontal = centered || alignLeft;
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -141,8 +141,12 @@ export function PdfCanvasViewer({
         const width = Math.max(1, viewportWidth - (lockHorizontal ? 16 : 0)) * zoom;
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
         const tokens = highlightTokens(highlight ?? "");
-        let foundToday = false;
         let hasDates = false;
+        // Today first, then the next days (weekends/holidays have no row in the PDF).
+        const candidates = todayDate ? Array.from({ length: 8 }, (_, n) => {
+          const d = new Date(`${todayDate}T12:00:00`); d.setDate(d.getDate() + n); return localDateKey(d);
+        }) : [];
+        const pages: { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D; ratio: number; byDay: Map<string, DayRegion[]> }[] = [];
 
         for (let i = 1; i <= doc.numPages; i++) {
           const page = await doc.getPage(i);
@@ -194,25 +198,13 @@ export function PdfCanvasViewer({
               const textHeight = Math.hypot(matrix[2], matrix[3]);
               textItems.push({ text: item.str, x: matrix[4], y: matrix[5] - textHeight, width: item.width, height: textHeight });
             }
-            const result = detectTimetableDay(textItems, base.width, base.height, todayDate);
-            hasDates ||= result.hasDates;
-            foundToday ||= result.regions.length > 0;
-            if (result.regions.length) {
-              canvas.dataset.today = todayDate;
-              const color = getComputedStyle(viewportRef.current ?? container).getPropertyValue("--primary").trim();
-              ctx.save();
-              ctx.fillStyle = color;
-              ctx.strokeStyle = color;
-              ctx.lineWidth = 2 * dpr;
-              for (const region of result.regions) {
-                const ratio = scale * dpr;
-                ctx.globalAlpha = .14;
-                ctx.fillRect(region.x * ratio, region.y * ratio, region.width * ratio, region.height * ratio);
-                ctx.globalAlpha = .85;
-                ctx.strokeRect(region.x * ratio, region.y * ratio, region.width * ratio, region.height * ratio);
-              }
-              ctx.restore();
+            const byDay = new Map<string, DayRegion[]>();
+            for (const key of candidates) {
+              const result = detectTimetableDay(textItems, base.width, base.height, key);
+              hasDates ||= result.hasDates;
+              if (result.regions.length) byDay.set(key, result.regions);
             }
+            pages.push({ canvas, ctx, ratio: scale * dpr, byDay });
           }
 
           if (i === 1) setStatus("ready");
@@ -221,7 +213,25 @@ export function PdfCanvasViewer({
           }
         }
         setStatus("ready");
-        if (todayDate) onTodayDetectionRef.current?.(foundToday ? "found" : hasDates ? "absent" : "unreadable");
+        if (todayDate) {
+          const hit = candidates.find(k => pages.some(p => p.byDay.has(k)));
+          if (hit) {
+            const color = getComputedStyle(viewportRef.current ?? container).getPropertyValue("--primary").trim();
+            for (const p of pages) {
+              const regions = p.byDay.get(hit);
+              if (!regions) continue;
+              p.canvas.dataset.today = hit;
+              p.ctx.save();
+              p.ctx.fillStyle = color; p.ctx.strokeStyle = color; p.ctx.lineWidth = 2 * dpr;
+              for (const r of regions) {
+                p.ctx.globalAlpha = .14; p.ctx.fillRect(r.x * p.ratio, r.y * p.ratio, r.width * p.ratio, r.height * p.ratio);
+                p.ctx.globalAlpha = .85; p.ctx.strokeRect(r.x * p.ratio, r.y * p.ratio, r.width * p.ratio, r.height * p.ratio);
+              }
+              p.ctx.restore();
+            }
+          }
+          onTodayDetectionRef.current?.(hit ? "found" : hasDates ? "absent" : "unreadable", hit);
+        }
         const anchor = pendingAnchorRef.current;
         const viewport = viewportRef.current;
         if (anchor && viewport && anchor.previousZoom > 0) {
