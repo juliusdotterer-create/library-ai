@@ -57,3 +57,17 @@ export function detectTimetableDay(items: TimetableText[], width: number, height
   }
   return { regions, hasDates: candidates.length > 0 };
 }
+export type TodayCache = { status: "found" | "absent" | "unreadable"; pages: Record<number, DayRegion[]> };
+type KV = Pick<Storage, "getItem" | "setItem" | "removeItem" | "key" | "length">;
+export const todayCacheKey = (docKey: string, date: string) => `timetable-today:${docKey}:${date}`;
+export function readTodayCache(store: KV, docKey: string, date: string): TodayCache | null {
+  try { return JSON.parse(store.getItem(todayCacheKey(docKey, date)) ?? "null"); } catch { return null; }
+}
+/** Stores today's result and drops older days of the same document. */
+export function writeTodayCache(store: KV, docKey: string, date: string, value: TodayCache) {
+  const prefix = `timetable-today:${docKey}:`;
+  const stale: string[] = [];
+  for (let i = 0; i < store.length; i++) { const k = store.key(i); if (k?.startsWith(prefix) && k !== todayCacheKey(docKey, date)) stale.push(k); }
+  stale.forEach(k => store.removeItem(k));
+  try { store.setItem(todayCacheKey(docKey, date), JSON.stringify(value)); } catch { /* quota */ }
+}

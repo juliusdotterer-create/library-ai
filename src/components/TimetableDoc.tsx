@@ -31,6 +31,12 @@ export function TimetableDoc() {
   const [zoom, setZoom] = useState(1);
   const [todayDate, setTodayDate] = useState<string>();
   const [todayDetection, setTodayDetection] = useState<"found" | "absent" | "unreadable" | "error" | null>(null);
+  const [searchToday, setSearchToday] = useState(true);
+  useEffect(() => setSearchToday(window.localStorage.getItem("timetable-search-today") !== "0"), []);
+  const toggleSearchToday = () => setSearchToday(v => {
+    window.localStorage.setItem("timetable-search-today", v ? "0" : "1");
+    return !v;
+  });
   const inputRef = useRef<HTMLInputElement>(null);
 
   const zoomStorageKey = doc?.id ? `timetable-pdf-zoom:${doc.id}` : null;
@@ -223,7 +229,13 @@ export function TimetableDoc() {
         </ConfirmDelete>
       </div>
 
-      {isPdf && todayDate && (
+      {isPdf && (
+        <label className="mb-2 flex w-fit items-center gap-2 text-xs text-muted-foreground">
+          <input type="checkbox" checked={searchToday} onChange={toggleSearchToday} className="accent-primary" />
+          Heutiges Datum suchen
+        </label>
+      )}
+      {isPdf && searchToday && todayDate && (
         <p role="status" className={cn("mb-2 text-xs text-muted-foreground", todayDetection === "absent" && "rounded-lg border border-field-border bg-field px-3 py-2")}>
           <span className="font-medium text-foreground">Heute: {new Date(`${todayDate}T12:00:00`).toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "2-digit", year: "numeric" })}</span>
           {todayDetection === "found" ? " · Im Stundenplan markiert" : todayDetection === "absent" ? " · Dieses Datum ist im Stundenplan nicht enthalten." : todayDetection === "unreadable" ? " · Keine lesbaren Datumszeilen gefunden" : todayDetection === "error" ? " · PDF konnte nicht gelesen werden" : " · Datum wird gesucht …"}
@@ -240,7 +252,7 @@ export function TimetableDoc() {
         ) : isImage ? (
           <img src={url} alt={doc.name} className="size-full object-contain" />
         ) : isPdf ? (
-          <PdfCanvasViewer url={url} zoom={zoom} onZoomChange={updateZoom} alignLeft todayDate={todayDate} onTodayDetection={setTodayDetection} />
+          <PdfCanvasViewer url={url} zoom={zoom} onZoomChange={updateZoom} alignLeft todayDate={searchToday ? todayDate : undefined} todayCacheKey={doc.storage_path} onTodayDetection={setTodayDetection} />
         ) : (
           <iframe src={url} title={doc.name} className="size-full bg-background" />
         )}
