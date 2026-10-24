@@ -132,7 +132,7 @@ export function PdfCanvasViewer({
         const pdfjs = await import("pdfjs-dist");
         if (cancelled) return;
         worker = new CompatiblePdfWorker();
-        const task = pdfjs.getDocument({ url, worker: new pdfjs.PDFWorker({ port: worker }) });
+        const task = pdfjs.getDocument({ url, worker: pdfjs.PDFWorker.create({ port: worker }) });
         loadingTask = task;
         const doc = await task.promise;
         if (cancelled) return;
