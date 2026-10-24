@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { findHighlights, highlightTokens } from "@/lib/pdf-highlight";
+import { detectTimetableDay, type TimetableText } from "@/lib/timetable-today";
+import CompatiblePdfWorker from "@/lib/pdf-compat.worker?worker";
 
 export const PDF_MIN_ZOOM = 0.5;
 export const PDF_MAX_ZOOM = 4;
@@ -18,6 +20,8 @@ export function PdfCanvasViewer({
   onZoomChange,
   centered = false,
   alignLeft = false,
+  todayDate,
+  onTodayDetection,
 }: {
   url: string;
   initialPage?: number | null;
@@ -26,12 +30,15 @@ export function PdfCanvasViewer({
   onZoomChange?: (zoom: number) => void;
   centered?: boolean;
   alignLeft?: boolean;
+  todayDate?: string;
+  onTodayDetection?: (result: "found" | "absent" | "unreadable" | "error") => void;
 }) {
   const lockHorizontal = centered || alignLeft;
   const viewportRef = useRef<HTMLDivElement>(null);
   const pagesRef = useRef<HTMLDivElement>(null);
   const zoomRef = useRef(zoom);
   const onZoomChangeRef = useRef(onZoomChange);
+  const onTodayDetectionRef = useRef(onTodayDetection);
   const pendingAnchorRef = useRef<{ x: number; y: number; previousZoom: number } | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [pages, setPages] = useState(0);
@@ -39,6 +46,7 @@ export function PdfCanvasViewer({
 
   zoomRef.current = zoom;
   onZoomChangeRef.current = onZoomChange;
+  onTodayDetectionRef.current = onTodayDetection;
 
   useEffect(() => {
     const viewport = viewportRef.current;
@@ -113,6 +121,8 @@ export function PdfCanvasViewer({
     let cancelled = false;
     const container = pagesRef.current;
     if (!container || !viewportWidth) return;
+    let worker: Worker | undefined;
+    let loadingTask: { destroy: () => Promise<void> } | undefined;
     container.replaceChildren();
     setStatus("loading");
 
@@ -120,16 +130,19 @@ export function PdfCanvasViewer({
       try {
         await import("@/lib/map-upsert-polyfill");
         const pdfjs = await import("pdfjs-dist");
-        const workerSrc = (await import("pdfjs-dist/build/pdf.worker.min.mjs?url")).default;
-        pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
-
-        const doc = await pdfjs.getDocument({ url }).promise;
+        if (cancelled) return;
+        worker = new CompatiblePdfWorker();
+        const task = pdfjs.getDocument({ url, worker: pdfjs.PDFWorker.create({ port: worker }) });
+        loadingTask = task;
+        const doc = await task.promise;
         if (cancelled) return;
         setPages(doc.numPages);
 
         const width = Math.max(1, viewportWidth - (lockHorizontal ? 16 : 0)) * zoom;
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
         const tokens = highlightTokens(highlight ?? "");
+        let foundToday = false;
+        let hasDates = false;
 
         for (let i = 1; i <= doc.numPages; i++) {
           const page = await doc.getPage(i);
@@ -171,12 +184,44 @@ export function PdfCanvasViewer({
             }
           }
 
+          if (todayDate) {
+            const content = await page.getTextContent();
+            if (cancelled) return;
+            const textItems: TimetableText[] = [];
+            for (const item of content.items) {
+              if (!("str" in item)) continue;
+              const matrix = pdfjs.Util.transform(base.transform, item.transform);
+              const textHeight = Math.hypot(matrix[2], matrix[3]);
+              textItems.push({ text: item.str, x: matrix[4], y: matrix[5] - textHeight, width: item.width, height: textHeight });
+            }
+            const result = detectTimetableDay(textItems, base.width, base.height, todayDate);
+            hasDates ||= result.hasDates;
+            foundToday ||= result.regions.length > 0;
+            if (result.regions.length) {
+              canvas.dataset.today = todayDate;
+              const color = getComputedStyle(viewportRef.current ?? container).getPropertyValue("--primary").trim();
+              ctx.save();
+              ctx.fillStyle = color;
+              ctx.strokeStyle = color;
+              ctx.lineWidth = 2 * dpr;
+              for (const region of result.regions) {
+                const ratio = scale * dpr;
+                ctx.globalAlpha = .14;
+                ctx.fillRect(region.x * ratio, region.y * ratio, region.width * ratio, region.height * ratio);
+                ctx.globalAlpha = .85;
+                ctx.strokeRect(region.x * ratio, region.y * ratio, region.width * ratio, region.height * ratio);
+              }
+              ctx.restore();
+            }
+          }
+
           if (i === 1) setStatus("ready");
           if (initialPage && i === initialPage) {
             canvas.scrollIntoView({ block: "start" });
           }
         }
         setStatus("ready");
+        if (todayDate) onTodayDetectionRef.current?.(foundToday ? "found" : hasDates ? "absent" : "unreadable");
         const anchor = pendingAnchorRef.current;
         const viewport = viewportRef.current;
         if (anchor && viewport && anchor.previousZoom > 0) {
@@ -185,15 +230,21 @@ export function PdfCanvasViewer({
           viewport.scrollTop = (viewport.scrollTop + anchor.y) * factor - anchor.y;
           pendingAnchorRef.current = null;
         }
-      } catch {
-        if (!cancelled) setStatus("error");
+      } catch (error) {
+        if (!cancelled) {
+          console.error("PDF rendering failed", error);
+          setStatus("error");
+          if (todayDate) onTodayDetectionRef.current?.("error");
+        }
       }
     })();
 
     return () => {
       cancelled = true;
+      void loadingTask?.destroy().catch(() => undefined);
+      worker?.terminate();
     };
-  }, [url, initialPage, highlight, viewportWidth, zoom, centered, alignLeft, lockHorizontal]);
+  }, [url, initialPage, highlight, viewportWidth, zoom, centered, alignLeft, lockHorizontal, todayDate]);
 
   return (
     <div

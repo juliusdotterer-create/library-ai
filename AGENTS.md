@@ -16,3 +16,5 @@
 - Use the opt-in left-aligned PDF mode for timetables to lock horizontal positioning without changing other document viewers; touch pinch updates the parent-controlled zoom.
 - Calendar views (Tag/Woche/Monat/Jahr) live in `src/components/calendar/` and are selected via the `view`/`date` search params on `/kalender`, so navigation and back button stay in sync.
 - Entry form fields use the solid `--field`/`--field-border` tokens (`bg-field border-field-border`) instead of transparent glass, so they stay readable over any backdrop.
+- Keep timetable date detection opt-in to PdfCanvasViewer, with positioned PDF text parsed by a browser-safe pure helper; refresh the device-local date on a timer and resume so other PDF viewers remain unchanged.
+- PdfCanvasViewer uses a bundled PDF worker that imports the Map/WeakMap compatibility patch inside the worker realm; release its loading task and worker on cleanup because main-thread patches do not reach PDF workers.
