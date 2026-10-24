@@ -87,7 +87,7 @@ export function TimetableDoc() {
         // Keep the loaded file locally: zoom/resizing must not fetch an expired signed URL.
         const { data, error } = await supabase.storage
           .from("documents")
-          .download(doc.storage_path, { signal: controller.signal });
+          .download(doc.storage_path, {}, { signal: controller.signal });
         if (cancelled) return;
         if (error || !data) {
           setLoadError(true);
