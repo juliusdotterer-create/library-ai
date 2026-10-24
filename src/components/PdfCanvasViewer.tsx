@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { findHighlights, highlightTokens } from "@/lib/pdf-highlight";
 import { detectTimetableDay, type TimetableText } from "@/lib/timetable-today";
+import CompatiblePdfWorker from "@/lib/pdf-compat.worker?worker";
 
 export const PDF_MIN_ZOOM = 0.5;
 export const PDF_MAX_ZOOM = 4;
@@ -120,6 +121,8 @@ export function PdfCanvasViewer({
     let cancelled = false;
     const container = pagesRef.current;
     if (!container || !viewportWidth) return;
+    let worker: Worker | undefined;
+    let loadingTask: { destroy: () => Promise<void> } | undefined;
     container.replaceChildren();
     setStatus("loading");
 
@@ -127,10 +130,11 @@ export function PdfCanvasViewer({
       try {
         await import("@/lib/map-upsert-polyfill");
         const pdfjs = await import("pdfjs-dist");
-        const workerSrc = (await import("pdfjs-dist/build/pdf.worker.min.mjs?url")).default;
-        pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
-
-        const doc = await pdfjs.getDocument({ url }).promise;
+        if (cancelled) return;
+        worker = new CompatiblePdfWorker();
+        const task = pdfjs.getDocument({ url, worker: new pdfjs.PDFWorker({ port: worker }) });
+        loadingTask = task;
+        const doc = await task.promise;
         if (cancelled) return;
         setPages(doc.numPages);
 
@@ -237,6 +241,8 @@ export function PdfCanvasViewer({
 
     return () => {
       cancelled = true;
+      void loadingTask?.destroy().catch(() => undefined);
+      worker?.terminate();
     };
   }, [url, initialPage, highlight, viewportWidth, zoom, centered, alignLeft, lockHorizontal, todayDate]);
 
