@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Heutiges Datum in der Stundenplan-PDF erkennen und die zugehörige Tageszeile oder -spalte markieren und prüfen.
+- [x] Heutiges Datum in der Stundenplan-PDF erkennen und die zugehörige Tageszeile oder -spalte markieren und prüfen; echte PDF, Freitag/Samstag und Zoom getestet.
 
 - [x] Mobile Bottom-Navigation mit akkurater gleitender Apple-Liquid-Glass-Linse umsetzen und prüfen.
 - [x] Dauerhaften Zoom für die eingebettete Stundenplan-PDF ergänzen und prüfen.
