@@ -19,3 +19,4 @@
 - Keep timetable date detection opt-in to PdfCanvasViewer, with positioned PDF text parsed by a browser-safe pure helper; refresh the device-local date on a timer and resume so other PDF viewers remain unchanged.
 - Position the timetable viewport once per document URL and local date after date detection, so zoom redraws and manual scrolling retain the user's position.
 - PdfCanvasViewer uses a bundled PDF worker that imports the Map/WeakMap compatibility patch inside the worker realm; release its loading task and worker on cleanup because main-thread patches do not reach PDF workers.
+- Load the embedded timetable through an authenticated storage download and a cleanup-managed Blob URL so later zoom redraws cannot fail on an expired signed URL.

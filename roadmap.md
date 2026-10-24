@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Stundenplan-Ladefehler durch abgelaufene PDF-Links beheben und mit echter Datei sowie erneutem Laden prüfen.
+
 - [x] Hinweisfeld bei fehlendem heutigen Datum anzeigen; keine Ersatzmarkierung, bei vorhandenem Datum automatisch dorthin scrollen; mit echter PDF für Samstag/Freitag und fünf Tests geprüft.
 
 - [x] Heutiges Datum in der Stundenplan-PDF erkennen und die zugehörige Tageszeile oder -spalte markieren und prüfen; echte PDF, Freitag/Samstag und Zoom getestet.

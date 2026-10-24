@@ -26,6 +26,8 @@ export function TimetableDoc() {
   const qc = useQueryClient();
   const { data: doc, isLoading } = useTimetableDoc();
   const [url, setUrl] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [full, setFull] = useState<PreviewDoc | null>(null);
   const [height, setHeight] = useState(420);
   const [zoom, setZoom] = useState(1);
@@ -75,18 +77,34 @@ export function TimetableDoc() {
 
   useEffect(() => {
     setUrl(null);
-    if (!doc) return;
+    setLoadError(false);
+    if (!doc?.storage_path || !uid) return;
     let cancelled = false;
+    let objectUrl: string | null = null;
+    const controller = new AbortController();
     void (async () => {
-      const { data, error } = await supabase.storage
-        .from("documents")
-        .createSignedUrl(doc.storage_path, 60 * 60);
-      if (!cancelled && !error && data) setUrl(data.signedUrl);
+      try {
+        // Keep the loaded file locally: zoom/resizing must not fetch an expired signed URL.
+        const { data, error } = await supabase.storage
+          .from("documents")
+          .download(doc.storage_path, { signal: controller.signal });
+        if (cancelled) return;
+        if (error || !data) {
+          setLoadError(true);
+          return;
+        }
+        objectUrl = URL.createObjectURL(data);
+        setUrl(objectUrl);
+      } catch {
+        if (!cancelled) setLoadError(true);
+      }
     })();
     return () => {
       cancelled = true;
+      controller.abort();
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [doc]);
+  }, [doc?.storage_path, uid, loadAttempt]);
 
   const upload = useMutation({
     mutationFn: async (file: File) => {
@@ -248,7 +266,12 @@ export function TimetableDoc() {
         style={{ height }}
       >
         {!url ? (
-          <p className="p-6 text-sm text-muted-foreground">Wird geladen…</p>
+          loadError ? (
+            <div role="alert" className="flex flex-col items-center gap-3 p-6 text-sm text-muted-foreground">
+              <p>Stundenplan konnte nicht geladen werden.</p>
+              <Button variant="secondary" size="sm" onClick={() => setLoadAttempt(v => v + 1)}>Erneut laden</Button>
+            </div>
+          ) : <p className="p-6 text-sm text-muted-foreground">Wird geladen…</p>
         ) : isImage ? (
           <img src={url} alt={doc.name} className="size-full object-contain" />
         ) : isPdf ? (
