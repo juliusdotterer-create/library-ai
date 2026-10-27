@@ -1,4 +1,5 @@
 import { PdfFailureView } from "@/components/pdf/PdfFailureView";
+import { canvasRatio, deviceRatio, maxCanvasPixels } from "@/lib/canvas-budget";
 import { classifyPdfError, markLocked, type PdfFailure } from "@/lib/pdf-errors";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { findHighlights, highlightTokens } from "@/lib/pdf-highlight";
@@ -136,26 +137,69 @@ export function PdfAnnotator({
     [pages, zoom],
   );
 
+  /* ------- nur Seiten nahe dem Sichtbereich im Speicher halten ------- */
+  const [visible, setVisible] = useState<Set<number>>(() => new Set());
+  useEffect(() => {
+    const root = wrapRef.current;
+    if (!root || status !== "ready" || view.length === 0) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        setVisible((prev) => {
+          const next = new Set(prev);
+          for (const e of entries) {
+            const n = Number((e.target as HTMLElement).dataset.page) - 1;
+            if (e.isIntersecting) next.add(n);
+            else next.delete(n);
+          }
+          return next;
+        });
+      },
+      { root, rootMargin: "120% 0px" },
+    );
+    root.querySelectorAll("[data-page]").forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, [status, view.length]);
+
   /* ---------------- render pages ---------------- */
+  const renderedKey = useRef<(string | null)[]>([]);
   useEffect(() => {
     const doc = docRef.current;
     if (!doc || view.length === 0) return;
     let cancelled = false;
+    let task: { cancel: () => void } | null = null;
+    const budget = maxCanvasPixels();
+    const dpr = deviceRatio();
+    // Seiten außerhalb des Bereichs freigeben
+    for (let i = 0; i < view.length; i++) {
+      if (visible.has(i)) continue;
+      const canvas = canvasRefs.current[i];
+      if (canvas && canvas.width) {
+        canvas.width = 0;
+        canvas.height = 0;
+      }
+      renderedKey.current[i] = null;
+    }
     void (async () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      for (let i = 0; i < view.length; i++) {
+      for (const i of [...visible].sort((a, b) => a - b)) {
         const canvas = canvasRefs.current[i];
         const dim = view[i];
         if (!canvas || !dim) continue;
+        const ratio = canvasRatio(dim.w, dim.h, dpr, budget);
+        const key = `${dim.scale}:${ratio}`;
+        if (renderedKey.current[i] === key) continue;
         const page = await doc.getPage(i + 1);
         if (cancelled) return;
-        const viewport = page.getViewport({ scale: dim.scale * dpr });
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
+        const viewport = page.getViewport({ scale: dim.scale * ratio });
+        canvas.width = Math.floor(viewport.width);
+        canvas.height = Math.floor(viewport.height);
         const ctx = canvas.getContext("2d");
         if (!ctx) continue;
         try {
-          await page.render({ canvas, canvasContext: ctx, viewport }).promise;
+          const t = page.render({ canvas, canvasContext: ctx, viewport });
+          task = t;
+          await t.promise;
+          renderedKey.current[i] = key;
+          page.cleanup?.();
         } catch {
           /* re-render race, ignore */
         }
@@ -164,8 +208,9 @@ export function PdfAnnotator({
     })();
     return () => {
       cancelled = true;
+      task?.cancel();
     };
-  }, [view]);
+  }, [view, visible]);
 
   /* ------- Trefferrechtecke der Volltextsuche (Basis-Koordinaten) ------- */
   useEffect(() => {
