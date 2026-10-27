@@ -1,4 +1,5 @@
 import { PdfFailureView } from "@/components/pdf/PdfFailureView";
+import { canvasRatio, deviceRatio, maxCanvasPixels } from "@/lib/canvas-budget";
 import { classifyPdfError, markLocked, type PdfFailure } from "@/lib/pdf-errors";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { findHighlights, highlightTokens } from "@/lib/pdf-highlight";
@@ -96,6 +97,7 @@ export function PdfAnnotator({
   useEffect(() => {
     if (!width) return;
     let cancelled = false;
+    let loaded: { destroy: () => Promise<void> } | null = null;
     setStatus("loading");
     void (async () => {
       try {
@@ -103,7 +105,9 @@ export function PdfAnnotator({
         const pdfjs = await import("pdfjs-dist");
         const workerSrc = (await import("pdfjs-dist/build/pdf.worker.min.mjs?url")).default;
         pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
-        const doc = await pdfjs.getDocument({ url, password }).promise;
+        const task = pdfjs.getDocument({ url, password });
+        loaded = task;
+        const doc = await task.promise;
         if (cancelled) return;
         docRef.current = doc as never;
         const dims: { w: number; h: number; scale: number }[] = [];
@@ -116,6 +120,7 @@ export function PdfAnnotator({
         if (cancelled) return;
         canvasRefs.current = [];
         overlayRefs.current = [];
+        renderedKey.current = [];
         setPages(dims);
         setStatus("ready");
       } catch (err) {
@@ -128,6 +133,8 @@ export function PdfAnnotator({
     })();
     return () => {
       cancelled = true;
+      docRef.current = null;
+      void loaded?.destroy().catch(() => {});
     };
   }, [url, width, password, documentId]);
 
@@ -136,26 +143,69 @@ export function PdfAnnotator({
     [pages, zoom],
   );
 
+  /* ------- nur Seiten nahe dem Sichtbereich im Speicher halten ------- */
+  const [visible, setVisible] = useState<Set<number>>(() => new Set());
+  useEffect(() => {
+    const root = wrapRef.current;
+    if (!root || status !== "ready" || view.length === 0) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        setVisible((prev) => {
+          const next = new Set(prev);
+          for (const e of entries) {
+            const n = Number((e.target as HTMLElement).dataset.page) - 1;
+            if (e.isIntersecting) next.add(n);
+            else next.delete(n);
+          }
+          return next;
+        });
+      },
+      { root, rootMargin: "120% 0px" },
+    );
+    root.querySelectorAll("[data-page]").forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, [status, view.length]);
+
   /* ---------------- render pages ---------------- */
+  const renderedKey = useRef<(string | null)[]>([]);
   useEffect(() => {
     const doc = docRef.current;
     if (!doc || view.length === 0) return;
     let cancelled = false;
+    let task: { cancel: () => void } | null = null;
+    const budget = maxCanvasPixels();
+    const dpr = deviceRatio();
+    // Seiten außerhalb des Bereichs freigeben
+    for (let i = 0; i < view.length; i++) {
+      if (visible.has(i)) continue;
+      const canvas = canvasRefs.current[i];
+      if (canvas && canvas.width) {
+        canvas.width = 0;
+        canvas.height = 0;
+      }
+      renderedKey.current[i] = null;
+    }
     void (async () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      for (let i = 0; i < view.length; i++) {
+      for (const i of [...visible].sort((a, b) => a - b)) {
         const canvas = canvasRefs.current[i];
         const dim = view[i];
         if (!canvas || !dim) continue;
+        const ratio = canvasRatio(dim.w, dim.h, dpr, budget);
+        const key = `${dim.scale}:${ratio}`;
+        if (renderedKey.current[i] === key) continue;
         const page = await doc.getPage(i + 1);
         if (cancelled) return;
-        const viewport = page.getViewport({ scale: dim.scale * dpr });
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
+        const viewport = page.getViewport({ scale: dim.scale * ratio });
+        canvas.width = Math.floor(viewport.width);
+        canvas.height = Math.floor(viewport.height);
         const ctx = canvas.getContext("2d");
         if (!ctx) continue;
         try {
-          await page.render({ canvas, canvasContext: ctx, viewport }).promise;
+          const t = page.render({ canvas, canvasContext: ctx, viewport });
+          task = t;
+          await t.promise;
+          renderedKey.current[i] = key;
+          page.cleanup?.();
         } catch {
           /* re-render race, ignore */
         }
@@ -164,8 +214,9 @@ export function PdfAnnotator({
     })();
     return () => {
       cancelled = true;
+      task?.cancel();
     };
-  }, [view]);
+  }, [view, visible]);
 
   /* ------- Trefferrechtecke der Volltextsuche (Basis-Koordinaten) ------- */
   useEffect(() => {
@@ -199,11 +250,20 @@ export function PdfAnnotator({
 
   /* ------- Trefferebene zeichnen ------- */
   useEffect(() => {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const budget = maxCanvasPixels();
     for (let i = 0; i < view.length; i++) {
       const canvas = hlRefs.current[i];
       const dim = view[i];
       if (!canvas || !dim) continue;
+      // Nur Seiten mit Treffern in Sichtnähe bekommen eine Trefferebene
+      if (!visible.has(i) || !hits.some((h) => h.page === i + 1)) {
+        if (canvas.width) {
+          canvas.width = 0;
+          canvas.height = 0;
+        }
+        continue;
+      }
+      const dpr = canvasRatio(dim.w, dim.h, deviceRatio(), budget);
       canvas.width = Math.max(1, Math.round(dim.w * dpr));
       canvas.height = Math.max(1, Math.round(dim.h * dpr));
       const ctx = canvas.getContext("2d");
@@ -217,7 +277,7 @@ export function PdfAnnotator({
         ctx.fillRect(h.x * s, h.y * s, h.w * s, h.h * s);
       });
     }
-  }, [hits, view, activeMatch]);
+  }, [hits, view, activeMatch, visible]);
 
   /* ------- Zum aktiven Treffer scrollen ------- */
   useEffect(() => {
@@ -237,12 +297,23 @@ export function PdfAnnotator({
 
   const drawPages = useCallback(
     (indices?: number[]) => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const budget = maxCanvasPixels();
       const pageList = indices ?? view.map((_, i) => i);
       pageList.forEach((i) => {
         const dim = view[i];
         const canvas = overlayRefs.current[i];
         if (!canvas || !dim) return;
+        const active = drawing.current?.page === i;
+        const hasInk = active || annos.some((a) => a.kind === "stroke" && a.page === i);
+        // Ebene nur belegen, wenn dort gezeichnet wurde und die Seite nah ist
+        if (!hasInk || (!active && !visible.has(i))) {
+          if (canvas.width) {
+            canvas.width = 0;
+            canvas.height = 0;
+          }
+          return;
+        }
+        const dpr = canvasRatio(dim.w, dim.h, deviceRatio(), budget);
         if (canvas.width !== Math.round(dim.w * dpr)) {
           canvas.width = Math.round(dim.w * dpr);
           canvas.height = Math.round(dim.h * dpr);
@@ -277,7 +348,7 @@ export function PdfAnnotator({
         }
       });
     },
-    [annos, view, zoom],
+    [annos, view, zoom, visible],
   );
 
   const drawPagesRef = useRef(drawPages);
@@ -285,7 +356,7 @@ export function PdfAnnotator({
 
   useEffect(() => {
     drawPagesRef.current();
-  }, [view, zoom]);
+  }, [view, zoom, visible]);
 
   useEffect(() => {
     if (pendingRedraw.current === null) return;

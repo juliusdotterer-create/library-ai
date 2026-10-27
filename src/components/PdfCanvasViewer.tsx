@@ -1,3 +1,4 @@
+import { canvasRatio, maxCanvasPixels } from "@/lib/canvas-budget";
 import { PdfFailureView } from "@/components/pdf/PdfFailureView";
 import { classifyPdfError, type PdfFailure } from "@/lib/pdf-errors";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -155,16 +156,20 @@ export function PdfCanvasViewer({
         if (cached) hasDates = cached.status !== "unreadable";
         const pages: { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D; ratio: number; byDay: Map<string, DayRegion[]> }[] = [];
 
+        // Gesamtbudget über alle Seiten, damit mobiles Safari nicht abstürzt
+        const budget = maxCanvasPixels();
         for (let i = 1; i <= doc.numPages; i++) {
           const page = await doc.getPage(i);
           if (cancelled) return;
           const base = page.getViewport({ scale: 1 });
           const scale = width / base.width;
-          const viewport = page.getViewport({ scale: scale * dpr });
+          const perPage = Math.max(1_000_000, (budget * 4) / doc.numPages);
+          const ratio = canvasRatio(width, base.height * scale, dpr, Math.min(budget, perPage));
+          const viewport = page.getViewport({ scale: scale * ratio });
 
           const canvas = document.createElement("canvas");
-          canvas.width = viewport.width;
-          canvas.height = viewport.height;
+          canvas.width = Math.floor(viewport.width);
+          canvas.height = Math.floor(viewport.height);
           canvas.style.width = `${width}px`;
           canvas.style.height = "auto";
           canvas.style.display = "block";
@@ -198,7 +203,7 @@ export function PdfCanvasViewer({
           if (todayDate && cached) {
             const byDay = new Map<string, DayRegion[]>();
             if (cached.pages[i]?.length) byDay.set(todayDate, cached.pages[i]);
-            pages.push({ canvas, ctx, ratio: scale * dpr, byDay });
+            pages.push({ canvas, ctx, ratio: scale * ratio, byDay });
           } else if (todayDate) {
             const content = await page.getTextContent();
             if (cancelled) return;
@@ -215,7 +220,7 @@ export function PdfCanvasViewer({
               hasDates ||= result.hasDates;
               if (result.regions.length) byDay.set(key, result.regions);
             }
-            pages.push({ canvas, ctx, ratio: scale * dpr, byDay });
+            pages.push({ canvas, ctx, ratio: scale * ratio, byDay });
           }
 
           if (i === 1) setStatus("ready");
@@ -253,7 +258,7 @@ export function PdfCanvasViewer({
             const region = hit ? targetPage?.byDay.get(hit)?.[0] : undefined;
             if (targetPage && region) {
               const pageTop = targetPage.canvas.getBoundingClientRect().top - viewport.getBoundingClientRect().top + viewport.scrollTop;
-              viewport.scrollTo({ top: Math.max(0, pageTop + region.y * targetPage.ratio / dpr - 24), left: 0, behavior: "instant" });
+              viewport.scrollTo({ top: Math.max(0, pageTop + region.y * targetPage.ratio * (parseFloat(targetPage.canvas.style.width) / targetPage.canvas.width) - 24), left: 0, behavior: "instant" });
             } else {
               viewport.scrollTo({ top: 0, left: 0, behavior: "instant" });
             }
