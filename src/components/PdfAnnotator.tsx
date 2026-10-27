@@ -271,7 +271,7 @@ export function PdfAnnotator({
         ctx.fillRect(h.x * s, h.y * s, h.w * s, h.h * s);
       });
     }
-  }, [hits, view, activeMatch]);
+  }, [hits, view, activeMatch, visible]);
 
   /* ------- Zum aktiven Treffer scrollen ------- */
   useEffect(() => {
@@ -342,7 +342,7 @@ export function PdfAnnotator({
         }
       });
     },
-    [annos, view, zoom],
+    [annos, view, zoom, visible],
   );
 
   const drawPagesRef = useRef(drawPages);
@@ -350,7 +350,7 @@ export function PdfAnnotator({
 
   useEffect(() => {
     drawPagesRef.current();
-  }, [view, zoom]);
+  }, [view, zoom, visible]);
 
   useEffect(() => {
     if (pendingRedraw.current === null) return;
