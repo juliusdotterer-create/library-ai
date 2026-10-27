@@ -1,3 +1,5 @@
+import { Lock } from "lucide-react";
+import { isDrmFileName } from "@/lib/pdf-errors";
 import { useCallback, useEffect, useState } from "react";
 import {
   ChevronLeft,
@@ -273,6 +275,18 @@ export function DocumentPreview({
             <DocxViewer url={url} name={doc.name} />
           ) : isLegacyDoc || isRtf ? (
             <DocxViewer url={url} name={doc.name} legacy />
+          ) : isDrmFileName(doc.name) || ext === "epub" ? (
+            <div className="flex size-full flex-col items-center justify-center gap-3 bg-background p-8 text-center">
+              <Lock className="size-8 text-muted-foreground" />
+              <p className="max-w-md text-sm text-muted-foreground">
+                {ext === "epub"
+                  ? "E-Books (EPUB) können hier nicht angezeigt werden. Ist die Datei aus einer Bibliothek, ist sie meist kopiergeschützt – bitte in Adobe Digital Editions, Thorium oder der Bibliotheks-App öffnen."
+                  : "Das ist ein Ausleih-Ticket (.acsm) mit Kopierschutz (DRM). Öffne es in Adobe Digital Editions oder der App deiner Bibliothek – dort wird das eigentliche Buch geladen."}
+              </p>
+              <Button asChild variant="secondary" className="rounded-2xl">
+                <a href={url} download={doc.name}><Download className="size-4" /> Herunterladen</a>
+              </Button>
+            </div>
           ) : embeddable ? (
             <iframe
               src={doc.page && isPdf ? `${url}#page=${doc.page}` : url}
