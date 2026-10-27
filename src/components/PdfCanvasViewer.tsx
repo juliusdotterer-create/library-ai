@@ -155,12 +155,16 @@ export function PdfCanvasViewer({
         if (cached) hasDates = cached.status !== "unreadable";
         const pages: { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D; ratio: number; byDay: Map<string, DayRegion[]> }[] = [];
 
+        // Gesamtbudget über alle Seiten, damit mobiles Safari nicht abstürzt
+        const budget = maxCanvasPixels();
         for (let i = 1; i <= doc.numPages; i++) {
           const page = await doc.getPage(i);
           if (cancelled) return;
           const base = page.getViewport({ scale: 1 });
           const scale = width / base.width;
-          const viewport = page.getViewport({ scale: scale * dpr });
+          const perPage = Math.max(budget / 2, (budget * 3) / doc.numPages);
+          const ratio = canvasRatio(width, base.height * scale, dpr, Math.min(budget, perPage));
+          const viewport = page.getViewport({ scale: scale * ratio });
 
           const canvas = document.createElement("canvas");
           canvas.width = viewport.width;

@@ -97,6 +97,7 @@ export function PdfAnnotator({
   useEffect(() => {
     if (!width) return;
     let cancelled = false;
+    let loaded: { destroy: () => Promise<void> } | null = null;
     setStatus("loading");
     void (async () => {
       try {
@@ -104,7 +105,9 @@ export function PdfAnnotator({
         const pdfjs = await import("pdfjs-dist");
         const workerSrc = (await import("pdfjs-dist/build/pdf.worker.min.mjs?url")).default;
         pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
-        const doc = await pdfjs.getDocument({ url, password }).promise;
+        const task = pdfjs.getDocument({ url, password });
+        loaded = task;
+        const doc = await task.promise;
         if (cancelled) return;
         docRef.current = doc as never;
         const dims: { w: number; h: number; scale: number }[] = [];
@@ -117,6 +120,7 @@ export function PdfAnnotator({
         if (cancelled) return;
         canvasRefs.current = [];
         overlayRefs.current = [];
+        renderedKey.current = [];
         setPages(dims);
         setStatus("ready");
       } catch (err) {
@@ -129,6 +133,8 @@ export function PdfAnnotator({
     })();
     return () => {
       cancelled = true;
+      docRef.current = null;
+      void loaded?.destroy().catch(() => {});
     };
   }, [url, width, password, documentId]);
 
