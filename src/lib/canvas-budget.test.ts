@@ -1,14 +1,15 @@
-import { describe, expect, it } from "vitest";
+import { describe, test } from "node:test";
+import assert from "node:assert/strict";
 import { canvasRatio, TOUCH_MAX_PIXELS } from "./canvas-budget";
 
 describe("canvasRatio", () => {
-  it("keeps full sharpness for small pages", () => {
-    expect(canvasRatio(800, 1100, 2, TOUCH_MAX_PIXELS)).toBe(2);
+  test("keeps full sharpness for small pages", () => {
+    assert.equal(canvasRatio(800, 1100, 2, TOUCH_MAX_PIXELS), 2);
   });
 
-  it("caps a zoomed iPad page at the touch pixel budget", () => {
+  test("caps a zoomed iPad page at the touch pixel budget", () => {
     const r = canvasRatio(3000, 4200, 2, TOUCH_MAX_PIXELS);
-    expect(3000 * r * 4200 * r).toBeLessThanOrEqual(TOUCH_MAX_PIXELS + 1);
-    expect(r).toBeLessThan(1);
+    assert.ok(3000 * r * 4200 * r <= TOUCH_MAX_PIXELS + 1);
+    assert.ok(r < 1);
   });
 });
