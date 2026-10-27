@@ -258,7 +258,7 @@ export function PdfCanvasViewer({
             const region = hit ? targetPage?.byDay.get(hit)?.[0] : undefined;
             if (targetPage && region) {
               const pageTop = targetPage.canvas.getBoundingClientRect().top - viewport.getBoundingClientRect().top + viewport.scrollTop;
-              viewport.scrollTo({ top: Math.max(0, pageTop + region.y * targetPage.ratio / dpr - 24), left: 0, behavior: "instant" });
+              viewport.scrollTo({ top: Math.max(0, pageTop + region.y * targetPage.ratio * (parseFloat(targetPage.canvas.style.width) / targetPage.canvas.width) - 24), left: 0, behavior: "instant" });
             } else {
               viewport.scrollTo({ top: 0, left: 0, behavior: "instant" });
             }
