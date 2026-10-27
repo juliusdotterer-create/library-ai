@@ -244,11 +244,20 @@ export function PdfAnnotator({
 
   /* ------- Trefferebene zeichnen ------- */
   useEffect(() => {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const budget = maxCanvasPixels();
     for (let i = 0; i < view.length; i++) {
       const canvas = hlRefs.current[i];
       const dim = view[i];
       if (!canvas || !dim) continue;
+      // Nur Seiten mit Treffern in Sichtnähe bekommen eine Trefferebene
+      if (!visible.has(i) || !hits.some((h) => h.page === i + 1)) {
+        if (canvas.width) {
+          canvas.width = 0;
+          canvas.height = 0;
+        }
+        continue;
+      }
+      const dpr = canvasRatio(dim.w, dim.h, deviceRatio(), budget);
       canvas.width = Math.max(1, Math.round(dim.w * dpr));
       canvas.height = Math.max(1, Math.round(dim.h * dpr));
       const ctx = canvas.getContext("2d");
@@ -282,12 +291,23 @@ export function PdfAnnotator({
 
   const drawPages = useCallback(
     (indices?: number[]) => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const budget = maxCanvasPixels();
       const pageList = indices ?? view.map((_, i) => i);
       pageList.forEach((i) => {
         const dim = view[i];
         const canvas = overlayRefs.current[i];
         if (!canvas || !dim) return;
+        const active = drawing.current?.page === i;
+        const hasInk = active || annos.some((a) => a.kind === "stroke" && a.page === i);
+        // Ebene nur belegen, wenn dort gezeichnet wurde und die Seite nah ist
+        if (!hasInk || (!active && !visible.has(i))) {
+          if (canvas.width) {
+            canvas.width = 0;
+            canvas.height = 0;
+          }
+          return;
+        }
+        const dpr = canvasRatio(dim.w, dim.h, deviceRatio(), budget);
         if (canvas.width !== Math.round(dim.w * dpr)) {
           canvas.width = Math.round(dim.w * dpr);
           canvas.height = Math.round(dim.h * dpr);
