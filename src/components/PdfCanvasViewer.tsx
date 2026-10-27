@@ -1,3 +1,5 @@
+import { PdfFailureView } from "@/components/pdf/PdfFailureView";
+import { classifyPdfError, type PdfFailure } from "@/lib/pdf-errors";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { findHighlights, highlightTokens } from "@/lib/pdf-highlight";
 import { detectTimetableDay, readTodayCache, writeTodayCache, type DayRegion, type TimetableText } from "@/lib/timetable-today";
@@ -45,6 +47,8 @@ export function PdfCanvasViewer({
   const positionedDayRef = useRef<string | null>(null);
   const pendingAnchorRef = useRef<{ x: number; y: number; previousZoom: number } | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [failure, setFailure] = useState<PdfFailure>("error");
+  const [password, setPassword] = useState<string | undefined>(undefined);
   const [pages, setPages] = useState(0);
   const [viewportWidth, setViewportWidth] = useState(0);
 
@@ -136,7 +140,7 @@ export function PdfCanvasViewer({
         const pdfjs = await import("pdfjs-dist");
         if (cancelled) return;
         worker = new CompatiblePdfWorker();
-        const task = pdfjs.getDocument({ url, worker: pdfjs.PDFWorker.create({ port: worker }) });
+        const task = pdfjs.getDocument({ url, password, worker: pdfjs.PDFWorker.create({ port: worker }) });
         loadingTask = task;
         const doc = await task.promise;
         if (cancelled) return;
@@ -269,6 +273,7 @@ export function PdfCanvasViewer({
       } catch (error) {
         if (!cancelled) {
           console.error("PDF rendering failed", error);
+          setFailure(classifyPdfError(error));
           setStatus("error");
           if (todayDate) onTodayDetectionRef.current?.("error");
         }
@@ -280,7 +285,7 @@ export function PdfCanvasViewer({
       void loadingTask?.destroy().catch(() => undefined);
       worker?.terminate();
     };
-  }, [url, initialPage, highlight, viewportWidth, zoom, centered, alignLeft, lockHorizontal, todayDate, todayCacheKey]);
+  }, [url, initialPage, highlight, viewportWidth, zoom, centered, alignLeft, lockHorizontal, todayDate, todayCacheKey, password]);
 
   return (
     <div
@@ -296,7 +301,7 @@ export function PdfCanvasViewer({
         </p>
       )}
       {status === "error" && (
-        <p className="py-8 text-center text-sm text-muted-foreground">PDF konnte nicht angezeigt werden.</p>
+        <PdfFailureView failure={failure} onPassword={setPassword} />
       )}
       {status === "ready" && pages > 0 && (
         <p className="min-w-full pb-2 text-center text-xs text-muted-foreground">{pages} Seiten</p>

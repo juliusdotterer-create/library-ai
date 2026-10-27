@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MotionItem } from "@/components/MotionItem";
 import { cn } from "@/lib/utils";
+import { LockedBadge } from "@/components/library/LockedBadge";
 import type { ViewMode } from "@/hooks/useLibraryView";
 
 /** Auswahlkästchen für die Schnellauswahl (Mehrfachlöschen). */
@@ -247,6 +248,7 @@ export function DocumentCard({
         <span className="min-w-0">
           <span className="block truncate font-medium">
             {doc.name}
+            <LockedBadge id={doc.id} name={doc.name} />
             {driveBadge}
           </span>
         </span>
