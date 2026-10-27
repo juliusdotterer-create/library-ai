@@ -1,3 +1,5 @@
+import { PdfFailureView } from "@/components/pdf/PdfFailureView";
+import { classifyPdfError, markLocked, type PdfFailure } from "@/lib/pdf-errors";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { findHighlights, highlightTokens } from "@/lib/pdf-highlight";
 import { StickyNote } from "lucide-react";
@@ -50,6 +52,8 @@ export function PdfAnnotator({
   const prevTool = useRef<Tool>("pen");
 
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [failure, setFailure] = useState<PdfFailure>("error");
+  const [password, setPassword] = useState<string | undefined>(undefined);
   const [pages, setPages] = useState<{ w: number; h: number; scale: number }[]>([]);
   const [width, setWidth] = useState(0);
   const [zoom, setZoom] = useState(1);
@@ -99,7 +103,7 @@ export function PdfAnnotator({
         const pdfjs = await import("pdfjs-dist");
         const workerSrc = (await import("pdfjs-dist/build/pdf.worker.min.mjs?url")).default;
         pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
-        const doc = await pdfjs.getDocument({ url }).promise;
+        const doc = await pdfjs.getDocument({ url, password }).promise;
         if (cancelled) return;
         docRef.current = doc as never;
         const dims: { w: number; h: number; scale: number }[] = [];
@@ -114,14 +118,18 @@ export function PdfAnnotator({
         overlayRefs.current = [];
         setPages(dims);
         setStatus("ready");
-      } catch {
-        if (!cancelled) setStatus("error");
+      } catch (err) {
+        if (cancelled) return;
+        const f = classifyPdfError(err);
+        if (f === "password" || f === "drm") markLocked(documentId, f);
+        setFailure(f);
+        setStatus("error");
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [url, width]);
+  }, [url, width, password, documentId]);
 
   const view = useMemo(
     () => pages.map((p) => ({ w: p.w * zoom, h: p.h * zoom, scale: p.scale * zoom })),
@@ -467,9 +475,7 @@ export function PdfAnnotator({
           <p className="py-8 text-center text-sm text-muted-foreground">PDF wird geladen…</p>
         )}
         {status === "error" && (
-          <p className="py-8 text-center text-sm text-muted-foreground">
-            PDF konnte nicht angezeigt werden.
-          </p>
+          <PdfFailureView failure={failure} onPassword={setPassword} />
         )}
         {view.map((dim, i) => (
           <div
