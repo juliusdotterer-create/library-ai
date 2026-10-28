@@ -96,6 +96,8 @@
   --ring: oklch(0.64 var(--accent-c) var(--accent-h));
 
   --glass: oklch(1 0 0 / 55%);
+  /* Angeheftete obere Leiste: milchig, aber leicht blickdichter als schwebend */
+  --glass-docked: oklch(1 0 0 / 68%);
   --glass-border: oklch(1 0 0 / 70%);
   --glass-blur: 22px;
   --glass-shadow: 0 10px 40px -12px oklch(0.4 0.03 60 / 22%);
