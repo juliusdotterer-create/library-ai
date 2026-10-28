@@ -720,27 +720,18 @@ function LibraryPage() {
             </DropdownMenu>
           )}
 
-          <Input
-            ref={newFolderRef}
-            value={newFolder}
-            placeholder="Neuer Ordner"
-            className="h-9 min-w-0 flex-1 rounded-2xl sm:w-44 sm:flex-none"
-            onChange={(e) => setNewFolder(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && newFolder.trim()) createFolder.mutate(newFolder.trim());
-            }}
-          />
           <Button
             variant="secondary"
             className="rounded-2xl"
-            disabled={!newFolder.trim()}
-            onClick={() => createFolder.mutate(newFolder.trim())}
+            aria-label="Neuer Ordner"
+            title="Neuer Ordner"
+            onClick={() => setFolderDialog(true)}
           >
             <FolderPlus className="size-4" />
           </Button>
           <Button
             variant="secondary"
-            className="rounded-2xl"
+            className="hidden rounded-2xl sm:inline-flex"
             aria-label="Freie Notizen"
             title="Notizen ohne Dokument"
             onClick={() => setFreeNotes(true)}
