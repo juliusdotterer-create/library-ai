@@ -21,3 +21,4 @@
 - PdfCanvasViewer uses a bundled PDF worker that imports the Map/WeakMap compatibility patch inside the worker realm; release its loading task and worker on cleanup because main-thread patches do not reach PDF workers.
 - Load the embedded timetable through an authenticated storage download and a cleanup-managed Blob URL so later zoom redraws cannot fail on an expired signed URL.
 - PdfAnnotator only allocates page, highlight and ink canvases for pages near the viewport, and all PDF canvases go through `canvasRatio`/`maxCanvasPixels` in `src/lib/canvas-budget.ts`, because iPad Safari kills the tab when canvas memory gets too large.
+- Smart search lives in `LibrarySearch`: word-filters are parsed by the pure `src/lib/smart-search.ts` (testable, no AI cost), typo tolerance uses the `search_library_fuzzy` trigram RPC, and only explicit questions call the AI via `askLibrary`, so plain searches stay instant.

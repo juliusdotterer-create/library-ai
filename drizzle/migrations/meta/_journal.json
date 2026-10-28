@@ -22,6 +22,20 @@
       "when": 1790609540296,
       "tag": "0002_drive_sync_state",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793186940838,
+      "tag": "0003_smart_search_trgm",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793187200337,
+      "tag": "0004_smart_search_content_trgm",
+      "breakpoints": true
     }
   ]
 }
