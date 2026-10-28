@@ -59,15 +59,29 @@ export const searchWeb = createServerFn({ method: "POST" })
       return { answer: "", sources: [] as WebSource[], error: "Die Internetsuche ist gerade nicht erreichbar." };
     }
 
+    // Markdown-Verschmutzung (Links, Klammern, Symbole) aus den Texten entfernen
+    const clean = (md: string) =>
+      md
+        .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
+        .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+        .replace(/https?:\/\/\S+/g, " ")
+        .replace(/[#*_>`~|]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
     const usable = hits
       .filter((h) => h.url)
       .slice(0, 6)
-      .map((h, i) => ({
-        n: i + 1,
-        title: (h.title || h.url || "Ergebnis").trim().slice(0, 160),
-        url: h.url!,
-        snippet: ((h.markdown || h.description || "") as string).replace(/\s+/g, " ").trim().slice(0, 1600),
-      }));
+      .map((h, i) => {
+        const body = clean(h.markdown || h.description || "").slice(0, 1200);
+        return {
+          n: i + 1,
+          title: (h.title || h.url || "Ergebnis").trim().slice(0, 160),
+          url: h.url!,
+          body,
+          snippet: (h.description?.trim() || body).slice(0, 220),
+        };
+      });
 
     if (!usable.length) {
       return { answer: "Dazu habe ich im Internet nichts gefunden.", sources: [] as WebSource[], error: null };
