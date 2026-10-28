@@ -332,7 +332,8 @@ function snippetAt(pages: string[], page: number, term: string) {
   const text = pages[page - 1] ?? "";
   const token = searchTokens(term).find((t) => /\d/.test(t)) ?? searchTokens(term)[0] ?? "";
   const pattern = token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/§/g, "§\\s*");
-  const at = Math.max(0, text.search(new RegExp(pattern, "iu")));
+  const boundary = /\d/.test(token) ? "(?![\\p{L}\\p{N}])" : "";
+  const at = Math.max(0, text.search(new RegExp(pattern + boundary, "iu")));
   const start = Math.max(0, at - 70);
   return { page, snippet: `${start ? "… " : ""}${text.slice(start, at + 160).trim()} …` };
 }

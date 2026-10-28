@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Interne Suche nach Begriffsüberschneidung sortieren, Paragraphennummern exakt berücksichtigen und passende Textseite öffnen; Tests und echte Suche prüfen.
+- [x] Interne Suche nach Begriffsüberschneidung sortiert, Paragraphennummern exakt berücksichtigt und passende Textseite geöffnet; acht Tests bestanden, echte Suche „§ 13 UStG“ samt hervorgehobener Seite 4 geprüft.
 
 - [x] Stundenplan-Ladefehler durch abgelaufene PDF-Links behoben; echte PDF, Zoom ohne erneuten Download und Wiederholen nach Ladefehler erfolgreich geprüft.
 
