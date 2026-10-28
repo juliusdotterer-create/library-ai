@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { DEFAULT_PREFS, SCOPE_LABELS, sourceCount, type WebPrefs, type WebScope } from "@/lib/web-sources";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Eye, FileSearch, FileText, Folder, Globe, Loader2, Search, Sparkles, X } from "lucide-react";
@@ -13,6 +13,8 @@ import { askLibrary } from "@/lib/ask-library.functions";
 import { searchWeb, type WebSource } from "@/lib/web-search.functions";
 import { isQuestion, parseQuery, type SearchFilters } from "@/lib/smart-search";
 import { FreeNotesOverlay } from "@/components/FreeNotesOverlay";
+
+const TEXT_HITS_INITIAL = 20;
 
 export function LibrarySearch({
   open,
@@ -33,7 +35,11 @@ export function LibrarySearch({
 
   const ask = useServerFn(askLibrary);
   const [removed, setRemoved] = useState<string[]>([]);
-  useEffect(() => setRemoved([]), [debounced]);
+  const [showAllText, setShowAllText] = useState(false);
+  useEffect(() => {
+    setRemoved([]);
+    setShowAllText(false);
+  }, [debounced]);
   const parsed = parseQuery(debounced);
   const chips = parsed.chips.filter((c) => !removed.includes(c.key));
   const filters: SearchFilters = {};
@@ -51,6 +57,7 @@ export function LibrarySearch({
   const webSearch = useServerFn(searchWeb);
   const [askedWeb, setAskedWeb] = useState<string | null>(null);
   const [webScope, setWebScope] = useState<WebScope | null>(null);
+  const webBox = useRef<HTMLDivElement>(null);
   useEffect(() => setAskedWeb(null), [debounced]);
   const webPrefs = useQuery({
     queryKey: ["web-search-prefs"],
@@ -78,6 +85,10 @@ export function LibrarySearch({
     retry: false,
     queryFn: () => webSearch({ data: { query: askedWeb!, scope: activeScope } }),
   });
+
+  useEffect(() => {
+    if (askedWeb) webBox.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [askedWeb, web.data]);
 
   const library = useQuery({
     queryKey: ["library-search", effectiveTerm, filters],
@@ -131,8 +142,6 @@ export function LibrarySearch({
       highlight: withHighlight ? effectiveTerm || null : null,
     });
   };
-
-
 
   const results = library.data;
   const isLoading = library.isLoading;
@@ -229,75 +238,6 @@ export function LibrarySearch({
             </div>
           )}
 
-          {effectiveTerm.length >= 3 && askedWeb !== effectiveTerm && (
-            <button
-              onClick={() => setAskedWeb(effectiveTerm)}
-              className="glass-soft hover:bg-primary-soft flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left text-sm font-medium"
-            >
-              <Globe className="size-4 shrink-0 text-primary" />
-              <span className="min-w-0 truncate">Auch im Internet suchen</span>
-            </button>
-          )}
-          {effectiveTerm.length >= 3 && (
-            <button
-              onClick={cycleScope}
-              className="-mt-1 block px-3 text-left text-xs text-muted-foreground underline-offset-2 hover:underline"
-            >
-              Quellen: {SCOPE_LABELS[activeScope]}
-              {sourceCount(prefsNow, activeScope) ? ` (${sourceCount(prefsNow, activeScope)})` : ""}
-              {webScope ? " · nur für diese Suche" : ""} – tippen zum Ändern
-            </button>
-          )}
-
-          {askedWeb && (
-            <div className="glass-soft min-w-0 space-y-2 overflow-hidden rounded-2xl p-3">
-              <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                <Globe className="size-3.5 text-primary" /> Antwort aus dem Internet
-              </p>
-              {web.isLoading ? (
-                <div className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
-                  <Loader2 className="size-4 animate-spin" /> Durchsuche das Internet …
-                </div>
-              ) : web.isError ? (
-                <p className="text-sm text-destructive">Internetsuche fehlgeschlagen. Bitte versuche es erneut.</p>
-              ) : web.data ? (
-                <>
-                  {web.data.error ? (
-                    <p className="text-sm text-destructive">{web.data.error}</p>
-                  ) : (
-                    <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">
-                      {web.data.answer.split(/\*\*(.+?)\*\*/g).map((part, i) =>
-                        i % 2 ? <strong key={i}>{part}</strong> : part,
-                      )}
-                    </p>
-                  )}
-                  {(web.data.sources as WebSource[]).map((s) => (
-                    <a
-                      key={`w-${s.n}-${s.url}`}
-                      href={s.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="hover:bg-primary-soft flex w-full items-start gap-2 rounded-xl p-2 text-left"
-                    >
-                      <span className="shrink-0 rounded-md bg-primary-soft px-1.5 text-[11px] font-medium text-primary">
-                        {s.n}
-                      </span>
-                      <span className="min-w-0">
-                        <span className="flex items-center gap-1.5">
-                          <span className="shrink-0 rounded bg-muted px-1 text-[10px] text-muted-foreground">
-                            {s.kind === "gesetz" ? "Gesetz" : s.kind === "urteil" ? "Urteil" : "Allgemein"}
-                          </span>
-                          <span className="block truncate text-xs font-medium">{s.title}</span>
-                        </span>
-                        <span className="block line-clamp-1 text-xs text-muted-foreground">{s.snippet}</span>
-                      </span>
-                    </a>
-                  ))}
-                </>
-              ) : null}
-            </div>
-          )}
-
           <div className="space-y-1.5">
             {isLoading ? (
               <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
@@ -309,6 +249,11 @@ export function LibrarySearch({
               </p>
             ) : results ? (
               <>
+                {results.folders.length + results.docs.length + results.contents.length + results.similar.length > 0 && (
+                  <p className="flex items-center gap-1.5 px-1 pt-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    <FileSearch className="size-3.5 text-primary" /> In deiner Library
+                  </p>
+                )}
                 {results.folders.map((f) => (
                   <button
                     key={f.id}
@@ -355,38 +300,48 @@ export function LibrarySearch({
                     <p className="px-1 pt-3 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                       Im Inhalt gefunden
                     </p>
-                    {results.contents.map((c) => (
-                      <button
-                        key={`c-${c.id}`}
-                        onClick={() => openDoc(c, true)}
-                        className="glass-soft hover:bg-primary-soft flex w-full items-start gap-3 rounded-2xl p-3 text-left"
-                      >
-                        <FileSearch className="mt-0.5 size-4 shrink-0 text-primary" />
-                        <span className="min-w-0 flex-1">
-                          <span className="flex items-baseline gap-2">
-                            <span className="min-w-0 truncate text-sm font-medium">{c.name}</span>
-                            {c.page && (
-                              <span className="shrink-0 text-[11px] text-muted-foreground">
-                                Seite {c.page}
-                              </span>
+                    {results.contents
+                      .slice(0, showAllText ? results.contents.length : TEXT_HITS_INITIAL)
+                      .map((c) => (
+                        <button
+                          key={`c-${c.id}`}
+                          onClick={() => openDoc(c, true)}
+                          className="glass-soft hover:bg-primary-soft flex w-full items-start gap-3 rounded-2xl p-3 text-left"
+                        >
+                          <FileSearch className="mt-0.5 size-4 shrink-0 text-primary" />
+                          <span className="min-w-0 flex-1">
+                            <span className="flex items-baseline gap-2">
+                              <span className="min-w-0 truncate text-sm font-medium">{c.name}</span>
+                              {c.page && (
+                                <span className="shrink-0 text-[11px] text-muted-foreground">
+                                  Seite {c.page}
+                                </span>
+                              )}
+                              {c.ocr && (
+                                <span className="shrink-0 rounded-full bg-primary-soft px-2 py-0.5 text-[10px] text-primary">
+                                  Texterkennung
+                                </span>
+                              )}
+                            </span>
+                            {c.path && (
+                              <span className="block truncate text-xs text-muted-foreground">{c.path}</span>
                             )}
-                            {c.ocr && (
-                              <span className="shrink-0 rounded-full bg-primary-soft px-2 py-0.5 text-[10px] text-primary">
-                                Texterkennung
+                            {c.snippet && (
+                              <span className="mt-1 block line-clamp-2 text-xs text-muted-foreground">
+                                {c.snippet}
                               </span>
                             )}
                           </span>
-                          {c.path && (
-                            <span className="block truncate text-xs text-muted-foreground">{c.path}</span>
-                          )}
-                          {c.snippet && (
-                            <span className="mt-1 block line-clamp-2 text-xs text-muted-foreground">
-                              {c.snippet}
-                            </span>
-                          )}
-                        </span>
+                        </button>
+                      ))}
+                    {results.contents.length > TEXT_HITS_INITIAL && !showAllText && (
+                      <button
+                        onClick={() => setShowAllText(true)}
+                        className="w-full rounded-2xl px-3 py-2 text-left text-sm font-medium text-primary hover:bg-primary-soft"
+                      >
+                        Weitere {results.contents.length - TEXT_HITS_INITIAL} Texttreffer anzeigen
                       </button>
-                    ))}
+                    )}
                   </>
                 )}
                 {!!results.similar.length && (
@@ -434,6 +389,77 @@ export function LibrarySearch({
               <p className="py-8 text-center text-sm text-muted-foreground">
                 Tippe, um Dokumente und Ordner zu finden.
               </p>
+            )}
+          </div>
+
+          <div ref={webBox} className="min-w-0 space-y-1.5 border-t border-border/40 pt-2">
+            {effectiveTerm.length >= 3 && askedWeb !== effectiveTerm && (
+              <button
+                onClick={() => setAskedWeb(effectiveTerm)}
+                className="glass-soft hover:bg-primary-soft flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left text-sm font-medium"
+              >
+                <Globe className="size-4 shrink-0 text-primary" />
+                <span className="min-w-0 truncate">Auch im Internet suchen</span>
+              </button>
+            )}
+            {effectiveTerm.length >= 3 && (
+              <button
+                onClick={cycleScope}
+                className="block px-3 text-left text-xs text-muted-foreground underline-offset-2 hover:underline"
+              >
+                Quellen: {SCOPE_LABELS[activeScope]}
+                {sourceCount(prefsNow, activeScope) ? ` (${sourceCount(prefsNow, activeScope)})` : ""}
+                {webScope ? " · nur für diese Suche" : ""} – tippen zum Ändern
+              </button>
+            )}
+
+            {askedWeb && (
+              <div className="glass-soft min-w-0 space-y-2 overflow-hidden rounded-2xl p-3">
+                <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  <Globe className="size-3.5 text-primary" /> Antwort aus dem Internet
+                </p>
+                {web.isLoading ? (
+                  <div className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
+                    <Loader2 className="size-4 animate-spin" /> Durchsuche das Internet …
+                  </div>
+                ) : web.isError ? (
+                  <p className="text-sm text-destructive">Internetsuche fehlgeschlagen. Bitte versuche es erneut.</p>
+                ) : web.data ? (
+                  <>
+                    {web.data.error ? (
+                      <p className="text-sm text-destructive">{web.data.error}</p>
+                    ) : (
+                      <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">
+                        {web.data.answer.split(/\*\*(.+?)\*\*/g).map((part, i) =>
+                          i % 2 ? <strong key={i}>{part}</strong> : part,
+                        )}
+                      </p>
+                    )}
+                    {(web.data.sources as WebSource[]).map((s) => (
+                      <a
+                        key={`w-${s.n}-${s.url}`}
+                        href={s.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="hover:bg-primary-soft flex w-full items-start gap-2 rounded-xl p-2 text-left"
+                      >
+                        <span className="shrink-0 rounded-md bg-primary-soft px-1.5 text-[11px] font-medium text-primary">
+                          {s.n}
+                        </span>
+                        <span className="min-w-0">
+                          <span className="flex items-center gap-1.5">
+                            <span className="shrink-0 rounded bg-muted px-1 text-[10px] text-muted-foreground">
+                              {s.kind === "gesetz" ? "Gesetz" : s.kind === "urteil" ? "Urteil" : "Allgemein"}
+                            </span>
+                            <span className="block truncate text-xs font-medium">{s.title}</span>
+                          </span>
+                          <span className="block line-clamp-1 text-xs text-muted-foreground">{s.snippet}</span>
+                        </span>
+                      </a>
+                    ))}
+                  </>
+                ) : null}
+              </div>
             )}
           </div>
         </DialogContent>
