@@ -46,6 +46,17 @@ export function LibrarySearch({
   const question = isQuestion(debounced);
   const [asked, setAsked] = useState<string | null>(null);
 
+  const webSearch = useServerFn(searchWeb);
+  const [askedWeb, setAskedWeb] = useState<string | null>(null);
+  useEffect(() => setAskedWeb(null), [debounced]);
+  const web = useQuery({
+    queryKey: ["library-web-search", askedWeb],
+    enabled: open && !!askedWeb,
+    staleTime: Infinity,
+    retry: false,
+    queryFn: () => webSearch({ data: { query: askedWeb! } }),
+  });
+
   const library = useQuery({
     queryKey: ["library-search", effectiveTerm, filters],
     enabled: open && (effectiveTerm.length > 0 || chips.length > 0),
@@ -190,6 +201,60 @@ export function LibrarySearch({
                         <span className="block line-clamp-1 text-xs text-muted-foreground">{s.snippet}</span>
                       </span>
                     </button>
+                  ))}
+                </>
+              ) : null}
+            </div>
+          )}
+
+          {effectiveTerm.length >= 3 && askedWeb !== effectiveTerm && (
+            <button
+              onClick={() => setAskedWeb(effectiveTerm)}
+              className="glass-soft hover:bg-primary-soft flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left text-sm font-medium"
+            >
+              <Globe className="size-4 shrink-0 text-primary" />
+              <span className="min-w-0 truncate">Auch im Internet suchen</span>
+            </button>
+          )}
+
+          {askedWeb && (
+            <div className="glass-soft min-w-0 space-y-2 overflow-hidden rounded-2xl p-3">
+              <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                <Globe className="size-3.5 text-primary" /> Antwort aus dem Internet
+              </p>
+              {web.isLoading ? (
+                <div className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
+                  <Loader2 className="size-4 animate-spin" /> Durchsuche das Internet …
+                </div>
+              ) : web.isError ? (
+                <p className="text-sm text-destructive">Internetsuche fehlgeschlagen. Bitte versuche es erneut.</p>
+              ) : web.data ? (
+                <>
+                  {web.data.error ? (
+                    <p className="text-sm text-destructive">{web.data.error}</p>
+                  ) : (
+                    <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">
+                      {web.data.answer.split(/\*\*(.+?)\*\*/g).map((part, i) =>
+                        i % 2 ? <strong key={i}>{part}</strong> : part,
+                      )}
+                    </p>
+                  )}
+                  {(web.data.sources as WebSource[]).map((s) => (
+                    <a
+                      key={`w-${s.n}-${s.url}`}
+                      href={s.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="hover:bg-primary-soft flex w-full items-start gap-2 rounded-xl p-2 text-left"
+                    >
+                      <span className="shrink-0 rounded-md bg-primary-soft px-1.5 text-[11px] font-medium text-primary">
+                        {s.n}
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-xs font-medium">{s.title}</span>
+                        <span className="block line-clamp-1 text-xs text-muted-foreground">{s.snippet}</span>
+                      </span>
+                    </a>
                   ))}
                 </>
               ) : null}
