@@ -1,19 +1,20 @@
 import { useState } from "react";
 import { ChevronDown, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { SettingsField } from "@/components/SettingsSection";
 import { useTheme, ACCENT_PRESETS } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 /**
  * Darstellung – kompakt als Pulldown, damit die Einstellungsseite kurz bleibt.
  * Im geschlossenen Zustand zeigt die Zeile Modus und aktuelle Akzentfarbe.
+ * Die einzelnen Felder (Modus, Farben, Akzente) sind zusätzlich für sich einklappbar.
  */
 export function ThemePanel() {
   const { mode, hue, chroma, setTheme } = useTheme();
@@ -51,9 +52,12 @@ export function ThemePanel() {
       </CollapsibleTrigger>
 
       <CollapsibleContent className="pt-4">
-        <div className="space-y-5 border-t border-field-border pt-4">
-          <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground">Modus</Label>
+        <div className="space-y-2 border-t border-field-border pt-4">
+          <SettingsField
+            id="theme-mode"
+            title="Modus"
+            value={mode === "dark" ? "Dunkel" : "Hell"}
+          >
             <div className="flex gap-2">
               {(
                 [
@@ -71,10 +75,22 @@ export function ThemePanel() {
                 </Button>
               ))}
             </div>
-          </div>
+          </SettingsField>
 
-          <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground">Akzentfarbe</Label>
+          <SettingsField
+            id="theme-accent"
+            title="Akzentfarbe"
+            value={
+              <span className="flex items-center gap-1.5">
+                <span
+                  className="size-3 shrink-0 rounded-full border border-field-border"
+                  style={{ background: accent }}
+                  aria-hidden
+                />
+                {preset ? preset.label : "Eigener Akzent"}
+              </span>
+            }
+          >
             <div className="flex flex-wrap gap-2">
               {ACCENT_PRESETS.map((p) => (
                 <button
@@ -90,12 +106,19 @@ export function ThemePanel() {
                 />
               ))}
             </div>
-          </div>
+            <div
+              className="mt-1 rounded-2xl p-4 text-sm"
+              style={{ background: accent, color: "oklch(0.99 0 0)" }}
+            >
+              Vorschau der Akzentfarbe
+            </div>
+          </SettingsField>
 
-          <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground">
-              Farbton fein justieren
-            </Label>
+          <SettingsField
+            id="theme-hue"
+            title="Farbton fein justieren"
+            value={`${Math.round(hue)}°`}
+          >
             <Slider
               value={[hue]}
               min={0}
@@ -103,10 +126,13 @@ export function ThemePanel() {
               step={1}
               onValueChange={([v]) => setTheme({ hue: v })}
             />
-          </div>
+          </SettingsField>
 
-          <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground">Farbintensität</Label>
+          <SettingsField
+            id="theme-chroma"
+            title="Farbintensität"
+            value={`${Math.round(chroma * 1000)}`}
+          >
             <Slider
               value={[chroma * 1000]}
               min={20}
@@ -114,14 +140,7 @@ export function ThemePanel() {
               step={2}
               onValueChange={([v]) => setTheme({ chroma: v / 1000 })}
             />
-          </div>
-
-          <div
-            className="rounded-2xl p-4 text-sm"
-            style={{ background: accent, color: "oklch(0.99 0 0)" }}
-          >
-            Vorschau der Akzentfarbe
-          </div>
+          </SettingsField>
         </div>
       </CollapsibleContent>
     </Collapsible>
