@@ -145,6 +145,6 @@ export function DriveMirrorPanel() {
           void run(folder.id);
         }}
       />
-    </section>
+    </div>
   );
 }

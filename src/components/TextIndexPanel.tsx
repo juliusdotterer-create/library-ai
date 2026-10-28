@@ -133,6 +133,6 @@ export function TextIndexPanel() {
         Texterkennung ist deutlich langsamer (ca. 2–5 Sekunden pro Seite) und liest maximal 50 Seiten
         je Dokument.
       </p>
-    </section>
+    </div>
   );
 }

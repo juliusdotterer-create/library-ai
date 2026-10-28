@@ -125,6 +125,6 @@ export function DrivePanel() {
           </Button>
         </div>
       )}
-    </section>
+    </div>
   );
 }
