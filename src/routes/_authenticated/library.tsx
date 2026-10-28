@@ -911,7 +911,7 @@ function LibraryPage() {
                 }
                 action={{
                   label: "Ordner erstellen",
-                  onClick: () => newFolderRef.current?.focus(),
+                  onClick: () => setFolderDialog(true),
                 }}
               />
             )}
@@ -938,6 +938,38 @@ function LibraryPage() {
           void navigate({ to: "/library", search: { folder: id } });
         }}
       />
+      <Dialog
+        open={folderDialog}
+        onOpenChange={(o) => {
+          setFolderDialog(o);
+          if (!o) setFolderName("");
+        }}
+      >
+        <DialogContent className="glass rounded-3xl">
+          <DialogHeader>
+            <DialogTitle>Neuer Ordner</DialogTitle>
+          </DialogHeader>
+          <Input
+            autoFocus
+            className="rounded-2xl"
+            placeholder="Ordnername"
+            value={folderName}
+            onChange={(e) => setFolderName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && folderName.trim()) createFolder.mutate(folderName.trim());
+            }}
+          />
+          <DialogFooter>
+            <Button
+              className="rounded-2xl"
+              disabled={!folderName.trim()}
+              onClick={() => createFolder.mutate(folderName.trim())}
+            >
+              Erstellen
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Dialog open={!!rename} onOpenChange={(o) => !o && setRename(null)}>
         <DialogContent className="glass rounded-3xl">
           <DialogHeader>
