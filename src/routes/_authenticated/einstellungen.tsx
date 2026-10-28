@@ -12,6 +12,7 @@ import { DrivePanel } from "@/components/DrivePanel";
 import { DriveMirrorPanel } from "@/components/DriveMirrorPanel";
 import { TextIndexPanel } from "@/components/TextIndexPanel";
 import { WebSourcesPanel } from "@/components/WebSourcesPanel";
+import { AgentConnectPanel } from "@/components/AgentConnectPanel";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -84,6 +85,16 @@ function SettingsPage() {
           </p>
         </div>
         <WebSourcesPanel />
+      </section>
+
+      <section className="glass space-y-3 rounded-3xl p-5">
+        <div>
+          <h2 className="font-semibold">Mit Agent verbinden</h2>
+          <p className="text-sm text-muted-foreground">
+            Verbinde ChatGPT, Claude, Anara oder einen anderen MCP-Client mit deiner Library.
+          </p>
+        </div>
+        <AgentConnectPanel />
       </section>
 
       <section className="glass space-y-3 rounded-3xl p-5">
