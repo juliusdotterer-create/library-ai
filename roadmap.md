@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Darstellung (Modus, Akzentfarbe, Farbton, Intensität, Vorschau) in den Einstellungen als Pulldown eingeklappt; geschlossene Zeile zeigt Modus und Akzent, im Browser geprüft (Höhe 5025 → 3851 px, 0 → 2 Regler beim Öffnen).
+
 - [x] „Mit Agent verbinden"-Symbol aus der oberen Leiste entfernt (Bereich bleibt in den Einstellungen, /connect bleibt per Adresse erreichbar); Typ- und Browserprüfung ohne Bot-Symbol in Hell-/Handyansicht erfolgreich.
 
 - [x] Fehlende Leerzeichen in internen Suchbegriffen und Dokumenttext tolerieren; indizierte Kandidatensuche, Relevanz und PDF-Markierung angepasst, acht Tests bestanden und echte Texttreffer für „§13UStG“ geprüft.
