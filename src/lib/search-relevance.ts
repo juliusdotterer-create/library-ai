@@ -5,6 +5,8 @@ export function relevanceNorm(s: string): string {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/§\s*/g, "§")
+    .replace(/(\p{N})(\p{L}{2,})/gu, "$1 $2")
+    .replace(/(\p{L})(\p{N})/gu, "$1 $2")
     .replace(/[^\p{L}\p{N}§]+/gu, " ")
     .trim();
 }
@@ -20,10 +22,12 @@ function escapeRe(s: string) {
 /** Zahlen und Paragraphen müssen vollständig passen: § 13 trifft nicht § 1. */
 export function tokenMatches(text: string, token: string): boolean {
   const t = relevanceNorm(text);
+  token = relevanceNorm(token);
   const exactNumber = /\d/.test(token);
+  const spaced = Array.from(token.replace(/\s/g, "")).map(escapeRe).join("\\s*");
   const re = exactNumber
-    ? new RegExp(`(^|[^\\p{L}\\p{N}])${escapeRe(token)}(?![\\p{L}\\p{N}])`, "u")
-    : new RegExp(escapeRe(token), "u");
+    ? new RegExp(`(^|[^\\p{L}\\p{N}])${spaced}(?![\\p{L}\\p{N}])`, "u")
+    : new RegExp(spaced, "u");
   return re.test(t);
 }
 

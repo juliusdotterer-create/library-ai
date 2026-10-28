@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Fehlende Leerzeichen in internen Suchbegriffen und Dokumenttext tolerieren; indizierte Kandidatensuche, Relevanz und PDF-Markierung angepasst, acht Tests bestanden und echte Texttreffer für „§13UStG“ geprüft.
+
 - [x] Interne Suche nach Begriffsüberschneidung sortiert, Paragraphennummern exakt berücksichtigt und passende Textseite geöffnet; acht Tests bestanden, echte Suche „§ 13 UStG“ samt hervorgehobener Seite 4 geprüft.
 
 - [x] Stundenplan-Ladefehler durch abgelaufene PDF-Links behoben; echte PDF, Zoom ohne erneuten Download und Wiederholen nach Ladefehler erfolgreich geprüft.

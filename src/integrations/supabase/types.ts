@@ -809,6 +809,14 @@ export type Database = {
     }
     Functions: {
       is_whitelisted: { Args: never; Returns: boolean }
+      search_compact: { Args: { value: string }; Returns: string }
+      search_library_compact: {
+        Args: { max_results?: number; term: string }
+        Returns: {
+          id: string
+          kind: string
+        }[]
+      }
       search_library_fuzzy: {
         Args: { max_results?: number; term: string }
         Returns: {
