@@ -1,5 +1,15 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireWhitelisted } from "@/lib/require-whitelist";
+import {
+  DEFAULT_PREFS,
+  buildSiteQuery,
+  isBlocked,
+  kindOf,
+  planSearches,
+  type SourceKind,
+  type WebPrefs,
+  type WebScope,
+} from "@/lib/web-sources";
 
 export type WebSource = {
   n: number;
@@ -7,6 +17,7 @@ export type WebSource = {
   url: string;
   body?: string;
   snippet: string;
+  kind?: SourceKind;
 };
 
 type FirecrawlSearchHit = {
@@ -20,19 +31,30 @@ const GATEWAY = "https://connector-gateway.lovable.dev/firecrawl";
 
 export const searchWeb = createServerFn({ method: "POST" })
   .middleware([requireWhitelisted])
-  .inputValidator((input: { query: string }) => {
+  .inputValidator((input: { query: string; scope?: WebScope }) => {
     const query = String(input?.query ?? "").trim();
     if (query.length < 3 || query.length > 400) throw new Error("Ungültige Suchanfrage");
-    return { query };
+    const scope = ["legal_only", "prefer_legal", "all"].includes(String(input?.scope))
+      ? (input.scope as WebScope)
+      : undefined;
+    return { query, scope };
   })
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const { data: row } = await context.supabase
+      .from("web_search_prefs")
+      .select("scope, disabled_domains, custom_domains, blocked_domains")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    const prefs: WebPrefs = row ? { ...DEFAULT_PREFS, ...(row as Partial<WebPrefs>) } : DEFAULT_PREFS;
+    const scope = data.scope ?? prefs.scope;
+    const runs = planSearches(prefs, scope);
     const firecrawlKey = process.env.FIRECRAWL_API_KEY;
     if (!firecrawlKey) {
       return { answer: "", sources: [] as WebSource[], error: "Die Internetsuche ist nicht verbunden." };
     }
 
     let hits: FirecrawlSearchHit[] = [];
-    try {
+    const runSearch = async (domains: string[], limit: number) => {
       const res = await fetch(`${GATEWAY}/v2/search`, {
         method: "POST",
         headers: {
@@ -40,21 +62,39 @@ export const searchWeb = createServerFn({ method: "POST" })
           Authorization: `Bearer ${process.env.LOVABLE_API_KEY}`,
           "X-Connection-Api-Key": firecrawlKey,
         },
-        body: JSON.stringify({ query: data.query, limit: 6, scrapeOptions: { formats: ["markdown"] } }),
+        body: JSON.stringify({
+          query: buildSiteQuery(data.query, domains, prefs.blocked_domains),
+          limit,
+          scrapeOptions: { formats: ["markdown"] },
+        }),
       });
       if (!res.ok) {
         const body = await res.text();
         console.error("searchWeb firecrawl", res.status, body.slice(0, 300));
+        throw Object.assign(new Error("firecrawl"), { status: res.status });
+      }
+      const json = (await res.json()) as { data?: { web?: FirecrawlSearchHit[] } };
+      return json.data?.web ?? [];
+    };
+    try {
+      const results = await Promise.allSettled(runs.map((r) => runSearch(r.domains, runs.length > 1 ? 4 : 6)));
+      const ok = results.filter((r): r is PromiseFulfilledResult<FirecrawlSearchHit[]> => r.status === "fulfilled");
+      if (!ok.length) {
+        const status = (results[0] as PromiseRejectedResult).reason?.status;
         const error =
-          res.status === 402
+          status === 402
             ? "Das Suchbudget ist aufgebraucht. Bitte in den Lovable-Einstellungen (Pläne & Guthaben) auffüllen."
-            : res.status === 429
+            : status === 429
               ? "Gerade zu viele Suchanfragen – bitte gleich nochmal versuchen."
               : "Die Internetsuche ist gerade nicht erreichbar.";
         return { answer: "", sources: [] as WebSource[], error };
       }
-      const json = (await res.json()) as { success?: boolean; data?: { web?: FirecrawlSearchHit[] } };
-      hits = json.data?.web ?? [];
+      const seen = new Set<string>();
+      for (const r of ok) for (const h of r.value) {
+        if (!h.url || seen.has(h.url) || isBlocked(h.url, prefs.blocked_domains)) continue;
+        seen.add(h.url);
+        hits.push(h);
+      }
     } catch (e) {
       console.error("searchWeb firecrawl fetch", e);
       return { answer: "", sources: [] as WebSource[], error: "Die Internetsuche ist gerade nicht erreichbar." };
@@ -72,7 +112,7 @@ export const searchWeb = createServerFn({ method: "POST" })
 
     const usable = hits
       .filter((h) => h.url)
-      .slice(0, 6)
+      .slice(0, 8)
       .map((h, i) => {
         const body = clean(h.markdown || h.description || "").slice(0, 1200);
         return {
@@ -81,6 +121,7 @@ export const searchWeb = createServerFn({ method: "POST" })
           url: h.url!,
           body,
           snippet: (body || clean(h.description || "")).slice(0, 220),
+          kind: kindOf(h.url!),
         };
       });
 
@@ -98,7 +139,7 @@ export const searchWeb = createServerFn({ method: "POST" })
         const res = await generateResponse({
           model: "openai/gpt-6-astra",
           instructions:
-            "Du beantwortest Suchanfragen ausschließlich anhand der nummerierten Internetergebnisse. Antworte kurz (höchstens 6 Sätze) auf Deutsch und nenne die wichtigsten Punkte. Belege jede Aussage mit [n]. Wenn die Ergebnisse die Frage nicht beantworten, sage das ehrlich und erfinde nichts.",
+            "Du beantwortest Suchanfragen ausschließlich anhand der nummerierten Internetergebnisse. Antworte kurz (höchstens 6 Sätze) auf Deutsch und nenne die wichtigsten Punkte. Belege jede Aussage mit [n]. Zitiere Normen genau (z. B. „§ 7 Abs. 1 EStG") und Urteile mit Gericht, Datum und Aktenzeichen, soweit angegeben. Wenn die Ergebnisse die Frage nicht beantworten, sage das ehrlich und erfinde nichts.",
           input: `Suchanfrage: ${data.query}\n\nInternetergebnisse:\n\n${excerpts}`,
         });
         let answer = "";

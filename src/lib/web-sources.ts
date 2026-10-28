@@ -87,7 +87,7 @@ export function planSearches(p: WebPrefs, scope: WebScope = p.scope): { domains:
   const legal = legalDomains(p);
   if (scope === "legal_only") return [{ domains: legal, legal: true }];
   if (scope === "prefer_legal") return [{ domains: legal, legal: true }, { domains: generalDomains(p), legal: false }];
-  return [{ domains: p.custom_domains.length ? [] : [], legal: false }];
+  return [{ domains: [], legal: false }];
 }
 
 export function sourceCount(p: WebPrefs, scope: WebScope = p.scope): number {
