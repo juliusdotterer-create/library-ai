@@ -151,6 +151,7 @@
   --ring: oklch(0.72 var(--accent-c) var(--accent-h));
 
   --glass: oklch(0.3 0.014 60 / 55%);
+  --glass-docked: oklch(0.26 0.014 60 / 72%);
   --glass-border: oklch(1 0 0 / 12%);
   --glass-shadow: 0 12px 44px -14px oklch(0 0 0 / 55%);
   --nav-glass: oklch(0.29 0.012 60 / 64%);
