@@ -782,6 +782,15 @@ export type Database = {
     }
     Functions: {
       is_whitelisted: { Args: never; Returns: boolean }
+      search_library_fuzzy: {
+        Args: { max_results?: number; term: string }
+        Returns: {
+          id: string
+          kind: string
+          name: string
+          score: number
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "user"
