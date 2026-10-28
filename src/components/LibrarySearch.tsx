@@ -1,3 +1,5 @@
+import { supabase } from "@/integrations/supabase/client";
+import { DEFAULT_PREFS, SCOPE_LABELS, sourceCount, type WebPrefs, type WebScope } from "@/lib/web-sources";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
@@ -48,13 +50,33 @@ export function LibrarySearch({
 
   const webSearch = useServerFn(searchWeb);
   const [askedWeb, setAskedWeb] = useState<string | null>(null);
+  const [webScope, setWebScope] = useState<WebScope | null>(null);
   useEffect(() => setAskedWeb(null), [debounced]);
+  const webPrefs = useQuery({
+    queryKey: ["web-search-prefs"],
+    enabled: open,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("web_search_prefs")
+        .select("scope, disabled_domains, custom_domains, blocked_domains")
+        .maybeSingle();
+      return { ...DEFAULT_PREFS, ...((data ?? {}) as Partial<WebPrefs>) };
+    },
+  });
+  const prefsNow = webPrefs.data ?? DEFAULT_PREFS;
+  const activeScope = webScope ?? prefsNow.scope;
+  const cycleScope = () => {
+    const order: WebScope[] = ["legal_only", "prefer_legal", "all"];
+    setWebScope(order[(order.indexOf(activeScope) + 1) % 3]);
+    setAskedWeb(null);
+  };
   const web = useQuery({
-    queryKey: ["library-web-search", askedWeb],
+    queryKey: ["library-web-search", askedWeb, activeScope],
     enabled: open && !!askedWeb,
     staleTime: Infinity,
     retry: false,
-    queryFn: () => webSearch({ data: { query: askedWeb! } }),
+    queryFn: () => webSearch({ data: { query: askedWeb!, scope: activeScope } }),
   });
 
   const library = useQuery({
@@ -216,6 +238,16 @@ export function LibrarySearch({
               <span className="min-w-0 truncate">Auch im Internet suchen</span>
             </button>
           )}
+          {effectiveTerm.length >= 3 && (
+            <button
+              onClick={cycleScope}
+              className="-mt-1 block px-3 text-left text-xs text-muted-foreground underline-offset-2 hover:underline"
+            >
+              Quellen: {SCOPE_LABELS[activeScope]}
+              {sourceCount(prefsNow, activeScope) ? ` (${sourceCount(prefsNow, activeScope)})` : ""}
+              {webScope ? " · nur für diese Suche" : ""} – tippen zum Ändern
+            </button>
+          )}
 
           {askedWeb && (
             <div className="glass-soft min-w-0 space-y-2 overflow-hidden rounded-2xl p-3">
@@ -251,7 +283,12 @@ export function LibrarySearch({
                         {s.n}
                       </span>
                       <span className="min-w-0">
-                        <span className="block truncate text-xs font-medium">{s.title}</span>
+                        <span className="flex items-center gap-1.5">
+                          <span className="shrink-0 rounded bg-muted px-1 text-[10px] text-muted-foreground">
+                            {s.kind === "gesetz" ? "Gesetz" : s.kind === "urteil" ? "Urteil" : "Allgemein"}
+                          </span>
+                          <span className="block truncate text-xs font-medium">{s.title}</span>
+                        </span>
                         <span className="block line-clamp-1 text-xs text-muted-foreground">{s.snippet}</span>
                       </span>
                     </a>
