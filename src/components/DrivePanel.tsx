@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { HardDrive, RefreshCw, Unplug } from "lucide-react";
+import { RefreshCw, Unplug } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -91,16 +91,7 @@ export function DrivePanel() {
   const reconnect = status && "reconnectRequired" in status && status.reconnectRequired;
 
   return (
-    <section className="glass space-y-3 rounded-3xl p-5">
-      <div>
-        <h2 className="font-semibold flex items-center gap-2">
-          <HardDrive className="size-4" /> Google Drive
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          Verknüpfe Dateien aus deinem Google Drive mit der Library. Es wird nur gelesen –
-          in Drive wird nichts verändert oder gelöscht.
-        </p>
-      </div>
+    <div className="space-y-3">
       {status?.connected ? (
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm text-muted-foreground">
