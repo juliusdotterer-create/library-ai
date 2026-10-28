@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { GitCompareArrows, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -81,16 +81,7 @@ export function DriveMirrorPanel() {
     : "Library-Ordner wählen";
 
   return (
-    <section className="glass space-y-3 rounded-3xl p-5">
-      <div>
-        <h2 className="flex items-center gap-2 font-semibold">
-          <GitCompareArrows className="size-4" /> Ordner spiegeln
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          Vergleicht einen Drive-Ordner mit einem bestehenden Library-Ordner: gleiche Namen
-          werden verknüpft, Fehlendes wird ergänzt. Es wird nichts gelöscht oder überschrieben.
-        </p>
-      </div>
+    <div className="space-y-3">
 
       <div className="flex flex-wrap items-center gap-2">
         <FolderPicker
@@ -154,6 +145,6 @@ export function DriveMirrorPanel() {
           void run(folder.id);
         }}
       />
-    </section>
+    </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, FileSearch, Loader2, Pause, Play, ScanText, Square } from "lucide-react";
+import { AlertTriangle, Loader2, Pause, Play, ScanText, Square } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -50,16 +50,7 @@ export function TextIndexPanel() {
   const d = info.data;
 
   return (
-    <section className="glass space-y-4 rounded-3xl p-5">
-      <div className="flex items-center gap-2">
-        <FileSearch className="size-4 text-primary" />
-        <h2 className="text-sm font-semibold">Volltextsuche</h2>
-      </div>
-
-      <p className="text-sm text-muted-foreground">
-        Neue PDFs werden beim Upload automatisch indexiert. Ältere Dokumente kannst du hier
-        nachträglich durchsuchbar machen — gescannte PDFs ohne Textebene per Texterkennung.
-      </p>
+    <div className="space-y-4">
 
       {d && (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -142,6 +133,6 @@ export function TextIndexPanel() {
         Texterkennung ist deutlich langsamer (ca. 2–5 Sekunden pro Seite) und liest maximal 50 Seiten
         je Dokument.
       </p>
-    </section>
+    </div>
   );
 }

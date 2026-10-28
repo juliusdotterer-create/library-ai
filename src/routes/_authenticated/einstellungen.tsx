@@ -1,7 +1,19 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Sparkles } from "lucide-react";
+import {
+  ArrowRightLeft,
+  Bot,
+  FileSearch,
+  GitCompareArrows,
+  Globe,
+  HardDrive,
+  ShieldCheck,
+  Sparkles,
+  Trash2,
+  UserRound,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SettingsSection } from "@/components/SettingsSection";
 import { TrashPanel } from "@/components/TrashPanel";
 import { TransferPanel } from "@/components/TransferPanel";
 import { WhitelistPanel } from "@/components/WhitelistPanel";
@@ -15,9 +27,6 @@ import { ThemePanel } from "@/components/ThemePanel";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-
-
-
 
 export const Route = createFileRoute("/_authenticated/einstellungen")({
   head: () => ({
@@ -52,11 +61,8 @@ function SettingsPage() {
     })();
   }, [user]);
 
-
-
-
   return (
-    <div className="mx-auto max-w-2xl space-y-4">
+    <div className="mx-auto max-w-2xl space-y-3">
       <div className="glass rounded-3xl p-5">
         <h1 className="text-lg font-semibold">Einstellungen</h1>
         <p className="text-sm text-muted-foreground">
@@ -66,46 +72,40 @@ function SettingsPage() {
 
       <ThemePanel />
 
-      <section className="glass space-y-3 rounded-3xl p-5">
-        <div>
-          <h2 className="font-semibold">Profil</h2>
-          <p className="text-sm text-muted-foreground">
-            Name, E-Mail-Adresse und Passwort deines Accounts.
-          </p>
-        </div>
+      <SettingsSection
+        id="profile"
+        title="Profil"
+        description="Name, E-Mail-Adresse und Passwort deines Accounts."
+        icon={<UserRound className="size-4" />}
+      >
         <ProfilePanel isAdmin={isAdmin} />
-      </section>
+      </SettingsSection>
 
-      <section className="glass space-y-3 rounded-3xl p-5">
-        <div>
-          <h2 className="font-semibold">Internetsuche – Quellen</h2>
-          <p className="text-sm text-muted-foreground">
-            Lege fest, wo „Auch im Internet suchen“ nachschaut.
-          </p>
-        </div>
+      <SettingsSection
+        id="web-sources"
+        title="Internetsuche – Quellen"
+        description="Lege fest, wo „Auch im Internet suchen“ nachschaut."
+        icon={<Globe className="size-4" />}
+      >
         <WebSourcesPanel />
-      </section>
+      </SettingsSection>
 
-      <section className="glass space-y-3 rounded-3xl p-5">
-        <div>
-          <h2 className="font-semibold">Mit Agent verbinden</h2>
-          <p className="text-sm text-muted-foreground">
-            Verbinde ChatGPT, Claude, Anara oder einen anderen MCP-Client mit deiner Library.
-          </p>
-        </div>
+      <SettingsSection
+        id="agent"
+        title="Mit Agent verbinden"
+        description="ChatGPT, Claude, Anara oder andere MCP-Clients verbinden."
+        icon={<Bot className="size-4" />}
+      >
         <AgentConnectPanel />
-      </section>
+      </SettingsSection>
 
-      <section className="glass space-y-3 rounded-3xl p-5">
-        <div>
-          <h2 className="font-semibold">Google Drive</h2>
-          <p className="text-sm text-muted-foreground">
-            Verknüpfe Dateien aus deinem Google Drive mit der Library. Sie bleiben in Drive liegen
-            und werden hier nur geöffnet und durchsucht.
-          </p>
-        </div>
+      <SettingsSection
+        id="drive"
+        title="Google Drive"
+        description="Dateien aus Drive verknüpfen – sie bleiben in Drive liegen."
+        icon={<HardDrive className="size-4" />}
+      >
         <DrivePanel />
-        <DriveMirrorPanel />
         <div className="flex justify-end pt-1">
           <Button
             variant="ghost"
@@ -117,50 +117,54 @@ function SettingsPage() {
             Beispielansicht öffnen
           </Button>
         </div>
-      </section>
+      </SettingsSection>
 
-
-
-
+      <SettingsSection
+        id="drive-mirror"
+        title="Ordner spiegeln"
+        description="Einen Drive-Ordner mit einem Library-Ordner abgleichen."
+        icon={<GitCompareArrows className="size-4" />}
+      >
+        <DriveMirrorPanel />
+      </SettingsSection>
 
       {isAdmin ? (
-        <section className="glass space-y-3 rounded-3xl p-5">
-          <div>
-            <h2 className="font-semibold">Zugang / Whitelist</h2>
-            <p className="text-sm text-muted-foreground">
-              Nur diese E-Mail-Adressen können sich anmelden oder registrieren.
-            </p>
-          </div>
+        <SettingsSection
+          id="whitelist"
+          title="Zugang / Whitelist"
+          description="Nur diese E-Mail-Adressen können sich anmelden oder registrieren."
+          icon={<ShieldCheck className="size-4" />}
+        >
           <WhitelistPanel />
-        </section>
+        </SettingsSection>
       ) : null}
 
-      <section className="glass space-y-3 rounded-3xl p-5">
-        <div>
-          <h2 className="font-semibold">Papierkorb</h2>
-          <p className="text-sm text-muted-foreground">
-            Wiederherstellen oder endgültig löschen – dafür musst du den Namen exakt eintippen.
-          </p>
-        </div>
+      <SettingsSection
+        id="trash"
+        title="Papierkorb"
+        description="Wiederherstellen oder endgültig löschen."
+        icon={<Trash2 className="size-4" />}
+      >
         <TrashPanel />
-      </section>
+      </SettingsSection>
 
-      <TextIndexPanel />
+      <SettingsSection
+        id="text-index"
+        title="Volltextsuche"
+        description="Ältere Dokumente durchsuchbar machen, Scans per Texterkennung."
+        icon={<FileSearch className="size-4" />}
+      >
+        <TextIndexPanel />
+      </SettingsSection>
 
-
-      <section className="glass space-y-3 rounded-3xl p-5">
-        <div>
-          <h2 className="font-semibold">Daten an anderen Account übertragen</h2>
-          <p className="text-sm text-muted-foreground">
-            Kopiert deine Ordner, Dateien, Termine, Lehrpläne und Links in einen anderen, bereits
-            registrierten Account.
-          </p>
-        </div>
+      <SettingsSection
+        id="transfer"
+        title="Daten an anderen Account übertragen"
+        description="Ordner, Dateien, Termine und Links in einen anderen Account kopieren."
+        icon={<ArrowRightLeft className="size-4" />}
+      >
         <TransferPanel />
-      </section>
-
-
+      </SettingsSection>
     </div>
-
   );
 }
