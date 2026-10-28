@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Obere Leiste hängt sich beim Runterscrollen vollflächig und blickdicht an den oberen Rand und schwebt beim Zurückkehren wieder als Karte; im Browser geprüft (Desktop/Handy, hell/dunkel, keine Layout-Verschiebung, Auswahlleiste bleibt darunter sichtbar).
+
 - [x] Alle Einstellungsbereiche (Profil, Quellen, Agent, Drive, Spiegeln, Whitelist, Papierkorb, Volltext, Übertragen) sowie die Farb-/Akzentfelder einzeln einklappbar gemacht; Zustand bleibt pro Bereich auf dem Gerät, im Browser mit Neuladen geprüft.
 
 - [x] Darstellung (Modus, Akzentfarbe, Farbton, Intensität, Vorschau) in den Einstellungen als Pulldown eingeklappt; geschlossene Zeile zeigt Modus und Akzent, im Browser geprüft (Höhe 5025 → 3851 px, 0 → 2 Regler beim Öffnen).
