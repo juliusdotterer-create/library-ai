@@ -78,6 +78,11 @@ export const searchLibrary = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }) => {
     const pattern = `%${data.term.replace(/[%_]/g, "\\$&")}%`;
+    const { data: compactRows, error: compactError } = data.term
+      ? await context.supabase.rpc("search_library_compact", { term: data.term, max_results: 150 })
+      : { data: [], error: null };
+    if (compactError) throw new Error(compactError.message);
+    const compactDocIds = (compactRows ?? []).filter((r) => r.kind === "doc").map((r) => r.id);
 
     const F = data.filters;
     const anyFilter = !!(F.folderName || F.mime || F.from || F.to);
@@ -88,26 +93,23 @@ export const searchLibrary = createServerFn({ method: "POST" })
       .is("deleted_at", null)
       .not("name", "ilike", "desktop.ini");
     const nameTokens = searchTokens(data.term);
-    if (nameTokens.length) docsQ = docsQ.or(nameTokens.map((t) => `name.ilike.%${t.replace(/§/g, "").replace(/[%_,()]/g, "")}%`).join(","));
+    if (nameTokens.length) docsQ = docsQ.or([
+      ...nameTokens.map((t) => `name.ilike.%${t.replace(/§/g, "").replace(/[%_,()]/g, "")}%`),
+      ...(compactDocIds.length ? [`id.in.(${compactDocIds.join(",")})`] : []),
+    ].join(","));
     if (F.from) docsQ = docsQ.gte("created_at", F.from);
     if (F.to) docsQ = docsQ.lt("created_at", F.to);
     const { data: docsRaw, error: docsErr } = await docsQ.order("name").limit(anyFilter ? 500 : 100);
     if (docsErr) throw new Error(docsErr.message);
 
-    const { data: folders, error: foldersErr } = await context.supabase
-      .from("folders")
-      .select("id,name,parent_id")
-      .eq("user_id", context.userId)
-      .is("deleted_at", null)
-      .ilike("name", data.term ? pattern : "%")
-      .order("name")
-      .limit(anyFilter ? 0 : 50);
-    if (foldersErr) throw new Error(foldersErr.message);
-
     const allFolders = await fetchAllFolders(
       context.supabase as unknown as FolderQueryClient,
       context.userId,
     );
+    const folders = anyFilter ? [] : allFolders
+      .filter((f) => !data.term || relevanceScore(f.name, data.term) > 0)
+      .sort((a, b) => relevanceScore(b.name, data.term) - relevanceScore(a.name, data.term))
+      .slice(0, 50);
 
     /* ---------- Filter in Worten: Ordner (inkl. Unterordner), Typ, Zeitraum ---------- */
     let folderScope: Set<string> | null = null;
@@ -151,6 +153,16 @@ export const searchLibrary = createServerFn({ method: "POST" })
 
     let hitRows: { document_id: string; pages: unknown; source?: string | null }[] = [];
 
+    const compactContentIds = (compactRows ?? []).filter((r) => r.kind === "content").map((r) => r.id);
+    if (compactContentIds.length) {
+      const { data: compactHits, error } = await context.supabase.from("document_text")
+        .select("document_id,pages,source")
+        .eq("user_id", context.userId).eq("status", "done")
+        .in("document_id", compactContentIds);
+      if (error) throw new Error(error.message);
+      hitRows = (compactHits ?? []) as typeof hitRows;
+    }
+
     if (tsquery) {
       const { data: hits } = await context.supabase
         .from("document_text")
@@ -159,7 +171,8 @@ export const searchLibrary = createServerFn({ method: "POST" })
         .eq("status", "done")
         .textSearch("tsv", tsquery, { config: "german" })
         .limit(150);
-      hitRows = (hits ?? []) as typeof hitRows;
+      const known = new Set(hitRows.map((h) => h.document_id));
+      hitRows.push(...((hits ?? []) as typeof hitRows).filter((h) => !known.has(h.document_id)));
     }
 
     // Exakte Phrase / Paragraphen zusätzlich laden; Teilwörter bleiben als Fallback.
@@ -331,7 +344,7 @@ function rank(name: string, term: string): number {
 function snippetAt(pages: string[], page: number, term: string) {
   const text = pages[page - 1] ?? "";
   const token = searchTokens(term).find((t) => /\d/.test(t)) ?? searchTokens(term)[0] ?? "";
-  const pattern = token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/§/g, "§\\s*");
+  const pattern = Array.from(token.replace(/\s/g, "")).map((c) => c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("\\s*");
   const boundary = /\d/.test(token) ? "(?![\\p{L}\\p{N}])" : "";
   const at = Math.max(0, text.search(new RegExp(pattern + boundary, "iu")));
   const start = Math.max(0, at - 70);

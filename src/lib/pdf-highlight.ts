@@ -19,6 +19,8 @@ export function highlightTokens(term: string): string[] {
   return Array.from(
     new Set(
       normalize(term)
+        .replace(/(\p{N})(\p{L})/gu, "$1 $2")
+        .replace(/(\p{L})(\p{N})/gu, "$1 $2")
         .split(/[^\p{L}\p{N}]+/u)
         .filter((t) => t.length > 2 || /\d/.test(t)),
     ),
@@ -83,21 +85,27 @@ export async function findHighlights(
     const perChar = hay.length > 0 ? width / hay.length : 0;
 
     for (const token of tokens) {
+      const compactHay = hay.replace(/\s/g, "");
+      const compactToken = token.replace(/\s/g, "");
+      if (!compactToken) continue;
+      const offsets = Array.from(hay).flatMap((c, i) => /\s/.test(c) ? [] : [i]);
       let from = 0;
       for (;;) {
-        const at = hay.indexOf(token, from);
-        if (at === -1) break;
-        if (/\d/.test(token) && (/\p{N}/u.test(hay[at - 1] ?? "") || /[\p{L}\p{N}]/u.test(hay[at + token.length] ?? ""))) {
-          from = at + token.length;
+        const compactAt = compactHay.indexOf(compactToken, from);
+        if (compactAt === -1) break;
+        const at = offsets[compactAt] ?? 0;
+        const end = (offsets[compactAt + compactToken.length - 1] ?? at) + 1;
+        if (/\d/.test(token) && (/\p{N}/u.test(compactHay[compactAt - 1] ?? "") || /\p{N}/u.test(compactHay[compactAt + compactToken.length] ?? ""))) {
+          from = compactAt + compactToken.length;
           continue;
         }
         rects.push({
           x: left + at * perChar,
           y: baseline - height,
-          w: Math.max(2, token.length * perChar),
+          w: Math.max(2, (end - at) * perChar),
           h: height * 1.15,
         });
-        from = at + token.length;
+        from = compactAt + compactToken.length;
       }
     }
   }
