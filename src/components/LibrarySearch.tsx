@@ -107,7 +107,7 @@ export function LibrarySearch({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="glass max-h-[80vh] overflow-y-auto rounded-3xl">
+        <DialogContent className="glass max-h-[80vh] min-w-0 overflow-y-auto overflow-x-hidden rounded-3xl [&>*]:min-w-0">
           <DialogHeader>
             <DialogTitle>Library durchsuchen</DialogTitle>
           </DialogHeader>
@@ -152,7 +152,7 @@ export function LibrarySearch({
           )}
 
           {asked && (
-            <div className="glass-soft space-y-2 rounded-2xl p-3">
+            <div className="glass-soft min-w-0 space-y-2 overflow-hidden rounded-2xl p-3">
               <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                 <Sparkles className="size-3.5 text-primary" /> Antwort aus deinen Dokumenten
               </p>
@@ -167,7 +167,11 @@ export function LibrarySearch({
                   {answer.data.error ? (
                     <p className="text-sm text-destructive">{answer.data.error}</p>
                   ) : (
-                    <p className="whitespace-pre-wrap text-sm leading-relaxed">{answer.data.answer}</p>
+                    <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">
+                      {answer.data.answer.split(/\*\*(.+?)\*\*/g).map((part, i) =>
+                        i % 2 ? <strong key={i}>{part}</strong> : part,
+                      )}
+                    </p>
                   )}
                   {answer.data.sources.map((s) => (
                     <button
