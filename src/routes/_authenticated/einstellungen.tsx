@@ -80,7 +80,7 @@ function SettingsPage() {
         <div>
           <h2 className="font-semibold">Internetsuche – Quellen</h2>
           <p className="text-sm text-muted-foreground">
-            Lege fest, wo „Auch im Internet suchen" nachschaut.
+            Lege fest, wo „Auch im Internet suchen“ nachschaut.
           </p>
         </div>
         <WebSourcesPanel />

@@ -46,7 +46,7 @@ export function WebSourcesPanel() {
 
   const addTo = (key: "custom_domains" | "blocked_domains", raw: string, reset: () => void) => {
     const d = normalizeDomain(raw);
-    if (!d) return toast.error("Bitte eine Adresse wie „haufe.de" eingeben");
+    if (!d) return toast.error("Bitte eine Adresse wie haufe.de eingeben");
     if (!prefs[key].includes(d)) save({ ...prefs, [key]: [...prefs[key], d] });
     reset();
   };

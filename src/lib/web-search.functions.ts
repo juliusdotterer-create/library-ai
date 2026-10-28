@@ -139,7 +139,7 @@ export const searchWeb = createServerFn({ method: "POST" })
         const res = await generateResponse({
           model: "openai/gpt-6-astra",
           instructions:
-            "Du beantwortest Suchanfragen ausschließlich anhand der nummerierten Internetergebnisse. Antworte kurz (höchstens 6 Sätze) auf Deutsch und nenne die wichtigsten Punkte. Belege jede Aussage mit [n]. Zitiere Normen genau (z. B. „§ 7 Abs. 1 EStG") und Urteile mit Gericht, Datum und Aktenzeichen, soweit angegeben. Wenn die Ergebnisse die Frage nicht beantworten, sage das ehrlich und erfinde nichts.",
+            "Du beantwortest Suchanfragen ausschließlich anhand der nummerierten Internetergebnisse. Antworte kurz (höchstens 6 Sätze) auf Deutsch und nenne die wichtigsten Punkte. Belege jede Aussage mit [n]. Zitiere Normen genau (z. B. § 7 Abs. 1 EStG) und Urteile mit Gericht, Datum und Aktenzeichen, soweit angegeben. Wenn die Ergebnisse die Frage nicht beantworten, sage das ehrlich und erfinde nichts.",
           input: `Suchanfrage: ${data.query}\n\nInternetergebnisse:\n\n${excerpts}`,
         });
         let answer = "";
