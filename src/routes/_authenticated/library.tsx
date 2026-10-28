@@ -109,8 +109,8 @@ function LibraryPage() {
   const current = path[path.length - 1];
   const fileInput = useRef<HTMLInputElement>(null);
   const folderInput = useRef<HTMLInputElement>(null);
-  const newFolderRef = useRef<HTMLInputElement>(null);
-  const [newFolder, setNewFolder] = useState("");
+  const [folderDialog, setFolderDialog] = useState(false);
+  const [folderName, setFolderName] = useState("");
   const [rename, setRename] = useState<{
     table: "folders" | "documents";
     id: string;
@@ -152,7 +152,7 @@ function LibraryPage() {
 
   useEffect(() => {
     if (createFolderParam === "folder") {
-      newFolderRef.current?.focus();
+      setFolderDialog(true);
     }
   }, [createFolderParam]);
 
@@ -316,7 +316,8 @@ function LibraryPage() {
       if (error) throw error;
     },
     onSuccess: () => {
-      setNewFolder("");
+      setFolderName("");
+      setFolderDialog(false);
       invalidate();
       toast.success("Ordner erstellt");
     },
@@ -719,27 +720,18 @@ function LibraryPage() {
             </DropdownMenu>
           )}
 
-          <Input
-            ref={newFolderRef}
-            value={newFolder}
-            placeholder="Neuer Ordner"
-            className="h-9 min-w-0 flex-1 rounded-2xl sm:w-44 sm:flex-none"
-            onChange={(e) => setNewFolder(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && newFolder.trim()) createFolder.mutate(newFolder.trim());
-            }}
-          />
           <Button
             variant="secondary"
             className="rounded-2xl"
-            disabled={!newFolder.trim()}
-            onClick={() => createFolder.mutate(newFolder.trim())}
+            aria-label="Neuer Ordner"
+            title="Neuer Ordner"
+            onClick={() => setFolderDialog(true)}
           >
             <FolderPlus className="size-4" />
           </Button>
           <Button
             variant="secondary"
-            className="rounded-2xl"
+            className="hidden rounded-2xl sm:inline-flex"
             aria-label="Freie Notizen"
             title="Notizen ohne Dokument"
             onClick={() => setFreeNotes(true)}
@@ -919,7 +911,7 @@ function LibraryPage() {
                 }
                 action={{
                   label: "Ordner erstellen",
-                  onClick: () => newFolderRef.current?.focus(),
+                  onClick: () => setFolderDialog(true),
                 }}
               />
             )}
@@ -946,6 +938,38 @@ function LibraryPage() {
           void navigate({ to: "/library", search: { folder: id } });
         }}
       />
+      <Dialog
+        open={folderDialog}
+        onOpenChange={(o) => {
+          setFolderDialog(o);
+          if (!o) setFolderName("");
+        }}
+      >
+        <DialogContent className="glass rounded-3xl">
+          <DialogHeader>
+            <DialogTitle>Neuer Ordner</DialogTitle>
+          </DialogHeader>
+          <Input
+            autoFocus
+            className="rounded-2xl"
+            placeholder="Ordnername"
+            value={folderName}
+            onChange={(e) => setFolderName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && folderName.trim()) createFolder.mutate(folderName.trim());
+            }}
+          />
+          <DialogFooter>
+            <Button
+              className="rounded-2xl"
+              disabled={!folderName.trim()}
+              onClick={() => createFolder.mutate(folderName.trim())}
+            >
+              Erstellen
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Dialog open={!!rename} onOpenChange={(o) => !o && setRename(null)}>
         <DialogContent className="glass rounded-3xl">
           <DialogHeader>
