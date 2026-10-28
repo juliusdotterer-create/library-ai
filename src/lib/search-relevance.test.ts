@@ -30,4 +30,5 @@ test("missing spaces in document text match spaced queries", () => {
 test("space tolerance never turns 13 into 1 or 130", () => {
   assert.equal(relevanceScore("§1UStG", "§13UStG"), 0);
   assert.equal(relevanceScore("§130UStG", "§13UStG"), 0);
+  assert.equal(relevanceScore("§ 13b UStG", "§13UStG"), 0);
 });

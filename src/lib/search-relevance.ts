@@ -5,7 +5,7 @@ export function relevanceNorm(s: string): string {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/§\s*/g, "§")
-    .replace(/(\p{N})(\p{L})/gu, "$1 $2")
+    .replace(/(\p{N})(\p{L}{2,})/gu, "$1 $2")
     .replace(/(\p{L})(\p{N})/gu, "$1 $2")
     .replace(/[^\p{L}\p{N}§]+/gu, " ")
     .trim();
