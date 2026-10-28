@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Eye, FileSearch, FileText, Folder, Loader2, Search } from "lucide-react";
+import { Eye, FileSearch, FileText, Folder, Loader2, Search, Sparkles, X } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { Input } from "@/components/ui/input";
 import { DocumentPreview, type PreviewDoc } from "@/components/DocumentPreview";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { searchLibrary } from "@/lib/library.functions";
+import { askLibrary } from "@/lib/ask-library.functions";
+import { isQuestion, parseQuery, type SearchFilters } from "@/lib/smart-search";
 import { FreeNotesOverlay } from "@/components/FreeNotesOverlay";
 
 export function LibrarySearch({
@@ -26,10 +28,35 @@ export function LibrarySearch({
     return () => clearTimeout(t);
   }, [term]);
 
+  const ask = useServerFn(askLibrary);
+  const [removed, setRemoved] = useState<string[]>([]);
+  useEffect(() => setRemoved([]), [debounced]);
+  const parsed = parseQuery(debounced);
+  const chips = parsed.chips.filter((c) => !removed.includes(c.key));
+  const filters: SearchFilters = {};
+  for (const c of chips) {
+    if (c.key === "date") {
+      filters.from = parsed.filters.from;
+      filters.to = parsed.filters.to;
+    } else if (c.key === "folderName") filters.folderName = parsed.filters.folderName;
+    else if (c.key === "mime") filters.mime = parsed.filters.mime;
+  }
+  const effectiveTerm = chips.length ? parsed.term : debounced;
+  const question = isQuestion(debounced);
+  const [asked, setAsked] = useState<string | null>(null);
+
   const library = useQuery({
-    queryKey: ["library-search", debounced],
-    enabled: open && debounced.length > 0,
-    queryFn: () => search({ data: { term: debounced } }),
+    queryKey: ["library-search", effectiveTerm, filters],
+    enabled: open && (effectiveTerm.length > 0 || chips.length > 0),
+    queryFn: () => search({ data: { term: effectiveTerm, filters } }),
+  });
+
+  const answer = useQuery({
+    queryKey: ["library-ask", asked],
+    enabled: open && !!asked,
+    staleTime: Infinity,
+    retry: false,
+    queryFn: () => ask({ data: { question: asked! } }),
   });
 
   const [preview, setPreview] = useState<PreviewDoc | null>(null);
@@ -67,7 +94,7 @@ export function LibrarySearch({
       folder_id: d.folder_id ?? null,
       source: d.source ?? null,
       page: d.page ?? null,
-      highlight: withHighlight ? debounced : null,
+      highlight: withHighlight ? effectiveTerm || null : null,
     });
   };
 
@@ -90,10 +117,79 @@ export function LibrarySearch({
               autoFocus
               value={term}
               onChange={(e) => setTerm(e.target.value)}
-              placeholder="Dokumente und Ordner suchen…"
+              placeholder="Suchen, filtern („PDFs 2025 im Ordner BWL“) oder fragen…"
               className="rounded-2xl pl-9"
             />
           </div>
+
+          {!!chips.length && (
+            <div className="flex flex-wrap gap-1.5">
+              {chips.map((c) => (
+                <button
+                  key={c.key}
+                  onClick={() => setRemoved((r) => [...r, c.key])}
+                  className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-2.5 py-1 text-xs text-primary"
+                  aria-label={`Filter ${c.label} entfernen`}
+                >
+                  {c.label}
+                  <X className="size-3" />
+                </button>
+              ))}
+              {results?.folderMissing && (
+                <span className="px-1 py-1 text-xs text-muted-foreground">Kein passender Ordner gefunden</span>
+              )}
+            </div>
+          )}
+
+          {question && asked !== debounced && (
+            <button
+              onClick={() => setAsked(debounced)}
+              className="flex w-full items-center gap-3 rounded-2xl bg-primary px-3 py-2.5 text-left text-sm font-medium text-primary-foreground"
+            >
+              <Sparkles className="size-4 shrink-0" />
+              <span className="min-w-0 truncate">Frage an deine Library stellen</span>
+            </button>
+          )}
+
+          {asked && (
+            <div className="glass-soft space-y-2 rounded-2xl p-3">
+              <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                <Sparkles className="size-3.5 text-primary" /> Antwort aus deinen Dokumenten
+              </p>
+              {answer.isLoading ? (
+                <div className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
+                  <Loader2 className="size-4 animate-spin" /> Durchsuche Dokumente …
+                </div>
+              ) : answer.isError ? (
+                <p className="text-sm text-destructive">Frage konnte nicht beantwortet werden.</p>
+              ) : answer.data ? (
+                <>
+                  {answer.data.error ? (
+                    <p className="text-sm text-destructive">{answer.data.error}</p>
+                  ) : (
+                    <p className="whitespace-pre-wrap text-sm leading-relaxed">{answer.data.answer}</p>
+                  )}
+                  {answer.data.sources.map((s) => (
+                    <button
+                      key={`${s.n}-${s.id}`}
+                      onClick={() => openDoc(s, true)}
+                      className="hover:bg-primary-soft flex w-full items-start gap-2 rounded-xl p-2 text-left"
+                    >
+                      <span className="shrink-0 rounded-md bg-primary-soft px-1.5 text-[11px] font-medium text-primary">
+                        {s.n}
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-xs font-medium">
+                          {s.name} · Seite {s.page}
+                        </span>
+                        <span className="block line-clamp-1 text-xs text-muted-foreground">{s.snippet}</span>
+                      </span>
+                    </button>
+                  ))}
+                </>
+              ) : null}
+            </div>
+          )}
 
           <div className="space-y-1.5">
             {isLoading ? (
@@ -186,7 +282,44 @@ export function LibrarySearch({
                     ))}
                   </>
                 )}
-                {!results.folders.length && !results.docs.length && !results.contents.length && (
+                {!!results.similar.length && (
+                  <>
+                    <p className="px-1 pt-3 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                      Ähnliche Treffer
+                    </p>
+                    {results.similar.map((r) => (
+                      <button
+                        key={`s-${r.id}`}
+                        onClick={() =>
+                          r.kind === "folder"
+                            ? goToFolder(r.id)
+                            : openDoc({
+                                id: r.id,
+                                name: r.name,
+                                storage_path: r.storage_path ?? "",
+                                mime_type: r.mime_type ?? null,
+                                folder_id: r.folder_id,
+                                source: r.source,
+                                kind: r.doc_kind,
+                                notebook_id: r.notebook_id,
+                              })
+                        }
+                        className="glass-soft hover:bg-primary-soft flex w-full items-center gap-3 rounded-2xl p-3 text-left"
+                      >
+                        {r.kind === "folder" ? (
+                          <Folder className="size-4 shrink-0 text-primary" />
+                        ) : (
+                          <FileText className="size-4 shrink-0 text-muted-foreground" />
+                        )}
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm">{r.name}</span>
+                          {r.path && <span className="block truncate text-xs text-muted-foreground">{r.path}</span>}
+                        </span>
+                      </button>
+                    ))}
+                  </>
+                )}
+                {!results.folders.length && !results.docs.length && !results.contents.length && !results.similar.length && (
                   <p className="py-8 text-center text-sm text-muted-foreground">Nichts gefunden.</p>
                 )}
               </>
