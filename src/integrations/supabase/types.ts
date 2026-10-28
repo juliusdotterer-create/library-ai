@@ -776,6 +776,33 @@ export type Database = {
         }
         Relationships: []
       }
+      web_search_prefs: {
+        Row: {
+          blocked_domains: string[]
+          custom_domains: string[]
+          disabled_domains: string[]
+          scope: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          blocked_domains?: string[]
+          custom_domains?: string[]
+          disabled_domains?: string[]
+          scope?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          blocked_domains?: string[]
+          custom_domains?: string[]
+          disabled_domains?: string[]
+          scope?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

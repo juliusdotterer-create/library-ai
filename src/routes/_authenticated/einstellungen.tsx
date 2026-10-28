@@ -11,6 +11,7 @@ import { ProfilePanel } from "@/components/ProfilePanel";
 import { DrivePanel } from "@/components/DrivePanel";
 import { DriveMirrorPanel } from "@/components/DriveMirrorPanel";
 import { TextIndexPanel } from "@/components/TextIndexPanel";
+import { WebSourcesPanel } from "@/components/WebSourcesPanel";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -73,6 +74,16 @@ function SettingsPage() {
           </p>
         </div>
         <ProfilePanel isAdmin={isAdmin} />
+      </section>
+
+      <section className="glass space-y-3 rounded-3xl p-5">
+        <div>
+          <h2 className="font-semibold">Internetsuche – Quellen</h2>
+          <p className="text-sm text-muted-foreground">
+            Lege fest, wo „Auch im Internet suchen“ nachschaut.
+          </p>
+        </div>
+        <WebSourcesPanel />
       </section>
 
       <section className="glass space-y-3 rounded-3xl p-5">
