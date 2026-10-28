@@ -22,14 +22,15 @@ export function tokenMatches(text: string, token: string): boolean {
   const t = relevanceNorm(text);
   const exactNumber = /\d/.test(token);
   const re = exactNumber
-    ? new RegExp(`(^|[^\\p{L}\\p{N}])${escapeRe(token)}(?![\\p{N}])`, "u")
-    : new RegExp(`(^|[^\\p{L}\\p{N}])${escapeRe(token)}`, "u");
+    ? new RegExp(`(^|[^\\p{L}\\p{N}])${escapeRe(token)}(?![\\p{L}\\p{N}])`, "u")
+    : new RegExp(escapeRe(token), "u");
   return re.test(t);
 }
 
 export function relevanceScore(text: string, term: string): number {
   const tokens = searchTokens(term);
   if (!tokens.length) return 0;
+  if (tokens.some((t) => /\d/.test(t) && !tokenMatches(text, t))) return 0;
   const matched = tokens.filter((t) => tokenMatches(text, t)).length;
   const exactPhrase = tokenMatches(text, relevanceNorm(term)) ? 1 : 0;
   return matched * 10 + exactPhrase * 5;

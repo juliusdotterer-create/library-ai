@@ -5,6 +5,8 @@ import { bestPage, relevanceScore, tokenMatches } from "./search-relevance";
 test("§ 13 does not match § 1", () => {
   assert.equal(tokenMatches("Regel nach § 1 UStG", "§13"), false);
   assert.equal(tokenMatches("Regel nach § 13 UStG", "§13"), true);
+  assert.equal(tokenMatches("Regel nach § 130 UStG", "§13"), false);
+  assert.equal(relevanceScore("§ 1 UStG", "§ 13 UStG"), 0);
 });
 
 test("more overlapping words rank higher", () => {

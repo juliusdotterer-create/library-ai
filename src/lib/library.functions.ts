@@ -88,7 +88,7 @@ export const searchLibrary = createServerFn({ method: "POST" })
       .is("deleted_at", null)
       .not("name", "ilike", "desktop.ini");
     const nameTokens = searchTokens(data.term);
-    if (nameTokens.length) docsQ = docsQ.or(nameTokens.map((t) => `name.ilike.%${t.replace(/[%_,()]/g, "")}%`).join(","));
+    if (nameTokens.length) docsQ = docsQ.or(nameTokens.map((t) => `name.ilike.%${t.replace(/§/g, "").replace(/[%_,()]/g, "")}%`).join(","));
     if (F.from) docsQ = docsQ.gte("created_at", F.from);
     if (F.to) docsQ = docsQ.lt("created_at", F.to);
     const { data: docsRaw, error: docsErr } = await docsQ.order("name").limit(anyFilter ? 500 : 100);
@@ -220,7 +220,7 @@ export const searchLibrary = createServerFn({ method: "POST" })
             ? (raw as unknown[]).map((p) => String(p ?? ""))
             : [];
           const best = bestPage(pages, data.term);
-          const found = locate(pages, data.term) ?? (best ? snippetAt(pages, best.page, data.term) : null) ?? {
+          const found = (best ? snippetAt(pages, best.page, data.term) : null) ?? {
             page: pages.length ? 1 : null,
             snippet: pages[0] ? `${pages[0].slice(0, 160).trim()} …` : "",
           };
@@ -246,7 +246,7 @@ export const searchLibrary = createServerFn({ method: "POST" })
     /* ---------- Tippfehler verzeihen: ähnliche Namen ---------- */
     type Similar = { kind: "doc" | "folder"; id: string; name: string; path: string; storage_path?: string; mime_type?: string | null; folder_id?: string | null; source?: string | null; doc_kind?: string | null; notebook_id?: string | null };
     let similar: Similar[] = [];
-    if (data.term.length >= 4 && docs.length + (folders?.length ?? 0) + contents.length < 5) {
+    if (data.term.length >= 4 && !/\d/.test(data.term) && docs.length + (folders?.length ?? 0) + contents.length < 5) {
       const { data: fuzzy, error: fuzzyErr } = await context.supabase.rpc("search_library_fuzzy", { term: data.term, max_results: 15 });
       if (fuzzyErr) console.error("search_library_fuzzy", fuzzyErr.message);
       const seen = new Set([...docs.map((d) => d.id), ...(folders ?? []).map((f) => f.id), ...contents.map((c) => c.id)]);
@@ -303,7 +303,7 @@ export const searchLibrary = createServerFn({ method: "POST" })
           parent_id: f.parent_id,
           path: folderPath(f.id, allFolders),
         }))
-        .sort((a, b) => rank(a.name, data.term) - rank(b.name, data.term) || a.name.localeCompare(b.name)),
+        .sort((a, b) => relevanceScore(b.name, data.term) - relevanceScore(a.name, data.term) || rank(a.name, data.term) - rank(b.name, data.term) || a.name.localeCompare(b.name)),
       contents,
     };
   });
@@ -331,49 +331,10 @@ function rank(name: string, term: string): number {
 function snippetAt(pages: string[], page: number, term: string) {
   const text = pages[page - 1] ?? "";
   const token = searchTokens(term).find((t) => /\d/.test(t)) ?? searchTokens(term)[0] ?? "";
-  const at = Math.max(0, text.toLowerCase().replace(/§\s*/g, "§").indexOf(token));
+  const pattern = token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/§/g, "§\\s*");
+  const at = Math.max(0, text.search(new RegExp(pattern, "iu")));
   const start = Math.max(0, at - 70);
   return { page, snippet: `${start ? "… " : ""}${text.slice(start, at + 160).trim()} …` };
 }
 
-/**
- * Sucht die exakte Wortfolge (unabhängig von Groß-/Kleinschreibung, Umlauten
- * und Zeilenumbrüchen). Ohne exakten Treffer: null.
- */
-function locate(pages: string[], term: string): { page: number; snippet: string } | null {
-  const needle = norm(term);
-  if (!needle) return null;
-
-  for (let i = 0; i < pages.length; i++) {
-    const text = pages[i] ?? "";
-    // Zeichen-Index-Zuordnung zwischen normalisiertem und Originaltext
-    const map: number[] = [];
-    let flat = "";
-    for (let k = 0; k < text.length; k++) {
-      const piece = norm(text[k]!);
-      if (!piece) {
-        if (flat.length && !flat.endsWith(" ")) {
-          flat += " ";
-          map.push(k);
-        }
-        continue;
-      }
-      for (const ch of piece) {
-        flat += ch;
-        map.push(k);
-      }
-    }
-    const at = flat.indexOf(needle);
-    if (at === -1) continue;
-    const origStart = map[at] ?? 0;
-    const origEnd = map[Math.min(at + needle.length, map.length - 1)] ?? text.length;
-    const start = Math.max(0, origStart - 70);
-    const end = Math.min(text.length, origEnd + 90);
-    const snippet = `${start > 0 ? "… " : ""}${text.slice(start, end).trim()}${
-      end < text.length ? " …" : ""
-    }`;
-    return { page: i + 1, snippet };
-  }
-  return null;
-}
 
