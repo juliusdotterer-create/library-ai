@@ -10,7 +10,7 @@ import {
   Search,
   WifiOff,
 } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
@@ -29,6 +29,9 @@ const NAV = [
   { to: "/links", label: "Linktree", icon: LinkIcon },
 ];
 
+/** Abstand der schwebenden Leiste zum oberen Bildschirmrand (inkl. Notch). */
+const TOP_GAP = "max(0.75rem, env(safe-area-inset-top))";
+
 
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -40,13 +43,40 @@ export function AppShell({ children }: { children: ReactNode }) {
   const onLehrplaene = path.startsWith("/lehrplaene");
   const activeMobileIndex = NAV.findIndex((item) => path.startsWith(item.to));
 
+  // Obere Leiste hängt sich oben an, sobald man aus dem Startbereich scrollt.
+  const [docked, setDocked] = useState(false);
+  useEffect(() => {
+    const read = () => {
+      const y = document.scrollingElement?.scrollTop ?? window.scrollY;
+      setDocked((prev) => {
+        if (y > 12) return true;
+        if (y < 4) return false;
+        return prev;
+      });
+    };
+    read();
+    window.addEventListener("scroll", read, { passive: true });
+    return () => window.removeEventListener("scroll", read);
+  }, [path]);
+
 
   return (
     <div className="min-h-screen w-full max-w-[100dvw] overflow-x-clip">
       <LibrarySearch open={searchOpen} onOpenChange={setSearchOpen} />
       <GlobalTimerWatcher />
-      <header className="sticky top-0 z-40 px-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-5">
-        <div className="glass mx-auto flex max-w-7xl items-center gap-2 rounded-3xl px-3 py-2">
+      <header className="sticky top-0 z-40" style={{ height: `calc(${TOP_GAP} + 3.375rem)` }}>
+        <div
+          className={cn(
+            "absolute bottom-0 flex items-center",
+            !reduceMotion &&
+              "transition-[top,left,right,border-radius,background-color,box-shadow,border-color] duration-300 ease-out",
+            docked
+              ? "glass-docked inset-x-0 rounded-b-[1.75rem] rounded-t-none"
+              : "glass inset-x-3 rounded-3xl sm:inset-x-5",
+          )}
+          style={{ top: docked ? 0 : TOP_GAP }}
+        >
+          <div className="mx-auto flex w-full max-w-7xl items-center gap-2 px-3 py-2 sm:px-5">
           <div className="flex min-w-0 items-center gap-2 pr-2">
             <button
               type="button"
@@ -117,6 +147,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           >
             {mode === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
           </Button>
+          </div>
         </div>
       </header>
 

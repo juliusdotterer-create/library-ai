@@ -789,7 +789,10 @@ function LibraryPage() {
       <UploadProgressPanel progress={progress} indexing={indexing} />
 
       {selectMode && (
-        <div className="glass sticky top-2 z-20 flex flex-wrap items-center gap-2 rounded-3xl p-3">
+        <div
+          className="glass sticky z-20 flex flex-wrap items-center gap-2 rounded-3xl p-3"
+          style={{ top: "calc(max(0.75rem, env(safe-area-inset-top)) + 3.875rem)" }}
+        >
           <span className="text-sm font-semibold">{selectedCount} ausgewählt</span>
           <Button
             variant="ghost"
