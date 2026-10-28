@@ -227,7 +227,8 @@ export const searchLibrary = createServerFn({ method: "POST" })
     type Similar = { kind: "doc" | "folder"; id: string; name: string; path: string; storage_path?: string; mime_type?: string | null; folder_id?: string | null; source?: string | null; doc_kind?: string | null; notebook_id?: string | null };
     let similar: Similar[] = [];
     if (data.term.length >= 4 && docs.length + (folders?.length ?? 0) + contents.length < 5) {
-      const { data: fuzzy } = await context.supabase.rpc("search_library_fuzzy", { term: data.term, max_results: 15 });
+      const { data: fuzzy, error: fuzzyErr } = await context.supabase.rpc("search_library_fuzzy", { term: data.term, max_results: 15 });
+      if (fuzzyErr) console.error("search_library_fuzzy", fuzzyErr.message);
       const seen = new Set([...docs.map((d) => d.id), ...(folders ?? []).map((f) => f.id), ...contents.map((c) => c.id)]);
       const rows = (fuzzy ?? []).filter((r) => {
         if (seen.has(r.id)) return false;
