@@ -14,13 +14,13 @@ function normalize(s: string): string {
     .replace(/[’'`´]/g, "'");
 }
 
-/** Zerlegt den Suchbegriff in Tokens (>2 Zeichen), wie in der Volltextsuche. */
+/** Kurze Paragraphennummern bleiben erhalten; Zahlen werden vollständig markiert. */
 export function highlightTokens(term: string): string[] {
   return Array.from(
     new Set(
       normalize(term)
         .split(/[^\p{L}\p{N}]+/u)
-        .filter((t) => t.length > 2),
+        .filter((t) => t.length > 2 || /\d/.test(t)),
     ),
   );
 }
@@ -87,6 +87,10 @@ export async function findHighlights(
       for (;;) {
         const at = hay.indexOf(token, from);
         if (at === -1) break;
+        if (/\d/.test(token) && (/\p{N}/u.test(hay[at - 1] ?? "") || /[\p{L}\p{N}]/u.test(hay[at + token.length] ?? ""))) {
+          from = at + token.length;
+          continue;
+        }
         rects.push({
           x: left + at * perChar,
           y: baseline - height,

@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Interne Suche nach Begriffsüberschneidung sortiert, Paragraphennummern exakt berücksichtigt und passende Textseite geöffnet; acht Tests bestanden, echte Suche „§ 13 UStG“ samt hervorgehobener Seite 4 geprüft.
+
 - [x] Stundenplan-Ladefehler durch abgelaufene PDF-Links behoben; echte PDF, Zoom ohne erneuten Download und Wiederholen nach Ladefehler erfolgreich geprüft.
 
 - [x] Hinweisfeld bei fehlendem heutigen Datum anzeigen; keine Ersatzmarkierung, bei vorhandenem Datum automatisch dorthin scrollen; mit echter PDF für Samstag/Freitag und fünf Tests geprüft.
