@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Interne Suche nach Begriffsüberschneidung sortieren, Paragraphennummern exakt berücksichtigen und passende Textseite öffnen; Tests und echte Suche prüfen.
+
 - [x] Stundenplan-Ladefehler durch abgelaufene PDF-Links behoben; echte PDF, Zoom ohne erneuten Download und Wiederholen nach Ladefehler erfolgreich geprüft.
 
 - [x] Hinweisfeld bei fehlendem heutigen Datum anzeigen; keine Ersatzmarkierung, bei vorhandenem Datum automatisch dorthin scrollen; mit echter PDF für Samstag/Freitag und fünf Tests geprüft.
