@@ -93,7 +93,7 @@ function SettingsPage() {
       <SettingsSection
         id="agent"
         title="Mit Agent verbinden"
-        description="Verbinde ChatGPT, Claude, Anara oder einen anderen MCP-Client mit deiner Library."
+        description="ChatGPT, Claude, Anara oder andere MCP-Clients verbinden."
         icon={<Bot className="size-4" />}
       >
         <AgentConnectPanel />
@@ -102,7 +102,7 @@ function SettingsPage() {
       <SettingsSection
         id="drive"
         title="Google Drive"
-        description="Dateien aus Drive verknüpfen – sie bleiben in Drive liegen und werden hier nur geöffnet und durchsucht."
+        description="Dateien aus Drive verknüpfen – sie bleiben in Drive liegen."
         icon={<HardDrive className="size-4" />}
       >
         <DrivePanel />
@@ -122,7 +122,7 @@ function SettingsPage() {
       <SettingsSection
         id="drive-mirror"
         title="Ordner spiegeln"
-        description="Gleicht einen Drive-Ordner mit einem Library-Ordner ab – nichts wird gelöscht oder überschrieben."
+        description="Einen Drive-Ordner mit einem Library-Ordner abgleichen."
         icon={<GitCompareArrows className="size-4" />}
       >
         <DriveMirrorPanel />
@@ -142,7 +142,7 @@ function SettingsPage() {
       <SettingsSection
         id="trash"
         title="Papierkorb"
-        description="Wiederherstellen oder endgültig löschen – dafür musst du den Namen exakt eintippen."
+        description="Wiederherstellen oder endgültig löschen."
         icon={<Trash2 className="size-4" />}
       >
         <TrashPanel />
@@ -151,7 +151,7 @@ function SettingsPage() {
       <SettingsSection
         id="text-index"
         title="Volltextsuche"
-        description="Ältere Dokumente nachträglich durchsuchbar machen, gescannte PDFs per Texterkennung."
+        description="Ältere Dokumente durchsuchbar machen, Scans per Texterkennung."
         icon={<FileSearch className="size-4" />}
       >
         <TextIndexPanel />
@@ -160,7 +160,7 @@ function SettingsPage() {
       <SettingsSection
         id="transfer"
         title="Daten an anderen Account übertragen"
-        description="Kopiert Ordner, Dateien, Termine, Lehrpläne und Links in einen anderen Account."
+        description="Ordner, Dateien, Termine und Links in einen anderen Account kopieren."
         icon={<ArrowRightLeft className="size-4" />}
       >
         <TransferPanel />
