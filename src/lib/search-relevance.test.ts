@@ -16,3 +16,18 @@ test("more overlapping words rank higher", () => {
 test("best page has the most overlap", () => {
   assert.equal(bestPage(["§ 1 UStG", "§ 13 Steuer", "§ 13 UStG"], "§ 13 UStG")?.page, 3);
 });
+
+test("missing spaces in the query match spaced document text", () => {
+  assert.ok(relevanceScore("Betriebliche Einnahmen", "BetrieblicheEinnahmen") > 0);
+  assert.ok(relevanceScore("§ 13 UStG", "§13UStG") > 0);
+});
+
+test("missing spaces in document text match spaced queries", () => {
+  assert.ok(relevanceScore("BetrieblicheEinnahmen", "Betriebliche Einnahmen") > 0);
+  assert.equal(bestPage(["§1UStG", "§130UStG", "§13UStG"], "§ 13 UStG")?.page, 3);
+});
+
+test("space tolerance never turns 13 into 1 or 130", () => {
+  assert.equal(relevanceScore("§1UStG", "§13UStG"), 0);
+  assert.equal(relevanceScore("§130UStG", "§13UStG"), 0);
+});

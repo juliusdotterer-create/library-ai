@@ -43,6 +43,13 @@
       "when": 1793188156405,
       "tag": "0005_web_search_prefs",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793193517826,
+      "tag": "0006_search_ignore_whitespace",
+      "breakpoints": true
     }
   ]
 }
