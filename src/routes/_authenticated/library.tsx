@@ -109,8 +109,8 @@ function LibraryPage() {
   const current = path[path.length - 1];
   const fileInput = useRef<HTMLInputElement>(null);
   const folderInput = useRef<HTMLInputElement>(null);
-  const newFolderRef = useRef<HTMLInputElement>(null);
-  const [newFolder, setNewFolder] = useState("");
+  const [folderDialog, setFolderDialog] = useState(false);
+  const [folderName, setFolderName] = useState("");
   const [rename, setRename] = useState<{
     table: "folders" | "documents";
     id: string;
@@ -152,7 +152,7 @@ function LibraryPage() {
 
   useEffect(() => {
     if (createFolderParam === "folder") {
-      newFolderRef.current?.focus();
+      setFolderDialog(true);
     }
   }, [createFolderParam]);
 
@@ -316,7 +316,8 @@ function LibraryPage() {
       if (error) throw error;
     },
     onSuccess: () => {
-      setNewFolder("");
+      setFolderName("");
+      setFolderDialog(false);
       invalidate();
       toast.success("Ordner erstellt");
     },
