@@ -80,7 +80,7 @@ export const searchWeb = createServerFn({ method: "POST" })
           title: (h.title || h.url || "Ergebnis").trim().slice(0, 160),
           url: h.url!,
           body,
-          snippet: (h.description?.trim() || body).slice(0, 220),
+          snippet: (body || clean(h.description || "")).slice(0, 220),
         };
       });
 
