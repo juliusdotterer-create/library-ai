@@ -5,7 +5,6 @@ import {
   ListChecks,
   LinkIcon,
   CircleUserRound,
-  Bot,
   Moon,
   Sun,
   Search,
@@ -102,19 +101,6 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
 
 
-          <Link
-            to="/connect"
-            title="Mit Agent verbinden"
-            aria-label="Mit Agent verbinden"
-            className={cn(
-              "rounded-2xl p-2 transition-colors",
-              path.startsWith("/connect")
-                ? "text-primary"
-                : "text-muted-foreground/40 hover:text-foreground",
-            )}
-          >
-            <Bot className="size-4" />
-          </Link>
           <Link
             to="/einstellungen"
             title="Profil & Einstellungen"
