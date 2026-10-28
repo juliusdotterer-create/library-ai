@@ -16,6 +16,7 @@ import { ThemeProvider } from "@/lib/theme";
 import { Toaster } from "@/components/ui/sonner";
 import { CommandPalette } from "@/components/CommandPalette";
 import { registerServiceWorker } from "@/lib/register-sw";
+import { isChunkLoadError, reloadOnceForChunkError } from "@/lib/chunk-reload";
 
 function NotFoundComponent() {
   return (
@@ -43,6 +44,8 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
   console.error(error);
   const router = useRouter();
   useEffect(() => {
+    // Veraltete App-Dateien nach Veröffentlichung: einmal neu laden statt Fehlerseite.
+    if (isChunkLoadError(error) && reloadOnceForChunkError()) return;
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
 
