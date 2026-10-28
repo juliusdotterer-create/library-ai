@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { ChevronDown, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -18,7 +17,7 @@ import { cn } from "@/lib/utils";
  */
 export function ThemePanel() {
   const { mode, hue, chroma, setTheme } = useTheme();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = usePersistentOpen("theme", false);
 
   const preset = ACCENT_PRESETS.find((p) => Math.round(hue) === p.hue);
   const accent = `oklch(0.68 ${chroma} ${hue})`;
