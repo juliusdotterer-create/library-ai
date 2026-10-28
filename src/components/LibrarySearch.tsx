@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Eye, FileSearch, FileText, Folder, Loader2, Search, Sparkles, X } from "lucide-react";
+import { Eye, FileSearch, FileText, Folder, Globe, Loader2, Search, Sparkles, X } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { Input } from "@/components/ui/input";
 import { DocumentPreview, type PreviewDoc } from "@/components/DocumentPreview";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { searchLibrary } from "@/lib/library.functions";
 import { askLibrary } from "@/lib/ask-library.functions";
+import { searchWeb, type WebSource } from "@/lib/web-search.functions";
 import { isQuestion, parseQuery, type SearchFilters } from "@/lib/smart-search";
 import { FreeNotesOverlay } from "@/components/FreeNotesOverlay";
 
