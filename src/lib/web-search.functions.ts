@@ -5,6 +5,7 @@ export type WebSource = {
   n: number;
   title: string;
   url: string;
+  body?: string;
   snippet: string;
 };
 
@@ -88,7 +89,7 @@ export const searchWeb = createServerFn({ method: "POST" })
     }
 
     const excerpts = usable
-      .map((s) => `[${s.n}] ${s.title} (${s.url}):\n${s.snippet}`)
+      .map((s) => `[${s.n}] ${s.title} (${s.url}):\n${s.body || s.snippet}`)
       .join("\n\n");
 
     try {
