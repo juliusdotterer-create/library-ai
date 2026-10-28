@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
  * Der offene/geschlossene Zustand bleibt pro Bereich auf dem Gerät gespeichert,
  * damit die Seite beim nächsten Besuch so bleibt, wie man sie verlassen hat.
  */
-function usePersistentOpen(id: string, fallback: boolean) {
+export function usePersistentOpen(id: string, fallback: boolean) {
   const [open, setOpen] = useState(fallback);
   const key = `settings-open:${id}`;
 

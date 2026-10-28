@@ -7,7 +7,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { SettingsField } from "@/components/SettingsSection";
+import { SettingsField, usePersistentOpen } from "@/components/SettingsSection";
 import { useTheme, ACCENT_PRESETS } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
