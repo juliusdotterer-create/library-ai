@@ -5,7 +5,6 @@ import {
   ListChecks,
   LinkIcon,
   CircleUserRound,
-  Bot,
   Moon,
   Sun,
   Search,
