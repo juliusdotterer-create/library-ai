@@ -229,13 +229,18 @@ export const searchLibrary = createServerFn({ method: "POST" })
     if (data.term.length >= 4 && docs.length + (folders?.length ?? 0) + contents.length < 5) {
       const { data: fuzzy } = await context.supabase.rpc("search_library_fuzzy", { term: data.term, max_results: 15 });
       const seen = new Set([...docs.map((d) => d.id), ...(folders ?? []).map((f) => f.id), ...contents.map((c) => c.id)]);
-      const rows = (fuzzy ?? []).filter((r) => !seen.has(r.id));
-      const docIds = rows.filter((r) => r.kind === "doc").map((r) => r.id);
+      const rows = (fuzzy ?? []).filter((r) => {
+        if (seen.has(r.id)) return false;
+        seen.add(r.id);
+        return true;
+      });
+      const docIds = rows.filter((r) => r.kind !== "folder").map((r) => r.id);
       const docInfo = new Map<string, { id: string; name: string; storage_path: string; mime_type: string | null; folder_id: string | null; source: string | null; kind: string | null; notebook_id: string | null; created_at: string }>();
       if (docIds.length) {
         const { data: info } = await context.supabase
           .from("documents")
           .select("id,name,storage_path,mime_type,folder_id,source,kind,notebook_id,created_at")
+          .is("deleted_at", null)
           .in("id", docIds);
         for (const d of info ?? []) docInfo.set(d.id, d);
       }
