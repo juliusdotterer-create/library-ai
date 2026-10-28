@@ -10,7 +10,7 @@ import {
   Search,
   WifiOff,
 } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";

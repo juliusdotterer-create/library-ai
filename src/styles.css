@@ -216,6 +216,15 @@
   border: 1px solid var(--glass-border);
 }
 
+/* Obere Leiste im angehefteten Zustand: blickdichter, Fassung nur unten. */
+@utility glass-docked {
+  background: color-mix(in oklab, var(--glass) 82%, var(--background));
+  backdrop-filter: blur(calc(var(--glass-blur) * 1.15)) saturate(180%);
+  border: 1px solid var(--glass-border);
+  border-top-width: 0;
+  box-shadow: 0 16px 34px -20px oklch(0.25 0.02 60 / 42%);
+}
+
 /* Native Datums-/Uhrzeit-Symbole in dunklem Modus aufhellen */
 .dark input[type="date"]::-webkit-calendar-picker-indicator,
 .dark input[type="time"]::-webkit-calendar-picker-indicator {
