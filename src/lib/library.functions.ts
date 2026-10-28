@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireWhitelisted } from "@/lib/require-whitelist";
 import { inRange, matchesMime, type SearchFilters } from "@/lib/smart-search";
+import { bestPage, relevanceScore, searchTokens } from "@/lib/search-relevance";
 
 type FolderNode = { id: string; name: string; parent_id: string | null };
 
@@ -86,7 +87,8 @@ export const searchLibrary = createServerFn({ method: "POST" })
       .eq("user_id", context.userId)
       .is("deleted_at", null)
       .not("name", "ilike", "desktop.ini");
-    if (data.term) docsQ = docsQ.ilike("name", pattern);
+    const nameTokens = searchTokens(data.term);
+    if (nameTokens.length) docsQ = docsQ.or(nameTokens.map((t) => `name.ilike.%${t.replace(/[%_,()]/g, "")}%`).join(","));
     if (F.from) docsQ = docsQ.gte("created_at", F.from);
     if (F.to) docsQ = docsQ.lt("created_at", F.to);
     const { data: docsRaw, error: docsErr } = await docsQ.order("name").limit(anyFilter ? 500 : 100);
@@ -136,12 +138,15 @@ export const searchLibrary = createServerFn({ method: "POST" })
       (!folderScope || (!!d.folder_id && folderScope.has(d.folder_id))) &&
       matchesMime(d.mime_type, d.name, F.mime) &&
       inRange(d.created_at, F);
-    const docs = (docsRaw ?? []).filter(passes).slice(0, 100);
+    const docs = (docsRaw ?? [])
+      .filter(passes)
+      .filter((d) => !data.term || relevanceScore(d.name, data.term) > 0)
+      .slice(0, 100);
 
     /* ---------- Volltextsuche im Dokumentinhalt (Wortanfänge + Teilwörter) ---------- */
     const tokens = data.term ? norm(data.term).split(" ").filter(Boolean) : [];
     const tsquery = tokens.length
-      ? tokens.map((t, i) => (i === tokens.length - 1 ? `${t}:*` : t)).join(" & ")
+      ? tokens.map((t) => (/\d/.test(t) ? t : `${t}:*`)).join(" | ")
       : null;
 
     let hitRows: { document_id: string; pages: unknown; source?: string | null }[] = [];
@@ -153,12 +158,12 @@ export const searchLibrary = createServerFn({ method: "POST" })
         .eq("user_id", context.userId)
         .eq("status", "done")
         .textSearch("tsv", tsquery, { config: "german" })
-        .limit(50);
+        .limit(150);
       hitRows = (hits ?? []) as typeof hitRows;
     }
 
-    // Fallback: Teilwörter mitten im Wort (z. B. Stoppwörter, sehr kurze Begriffe)
-    if (!hitRows.length && data.term) {
+    // Exakte Phrase / Paragraphen zusätzlich laden; Teilwörter bleiben als Fallback.
+    if (data.term) {
       const { data: likeHits } = await context.supabase
         .from("document_text")
         .select("document_id,pages,source")
@@ -166,8 +171,19 @@ export const searchLibrary = createServerFn({ method: "POST" })
         .eq("status", "done")
         .ilike("content", pattern)
         .limit(50);
-      hitRows = (likeHits ?? []) as typeof hitRows;
+      const known = new Set(hitRows.map((h) => h.document_id));
+      hitRows.push(...((likeHits ?? []) as typeof hitRows).filter((h) => !known.has(h.document_id)));
     }
+    const scoreOf = (h: (typeof hitRows)[number]) => {
+      const pages = Array.isArray(h.pages) ? (h.pages as unknown[]).map((p) => String(p ?? "")) : [];
+      return bestPage(pages, data.term)?.score ?? 0;
+    };
+    hitRows = hitRows
+      .map((h) => ({ h, score: scoreOf(h) }))
+      .filter((x) => x.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 50)
+      .map((x) => x.h);
     const hitDocIds = hitRows.map((h) => h.document_id);
     const nameHitIds = new Set((docs ?? []).map((d) => d.id));
     const contentIds = hitDocIds.filter((id) => !nameHitIds.has(id));
@@ -203,7 +219,8 @@ export const searchLibrary = createServerFn({ method: "POST" })
           const pages: string[] = Array.isArray(raw)
             ? (raw as unknown[]).map((p) => String(p ?? ""))
             : [];
-          const found = locate(pages, data.term) ?? {
+          const best = bestPage(pages, data.term);
+          const found = locate(pages, data.term) ?? (best ? snippetAt(pages, best.page, data.term) : null) ?? {
             page: pages.length ? 1 : null,
             snippet: pages[0] ? `${pages[0].slice(0, 160).trim()} …` : "",
           };
@@ -218,9 +235,12 @@ export const searchLibrary = createServerFn({ method: "POST" })
             page: found.page,
             snippet: found.snippet,
             ocr: row?.source === "ocr",
+            score: best?.score ?? 0,
           };
         })
-        .filter((c): c is NonNullable<typeof c> => c !== null);
+        .filter((c): c is NonNullable<typeof c> => c !== null)
+        .sort((a, b) => b.score - a.score)
+        .map(({ score: _score, ...c }) => c);
     }
 
     /* ---------- Tippfehler verzeihen: ähnliche Namen ---------- */
@@ -275,7 +295,7 @@ export const searchLibrary = createServerFn({ method: "POST" })
           notebook_id: d.notebook_id,
           path: folderPath(d.folder_id, allFolders),
         }))
-        .sort((a, b) => rank(a.name, data.term) - rank(b.name, data.term) || a.name.localeCompare(b.name)),
+        .sort((a, b) => relevanceScore(b.name, data.term) - relevanceScore(a.name, data.term) || rank(a.name, data.term) - rank(b.name, data.term) || a.name.localeCompare(b.name)),
       folders: (folders ?? [])
         .map((f) => ({
           id: f.id,
@@ -306,6 +326,14 @@ function rank(name: string, term: string): number {
   if (n.startsWith(t)) return 1;
   if (n.includes(t)) return 2;
   return 3;
+}
+
+function snippetAt(pages: string[], page: number, term: string) {
+  const text = pages[page - 1] ?? "";
+  const token = searchTokens(term).find((t) => /\d/.test(t)) ?? searchTokens(term)[0] ?? "";
+  const at = Math.max(0, text.toLowerCase().replace(/§\s*/g, "§").indexOf(token));
+  const start = Math.max(0, at - 70);
+  return { page, snippet: `${start ? "… " : ""}${text.slice(start, at + 160).trim()} …` };
 }
 
 /**
