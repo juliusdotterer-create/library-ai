@@ -11,6 +11,8 @@
 
 ## Project architecture
 
+- Load complete library trees through the browser-safe `loadAllPages` helper with bounded ranges and stable ID tie-break ordering, because backend row caps can omit root folders and their documents from pickers.
+
 - Keep the mobile primary navigation in `AppShell` as a route-derived four-column control with one shared Motion lens, so visual state cannot diverge from navigation state.
 - Keep `PdfCanvasViewer` zoom controlled by its parent so document-specific views can persist their own zoom preference.
 - Use the opt-in left-aligned PDF mode for timetables to lock horizontal positioning without changing other document viewers; touch pinch updates the parent-controlled zoom.
