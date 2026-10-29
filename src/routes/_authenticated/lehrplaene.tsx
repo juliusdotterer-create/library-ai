@@ -31,6 +31,7 @@ import { TaskList } from "@/components/lehrplan/TaskList";
 import { EmptyState } from "@/components/EmptyState";
 import { PlanSkeleton } from "@/components/Skeletons";
 import { cn } from "@/lib/utils";
+import { loadAllPages } from "@/lib/load-all-pages";
 
 type PickedDocument = { id: string; name: string; path: string };
 
@@ -49,6 +50,8 @@ export const Route = createFileRoute("/_authenticated/lehrplaene")({
       },
       { property: "og:title", content: "Lehrpläne – Eigene Lernzeitpläne" },
       { property: "og:description", content: "Strukturierte Lernpläne mit Aufgaben und Terminen." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: LehrplanPage,
@@ -138,9 +141,10 @@ function LehrplanPage() {
   const addTask = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Nicht angemeldet");
+      if (!activeId) throw new Error("Kein Lehrplan ausgewählt");
       const { error } = await supabase.from("study_tasks").insert({
         user_id: user.id,
-        plan_id: activeId!,
+        plan_id: activeId,
         title: task.title,
         due_date: task.due || null,
         document_id: doc?.id ?? null,
@@ -158,20 +162,22 @@ function LehrplanPage() {
   const addFolderTasks = useMutation({
     mutationFn: async (folder: PickerFolder) => {
       if (!uid) throw new Error("Nicht angemeldet");
-      const { data: folderDocs, error: docErr } = await supabase
+      if (!activeId) throw new Error("Kein Lehrplan ausgewählt");
+      const folderDocs = await loadAllPages((from, to) => supabase
         .from("documents")
         .select("id,name")
         .eq("user_id", uid)
         .eq("folder_id", folder.id)
         .is("deleted_at", null)
         .not("name", "ilike", "desktop.ini")
-        .order("name");
-      if (docErr) throw docErr;
+        .order("name")
+        .order("id")
+        .range(from, to));
       if (!folderDocs.length) throw new Error("Dieser Ordner enthält keine Dokumente.");
       const { error } = await supabase.from("study_tasks").insert(
         folderDocs.map((d) => ({
           user_id: uid,
-          plan_id: activeId!,
+          plan_id: activeId,
           title: `${d.name} lernen`,
           due_date: task.due || null,
           document_id: d.id,
