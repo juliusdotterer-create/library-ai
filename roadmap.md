@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Fehlende Dokumente in der Ordnerauswahl beim Hinzufügen zu Lehrplänen beheben und mit echten Dokumenten prüfen.
+
 - [x] Obere Leiste hängt sich beim Runterscrollen vollflächig und milchig (Frosted-Glass, nicht voll weiß) an den oberen Rand und schwebt beim Zurückkehren wieder als Karte; im Browser geprüft (Desktop/Handy, hell/dunkel, keine Layout-Verschiebung, Auswahlleiste bleibt darunter sichtbar).
 
 - [x] Alle Einstellungsbereiche (Profil, Quellen, Agent, Drive, Spiegeln, Whitelist, Papierkorb, Volltext, Übertragen) sowie die Farb-/Akzentfelder einzeln einklappbar gemacht; Zustand bleibt pro Bereich auf dem Gerät, im Browser mit Neuladen geprüft.
