@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { loadAllPages } from "@/lib/load-all-pages";
 
 export const queryKeys = {
   folders: (parentId: string | null) => ["folders", parentId],
@@ -111,14 +112,15 @@ export function useAllFolders() {
     queryKey: queryKeys.allFolders,
     enabled: !!user,
     queryFn: async () => {
-      const { data, error } = await supabase
+      if (!user) throw new Error("Nicht angemeldet");
+      return loadAllPages((from, to) => supabase
         .from("folders")
         .select("id,name,parent_id")
-        .eq("user_id", user!.id)
+        .eq("user_id", user.id)
         .is("deleted_at", null)
-        .order("name");
-      if (error) throw error;
-      return data;
+        .order("name")
+        .order("id")
+        .range(from, to));
     },
   });
 }
@@ -130,16 +132,17 @@ export function useAllDocuments() {
     queryKey: queryKeys.allDocs,
     enabled: !!user,
     queryFn: async () => {
-      const { data, error } = await supabase
+      if (!user) throw new Error("Nicht angemeldet");
+      return loadAllPages((from, to) => supabase
         .from("documents")
         .select("id,name,storage_path,folder_id,mime_type,source")
-        .eq("user_id", user!.id)
+        .eq("user_id", user.id)
         .is("deleted_at", null)
         .not("name", "ilike", "desktop.ini")
         .neq("kind", "timetable")
-        .order("name");
-      if (error) throw error;
-      return data;
+        .order("name")
+        .order("id")
+        .range(from, to));
     },
   });
 }
