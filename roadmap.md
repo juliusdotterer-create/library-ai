@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Fehlende Dokumente in der Ordnerauswahl beim Hinzufügen zu Lehrplänen beheben und mit echten Dokumenten prüfen.
+- [x] Vollständige Ordner-/Dokumentauswahl für Lehrpläne durch paginiertes Laden behoben; vier Tests bestanden, echtes Dokument aus Unterordner ausgewählt und gespeicherte Verknüpfung nach Neuladen geprüft; Testaufgaben entfernt.
 
 - [x] Obere Leiste hängt sich beim Runterscrollen vollflächig und milchig (Frosted-Glass, nicht voll weiß) an den oberen Rand und schwebt beim Zurückkehren wieder als Karte; im Browser geprüft (Desktop/Handy, hell/dunkel, keine Layout-Verschiebung, Auswahlleiste bleibt darunter sichtbar).
 
