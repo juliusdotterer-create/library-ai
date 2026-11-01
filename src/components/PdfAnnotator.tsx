@@ -6,6 +6,7 @@ import { findHighlights, highlightTokens } from "@/lib/pdf-highlight";
 import { StickyNote } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { unrotatePoint, type Rotation } from "@/lib/doc-rotation";
 import {
   AnnotationToolbar,
   MARKER_COLORS,
@@ -660,6 +661,7 @@ export function PdfAnnotator({
                   )}
                 </div>
               ))}
+          </div>
           </div>
         ))}
       </div>
