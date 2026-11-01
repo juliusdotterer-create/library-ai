@@ -3,7 +3,7 @@ import { Download, Maximize, Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 /** Bildvorschau mit Zoom (Buttons/Mausrad) und Verschieben. */
-export function ImageViewer({ url, name }: { url: string; name: string }) {
+export function ImageViewer({ url, name, rotation = 0 }: { url: string; name: string; rotation?: number }) {
   const [zoom, setZoom] = useState(1);
   const [failed, setFailed] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -61,7 +61,7 @@ export function ImageViewer({ url, name }: { url: string; name: string }) {
             alt={name}
             onError={() => setFailed(true)}
             draggable={false}
-            style={{ width: `${zoom * 100}%`, maxWidth: zoom <= 1 ? "100%" : "none" }}
+            style={{ width: `${zoom * 100}%`, maxWidth: zoom <= 1 ? "100%" : "none", transform: rotation ? `rotate(${rotation}deg)` : undefined, transition: "transform 200ms" }}
             className="max-h-full select-none object-contain"
           />
         </div>
