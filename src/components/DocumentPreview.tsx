@@ -8,6 +8,7 @@ import {
   File,
   PanelRightClose,
   PanelRightOpen,
+  RotateCw,
   X,
 } from "lucide-react";
 
@@ -28,6 +29,7 @@ import { MediaViewer } from "@/components/MediaViewer";
 import { OdtViewer } from "@/components/OdtViewer";
 
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useDocRotation } from "@/lib/doc-rotation";
 
 export type PreviewDoc = {
   id?: string;
@@ -73,7 +75,8 @@ export function DocumentPreview({
   useEffect(() => {
     setIsTouch(window.matchMedia("(pointer: coarse)").matches);
   }, []);
-  const useCanvas = isMobile || isTouch;
+  const { rotation, rotate } = useDocRotation(doc ? doc.id ?? doc.storage_path : null);
+  const useCanvas = isMobile || isTouch || rotation !== 0;
 
 
 
@@ -195,6 +198,19 @@ export function DocumentPreview({
         )}
         <HeaderTimers />
 
+        {(isPdf || isImage) && url && (
+          <Button
+            variant="secondary"
+            size="icon"
+            className="rounded-2xl"
+            onClick={rotate}
+            title="Drehen (90°)"
+            aria-label="Dokument drehen"
+          >
+            <RotateCw className="size-4" />
+          </Button>
+        )}
+
         {doc.id && (
           <Button
             variant={notepad ? "default" : "secondary"}
@@ -243,7 +259,7 @@ export function DocumentPreview({
           {!url ? (
             <p className="text-sm text-muted-foreground">Wird geladen…</p>
           ) : isImage ? (
-            <ImageViewer url={url} name={doc.name} />
+            <ImageViewer url={url} name={doc.name} rotation={rotation} />
           ) : canAnnotate ? (
             <PdfAnnotator
               url={url}
@@ -252,12 +268,14 @@ export function DocumentPreview({
               highlight={showHits ? (doc.highlight ?? null) : null}
               activeMatch={active}
               onMatchCount={onMatchCount}
+              rotation={rotation}
             />
           ) : isPdf && useCanvas ? (
             <PdfCanvasViewer
               url={url}
               initialPage={doc.page ?? null}
               highlight={showHits ? (doc.highlight ?? null) : null}
+              rotation={rotation}
             />
 
           ) : isSheet ? (

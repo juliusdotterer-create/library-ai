@@ -6,6 +6,7 @@ import { findHighlights, highlightTokens } from "@/lib/pdf-highlight";
 import { StickyNote } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { unrotatePoint, type Rotation } from "@/lib/doc-rotation";
 import {
   AnnotationToolbar,
   MARKER_COLORS,
@@ -34,6 +35,7 @@ export function PdfAnnotator({
   highlight,
   activeMatch,
   onMatchCount,
+  rotation = 0,
 }: {
   url: string;
   documentId: string;
@@ -41,6 +43,8 @@ export function PdfAnnotator({
   highlight?: string | null;
   activeMatch?: number;
   onMatchCount?: (n: number) => void;
+  /** Anzeige-Drehung; Anmerkungen bleiben in ungedrehten Seitenkoordinaten. */
+  rotation?: Rotation;
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
 
@@ -409,7 +413,7 @@ export function PdfAnnotator({
   /* ---------------- pointer handling ---------------- */
   const pointFor = (e: React.PointerEvent): [number, number] => {
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    return [(e.clientX - rect.left) / rect.width, (e.clientY - rect.top) / rect.height];
+    return unrotatePoint((e.clientX - rect.left) / rect.width, (e.clientY - rect.top) / rect.height, rotation);
   };
 
   const eraseAt = (p: [number, number], i: number) => {
@@ -552,8 +556,20 @@ export function PdfAnnotator({
           <div
             key={i}
             data-page={i + 1}
-            className="relative mx-auto mb-2 overflow-hidden bg-white"
-            style={{ width: dim.w, height: dim.h }}
+            className="relative mx-auto mb-2"
+            style={
+              rotation % 180
+                ? { width: dim.w, height: (dim.w * dim.w) / dim.h }
+                : { width: dim.w, height: dim.h }
+            }
+          >
+          <div
+            className="absolute left-1/2 top-1/2 overflow-hidden bg-white"
+            style={{
+              width: dim.w,
+              height: dim.h,
+              transform: `translate(-50%, -50%) rotate(${rotation}deg)${rotation % 180 ? ` scale(${dim.w / dim.h})` : ""}`,
+            }}
           >
             <canvas
               ref={(el) => {
@@ -645,6 +661,7 @@ export function PdfAnnotator({
                   )}
                 </div>
               ))}
+          </div>
           </div>
         ))}
       </div>
