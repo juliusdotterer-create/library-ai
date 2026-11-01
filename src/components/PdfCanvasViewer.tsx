@@ -293,7 +293,7 @@ export function PdfCanvasViewer({
       void loadingTask?.destroy().catch(() => undefined);
       worker?.terminate();
     };
-  }, [url, initialPage, highlight, viewportWidth, zoom, centered, alignLeft, lockHorizontal, todayDate, todayCacheKey, password]);
+  }, [url, initialPage, highlight, viewportWidth, zoom, centered, alignLeft, lockHorizontal, todayDate, todayCacheKey, password, rotation]);
 
   return (
     <div
