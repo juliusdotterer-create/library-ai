@@ -1,19 +1,19 @@
-import { describe, expect, it } from "bun:test";
+import { describe, test } from "node:test";
+import assert from "node:assert/strict";
 import { nextRotation, parseRotation, unrotatePoint } from "./doc-rotation";
 
 describe("doc-rotation", () => {
-  it("dreht in 90°-Schritten und kehrt nach 360° zurück", () => {
-    expect(nextRotation(0)).toBe(90);
-    expect(nextRotation(270)).toBe(0);
+  test("dreht in 90°-Schritten und kehrt nach 360° zurück", () => {
+    assert.equal(nextRotation(0), 90);
+    assert.equal(nextRotation(270), 0);
   });
-  it("ignoriert ungültige gespeicherte Werte", () => {
-    expect(parseRotation("45")).toBe(0);
-    expect(parseRotation("180")).toBe(180);
+  test("ignoriert ungültige gespeicherte Werte", () => {
+    assert.equal(parseRotation("45"), 0);
+    assert.equal(parseRotation("180"), 180);
   });
-  it("rechnet Zeigerpunkte auf die ungedrehte Seite zurück", () => {
-    // Bei 90° liegt die linke obere Seitenecke oben rechts
-    expect(unrotatePoint(1, 0, 90)).toEqual([0, 0]);
-    expect(unrotatePoint(0, 1, 270)).toEqual([0, 0]);
-    expect(unrotatePoint(1, 1, 180)).toEqual([0, 0]);
+  test("rechnet Zeigerpunkte auf die ungedrehte Seite zurück", () => {
+    assert.deepEqual(unrotatePoint(1, 0, 90), [0, 0]);
+    assert.deepEqual(unrotatePoint(0, 1, 270), [0, 0]);
+    assert.deepEqual(unrotatePoint(1, 1, 180), [0, 0]);
   });
 });
