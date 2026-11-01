@@ -26,6 +26,7 @@ export function PdfCanvasViewer({
   todayDate,
   onTodayDetection,
   todayCacheKey,
+  rotation = 0,
 }: {
   url: string;
   initialPage?: number | null;
@@ -38,6 +39,8 @@ export function PdfCanvasViewer({
   onTodayDetection?: (result: "found" | "absent" | "unreadable" | "error", dateKey?: string) => void;
   /** Stable document key; caches the date search per day so it runs once. */
   todayCacheKey?: string;
+  /** Seitendrehung in Grad (0/90/180/270). */
+  rotation?: number;
 }) {
   const lockHorizontal = centered || alignLeft;
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -161,11 +164,11 @@ export function PdfCanvasViewer({
         for (let i = 1; i <= doc.numPages; i++) {
           const page = await doc.getPage(i);
           if (cancelled) return;
-          const base = page.getViewport({ scale: 1 });
+          const base = page.getViewport({ scale: 1, rotation });
           const scale = width / base.width;
           const perPage = Math.max(1_000_000, (budget * 4) / doc.numPages);
           const ratio = canvasRatio(width, base.height * scale, dpr, Math.min(budget, perPage));
-          const viewport = page.getViewport({ scale: scale * ratio });
+          const viewport = page.getViewport({ scale: scale * ratio, rotation });
 
           const canvas = document.createElement("canvas");
           canvas.width = Math.floor(viewport.width);
