@@ -38,6 +38,8 @@ export const Route = createFileRoute("/auth")({
         property: "og:description",
         content: "Dein privater Ort für PDFs, Klausuren, Termine und Lernpläne.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: AuthPage,

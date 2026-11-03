@@ -29,3 +29,4 @@
 - Settings screens use the collapsible `SettingsSection`/`SettingsField` pair in `src/components/SettingsSection.tsx` (closed by default, open state kept in localStorage per id) so panels stay content-only and never render their own card or heading.
 - Keep the `AppShell` top bar's floating/docked state derived from window scroll with a constant header height, so docking never shifts page content; the docked surface keeps the frosted `--glass-docked` look (translucent fill plus heavy blur), never a solid fill.
 - Document rotation is display-only, stored per document on the device (`src/lib/doc-rotation.ts`); PdfAnnotator rotates pages via CSS and maps pointer input back with `unrotatePoint`, so saved annotations stay in unrotated page coordinates.
+- PDF page navigation uses existing page wrappers and instant scroll jumps independently of canvas rendering; keep the floating glass control outside the scrolling area so high-page jumps retain lazy canvas allocation.

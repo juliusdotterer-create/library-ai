@@ -38,6 +38,8 @@ export const Route = createFileRoute("/_authenticated/einstellungen")({
       },
       { property: "og:title", content: "Einstellungen – Farben & Darkmode" },
       { property: "og:description", content: "Off-White, Orange und frei wählbare Akzente." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: SettingsPage,

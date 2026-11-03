@@ -6,6 +6,8 @@ import { findHighlights, highlightTokens } from "@/lib/pdf-highlight";
 import { StickyNote } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { PageNavigation } from "@/components/pdf/PageNavigation";
+import { usePdfPageNavigation } from "@/hooks/usePdfPageNavigation";
 import { unrotatePoint, type Rotation } from "@/lib/doc-rotation";
 import {
   AnnotationToolbar,
@@ -513,9 +515,10 @@ export function PdfAnnotator({
   };
 
   const notes = useMemo(() => annos.filter((a): a is Note => a.kind === "note"), [annos]);
+  const navigation = usePdfPageNavigation(wrapRef, status === "ready" ? view.length : 0, `${zoom}:${rotation}`);
 
   return (
-    <div className="flex size-full min-h-0 flex-col">
+    <div className="relative flex size-full min-h-0 flex-col">
       <AnnotationToolbar
         tool={tool}
         setTool={setTool}
@@ -543,7 +546,7 @@ export function PdfAnnotator({
       {/* pages */}
       <div
         ref={wrapRef}
-        className="min-h-0 flex-1 overflow-y-scroll overflow-x-auto overscroll-contain"
+        className="min-h-0 flex-1 overflow-y-scroll overflow-x-auto overscroll-contain pb-24"
         style={{ scrollbarGutter: "stable", touchAction: tool === "none" ? "auto" : "pan-y" }}
       >
         {status === "loading" && (
@@ -665,6 +668,13 @@ export function PdfAnnotator({
           </div>
         ))}
       </div>
+      {status === "ready" && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-3 z-20 flex justify-center px-3">
+          <div className="pointer-events-auto flex w-full max-w-xl justify-center">
+            <PageNavigation page={navigation.page} total={view.length} onJump={navigation.jump} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
