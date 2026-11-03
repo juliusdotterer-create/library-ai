@@ -5,6 +5,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { findHighlights, highlightTokens } from "@/lib/pdf-highlight";
 import { detectTimetableDay, readTodayCache, writeTodayCache, type DayRegion, type TimetableText } from "@/lib/timetable-today";
 import CompatiblePdfWorker from "@/lib/pdf-compat.worker?worker";
+import { PageNavigation } from "@/components/pdf/PageNavigation";
+import { usePdfPageNavigation } from "@/hooks/usePdfPageNavigation";
 
 export const PDF_MIN_ZOOM = 0.5;
 export const PDF_MAX_ZOOM = 4;
@@ -54,7 +56,9 @@ export function PdfCanvasViewer({
   const [failure, setFailure] = useState<PdfFailure>("error");
   const [password, setPassword] = useState<string | undefined>(undefined);
   const [pages, setPages] = useState(0);
+  const [renderedPages, setRenderedPages] = useState(0);
   const [viewportWidth, setViewportWidth] = useState(0);
+  const navigation = usePdfPageNavigation(viewportRef, renderedPages, `${zoom}:${rotation}`);
 
   zoomRef.current = zoom;
   onZoomChangeRef.current = onZoomChange;
@@ -136,6 +140,7 @@ export function PdfCanvasViewer({
     let worker: Worker | undefined;
     let loadingTask: { destroy: () => Promise<void> } | undefined;
     container.replaceChildren();
+    setRenderedPages(0);
     setStatus("loading");
 
     void (async () => {
@@ -171,6 +176,7 @@ export function PdfCanvasViewer({
           const viewport = page.getViewport({ scale: scale * ratio, rotation });
 
           const canvas = document.createElement("canvas");
+          canvas.dataset.page = String(i);
           canvas.width = Math.floor(viewport.width);
           canvas.height = Math.floor(viewport.height);
           canvas.style.width = `${width}px`;
@@ -190,6 +196,7 @@ export function PdfCanvasViewer({
           if (!ctx) continue;
           await page.render({ canvas, canvasContext: ctx, viewport }).promise;
           if (cancelled) return;
+          setRenderedPages(i);
 
           if (tokens.length) {
             const rects = await findHighlights(page, viewport as never, tokens);
@@ -296,9 +303,10 @@ export function PdfCanvasViewer({
   }, [url, initialPage, highlight, viewportWidth, zoom, centered, alignLeft, lockHorizontal, todayDate, todayCacheKey, password, rotation]);
 
   return (
+    <div className="relative size-full min-h-0">
     <div
       ref={viewportRef}
-      className={`relative size-full overscroll-contain p-2 ${lockHorizontal ? "overflow-x-hidden overflow-y-auto" : "overflow-auto"}`}
+      className={`relative size-full overscroll-contain p-2 ${!todayDate ? "pb-24" : ""} ${lockHorizontal ? "overflow-x-hidden overflow-y-auto" : "overflow-auto"}`}
       style={{ touchAction: onZoomChange ? "pan-y" : "pan-x pan-y" }}
       onScroll={lockHorizontal ? (event) => { event.currentTarget.scrollLeft = 0; } : undefined}
     >
@@ -314,6 +322,14 @@ export function PdfCanvasViewer({
       {status === "ready" && pages > 0 && (
         <p className="min-w-full pb-2 text-center text-xs text-muted-foreground">{pages} Seiten</p>
       )}
+    </div>
+    {!todayDate && status === "ready" && renderedPages === pages && (
+      <div className="pointer-events-none absolute inset-x-0 bottom-3 z-20 flex justify-center px-3">
+        <div className="pointer-events-auto flex w-full max-w-xl justify-center">
+          <PageNavigation page={navigation.page} total={pages} onJump={navigation.jump} />
+        </div>
+      </div>
+    )}
     </div>
   );
 }
