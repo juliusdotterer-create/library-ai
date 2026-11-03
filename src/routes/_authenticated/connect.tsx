@@ -10,6 +10,7 @@ export const Route = createFileRoute("/_authenticated/connect")({
       { property: "og:title", content: "Mit Agent verbinden — Library" },
       { property: "og:description", content: "Verbinde ChatGPT, Claude oder andere MCP-Clients mit deiner Library." },
       { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
 });

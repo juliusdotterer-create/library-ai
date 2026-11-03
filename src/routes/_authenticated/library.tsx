@@ -90,6 +90,8 @@ export const Route = createFileRoute("/_authenticated/library")({
       },
       { property: "og:title", content: "Library – Ordner & Dokumente" },
       { property: "og:description", content: "Ordner, Unterordner und Dateien an einem Ort." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: LibraryPage,

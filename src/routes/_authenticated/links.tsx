@@ -35,6 +35,8 @@ export const Route = createFileRoute("/_authenticated/links")({
       },
       { property: "og:title", content: "Linktree – Alle Verweise an einem Ort" },
       { property: "og:description", content: "Deine Verweise, farblich passend zum Design." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: LinksPage,

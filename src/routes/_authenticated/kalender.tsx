@@ -66,6 +66,8 @@ export const Route = createFileRoute("/_authenticated/kalender")({
       },
       { property: "og:title", content: "Kalender – Termine & Stundenpläne" },
       { property: "og:description", content: "Tag, Woche, Monat, Jahr und Stundenplan deines Studienarchivs." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: KalenderPage,
