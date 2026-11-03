@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Schnelle PDF-Seitenauswahl im Liquid-Glass-Stil mit direktem Seitensprung und Schieberegler ergänzen und prüfen.
+- [x] Schnelle PDF-Seitenauswahl im Liquid-Glass-Stil mit Seitenzahl, Schieberegler und Anfang-/Ende-Sprüngen ergänzt; echte 93-seitige PDF mit Seite 80, letzter Seite, ungültiger Eingabe und Regler geprüft, schmale Darstellung kontrolliert; fünf bestehende PDF-Tests bestanden.
 
 - [x] Vollständige Ordner-/Dokumentauswahl für Lehrpläne durch paginiertes Laden behoben; vier Tests bestanden, echtes Dokument aus Unterordner ausgewählt und gespeicherte Verknüpfung nach Neuladen geprüft; Testaufgaben entfernt.
 
