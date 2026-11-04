@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type RefObject } from "react";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 
 /** Page wrappers exist independently of the lazily allocated PDF canvases. */
 export function usePdfPageNavigation(rootRef: RefObject<HTMLDivElement | null>, total: number, layoutKey: string) {
@@ -35,5 +35,21 @@ export function usePdfPageNavigation(rootRef: RefObject<HTMLDivElement | null>, 
     root.scrollTo({ top, behavior: "instant" });
     setPage(value);
   }, [rootRef]);
-  return { page, jump };
+  const scrubFrame = useRef(0);
+  /** Live-follow while the slider is being dragged: one instant scroll per frame. */
+  const scrub = useCallback((value: number) => {
+    if (scrubFrame.current) cancelAnimationFrame(scrubFrame.current);
+    scrubFrame.current = requestAnimationFrame(() => {
+      scrubFrame.current = 0;
+      const root = rootRef.current;
+      const target = root?.querySelector<HTMLElement>(`[data-page="${value}"]`);
+      if (!root || !target) return;
+      const top = target.getBoundingClientRect().top - root.getBoundingClientRect().top + root.scrollTop;
+      root.scrollTo({ top, behavior: "instant" });
+    });
+  }, [rootRef]);
+  useEffect(() => () => {
+    if (scrubFrame.current) cancelAnimationFrame(scrubFrame.current);
+  }, []);
+  return { page, jump, scrub };
 }
