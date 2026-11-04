@@ -326,7 +326,7 @@ export function PdfCanvasViewer({
     {!todayDate && status === "ready" && renderedPages === pages && (
       <div className="pointer-events-none absolute inset-x-0 bottom-3 z-20 flex justify-center px-3">
         <div className="pointer-events-auto flex w-full max-w-xl justify-center">
-          <PageNavigation page={navigation.page} total={pages} onJump={navigation.jump} />
+          <PageNavigation page={navigation.page} total={pages} onJump={navigation.jump} onScrub={navigation.scrub} />
         </div>
       </div>
     )}
