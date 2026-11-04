@@ -4,10 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 
-export function PageNavigation({ page, total, onJump }: {
+export function PageNavigation({ page, total, onJump, onScrub }: {
   page: number;
   total: number;
   onJump: (page: number) => void;
+  /** Called continuously while the slider is dragged, so the document follows live. */
+  onScrub?: (page: number) => void;
 }) {
   const [draft, setDraft] = useState(String(page));
   const [scrub, setScrub] = useState<number | null>(null);
@@ -45,7 +47,7 @@ export function PageNavigation({ page, total, onJump }: {
         <Button variant="ghost" size="icon" className={iconClass} title="Letzte Seite" aria-label="Letzte Seite" disabled={page === total} onClick={() => onJump(total)}><ChevronsRight className="size-4" /></Button>
       </div>
       <Slider aria-label="Seite auswählen" min={1} max={total} step={1} value={[scrub ?? page]} className="h-5 px-2"
-        onValueChange={([value]) => { if (value !== undefined) setScrub(value); }}
+        onValueChange={([value]) => { if (value !== undefined) { setScrub(value); onScrub?.(value); } }}
         onValueCommit={([value]) => { if (value !== undefined) onJump(value); setScrub(null); }} />
     </nav>
   );

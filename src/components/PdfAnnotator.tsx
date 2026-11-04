@@ -671,7 +671,7 @@ export function PdfAnnotator({
       {status === "ready" && (
         <div className="pointer-events-none absolute inset-x-0 bottom-3 z-20 flex justify-center px-3">
           <div className="pointer-events-auto flex w-full max-w-xl justify-center">
-            <PageNavigation page={navigation.page} total={view.length} onJump={navigation.jump} />
+            <PageNavigation page={navigation.page} total={view.length} onJump={navigation.jump} onScrub={navigation.scrub} />
           </div>
         </div>
       )}
