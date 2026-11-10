@@ -41,7 +41,7 @@ export function LocalDataPanel() {
             await resetLocalData();
             qc.clear();
             toast.success("Lokale Daten gelöscht");
-            window.location.assign("/library");
+            window.location.reload();
           } finally {
             setBusy(false);
             setConfirm(false);
