@@ -1,26 +1,25 @@
 import { ChevronDown, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { SettingsField, usePersistentOpen } from "@/components/SettingsSection";
-import { useTheme, ACCENT_PRESETS } from "@/lib/theme";
+import { useTheme, ACCENT_PRESETS, presetColor, presetOf } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 /**
  * Darstellung – kompakt als Pulldown, damit die Einstellungsseite kurz bleibt.
  * Im geschlossenen Zustand zeigt die Zeile Modus und aktuelle Akzentfarbe.
- * Die einzelnen Felder (Modus, Farben, Akzente) sind zusätzlich für sich einklappbar.
+ * Die einzelnen Felder (Modus, Akzentfarbe) sind zusätzlich für sich einklappbar.
  */
 export function ThemePanel() {
-  const { mode, hue, chroma, setTheme } = useTheme();
+  const { mode, hue, chroma, accent: accentId, setTheme } = useTheme();
   const [open, setOpen] = usePersistentOpen("theme", false);
 
-  const preset = ACCENT_PRESETS.find((p) => Math.round(hue) === p.hue);
-  const accent = `oklch(0.68 ${chroma} ${hue})`;
+  const preset = presetOf({ accent: accentId, hue, chroma });
+  const accent = preset ? presetColor(preset, mode) : `oklch(0.68 ${chroma} ${hue})`;
 
   return (
     <Collapsible
@@ -94,52 +93,26 @@ export function ThemePanel() {
               {ACCENT_PRESETS.map((p) => (
                 <button
                   key={p.id}
-                  onClick={() => setTheme({ hue: p.hue, chroma: p.chroma })}
+                  onClick={() => setTheme({ hue: p.hue, chroma: p.chroma, accent: p.id })}
                   title={p.label}
+                  aria-pressed={preset?.id === p.id}
                   className={cn(
                     "size-10 rounded-2xl border-2 transition-transform hover:scale-105",
-                    Math.round(hue) === p.hue ? "border-foreground" : "border-transparent",
+                    preset?.id === p.id ? "border-foreground" : "border-field-border/60",
                   )}
-                  style={{ background: `oklch(0.68 ${p.chroma} ${p.hue})` }}
+                  style={{ background: presetColor(p, mode) }}
                   aria-label={p.label}
                 />
               ))}
             </div>
             <div
               className="mt-1 rounded-2xl p-4 text-sm"
-              style={{ background: accent, color: "oklch(0.99 0 0)" }}
+              style={{ background: accent, color: "var(--primary-foreground)" }}
             >
               Vorschau der Akzentfarbe
             </div>
           </SettingsField>
 
-          <SettingsField
-            id="theme-hue"
-            title="Farbton fein justieren"
-            value={`${Math.round(hue)}°`}
-          >
-            <Slider
-              value={[hue]}
-              min={0}
-              max={360}
-              step={1}
-              onValueChange={([v]) => setTheme({ hue: v })}
-            />
-          </SettingsField>
-
-          <SettingsField
-            id="theme-chroma"
-            title="Farbintensität"
-            value={`${Math.round(chroma * 1000)}`}
-          >
-            <Slider
-              value={[chroma * 1000]}
-              min={20}
-              max={220}
-              step={2}
-              onValueChange={([v]) => setTheme({ chroma: v / 1000 })}
-            />
-          </SettingsField>
         </div>
       </CollapsibleContent>
     </Collapsible>

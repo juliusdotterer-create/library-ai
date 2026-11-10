@@ -13,7 +13,7 @@ export const Route = createFileRoute("/_authenticated/einstellungen")({
       { title: "Einstellungen – Farben & Darkmode" },
       {
         name: "description",
-        content: "Passe Akzentfarbe, Farbintensität und Darkmode deines Archivs individuell an.",
+        content: "Passe Akzentfarbe und Darkmode deines Archivs an.",
       },
       { property: "og:title", content: "Einstellungen – Farben & Darkmode" },
       { property: "og:description", content: "Off-White, Orange und frei wählbare Akzente." },

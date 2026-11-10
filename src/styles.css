@@ -69,6 +69,9 @@
   --event-rose: oklch(0.63 0.17 10);
   --accent-h: 39;
   --accent-c: 0.13;
+  /* Helligkeit des Akzents (für Schwarz/Grau abweichend), gesetzt vom ThemeProvider */
+  --accent-l: 0.645;
+  --accent-l-dark: 0.71;
   --radius: 1.125rem;
 
   /* Claude: Elfenbein-Grund, warmes Fast-Schwarz */
@@ -79,7 +82,7 @@
   --popover: oklch(0.995 0.004 85);
   --popover-foreground: var(--foreground);
 
-  --primary: oklch(0.645 var(--accent-c) var(--accent-h));
+  --primary: oklch(var(--accent-l) var(--accent-c) var(--accent-h));
   --primary-foreground: oklch(0.99 0.005 95);
   --primary-soft: oklch(0.925 calc(var(--accent-c) * 0.38) var(--accent-h));
 
@@ -97,7 +100,7 @@
   /* Solide Eingabefelder (Termin-Formular) – kein Durchscheinen des Glasgrunds */
   --field: oklch(0.996 0.004 85);
   --field-border: oklch(0.86 0.014 80);
-  --ring: oklch(0.64 var(--accent-c) var(--accent-h));
+  --ring: var(--primary);
 
   /* Liquid Glass: helle Füllung, Lichtkante oben, Innenrand, weicher Schatten */
   --glass: oklch(0.995 0.004 95 / 52%);
@@ -142,7 +145,7 @@
   --popover: oklch(0.25 0.005 80);
   --popover-foreground: var(--foreground);
 
-  --primary: oklch(0.71 var(--accent-c) var(--accent-h));
+  --primary: oklch(var(--accent-l-dark) var(--accent-c) var(--accent-h));
   --primary-foreground: oklch(0.18 0.006 60);
   --primary-soft: oklch(0.34 calc(var(--accent-c) * 0.45) var(--accent-h));
 
@@ -159,7 +162,7 @@
   --input: oklch(1 0 0 / 16%);
   --field: oklch(0.275 0.016 60);
   --field-border: oklch(1 0 0 / 16%);
-  --ring: oklch(0.72 var(--accent-c) var(--accent-h));
+  --ring: var(--primary);
 
   --glass: oklch(0.3 0.006 80 / 50%);
   --glass-strong: oklch(0.3 0.006 80 / 72%);
