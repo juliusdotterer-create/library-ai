@@ -176,8 +176,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       <main className="mx-auto w-full max-w-7xl px-3 py-6 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:px-5 md:pb-6">{children}</main>
 
       {/* Mobile: kompakte Icon-Leiste am unteren Bildschirmrand */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 flex items-end gap-2.5 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:hidden">
-        <div className="liquid-nav-shell grid h-[3.75rem] min-w-0 flex-1 grid-cols-4 place-items-stretch overflow-hidden rounded-full p-1">
+      <nav className="fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:hidden">
+        <div className="liquid-nav-shell grid h-[3.75rem] w-full min-w-0 max-w-md grid-cols-4 place-items-stretch overflow-hidden rounded-full p-1">
           {activeMobileIndex >= 0 && (
             <motion.div
               aria-hidden="true"
@@ -224,14 +224,6 @@ export function AppShell({ children }: { children: ReactNode }) {
             );
           })}
         </div>
-        <button
-          type="button"
-          onClick={() => setSearchOpen(true)}
-          aria-label="Library durchsuchen"
-          className="liquid-nav-shell grid size-[3.75rem] shrink-0 place-items-center rounded-full text-foreground/80 active:scale-95"
-        >
-          <Search className="size-[1.3rem]" />
-        </button>
       </nav>
     </div>
   );
