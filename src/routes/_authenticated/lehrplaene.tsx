@@ -285,15 +285,7 @@ function LehrplanPage() {
                 </button>
               </MotionItem>
             ))
-          ) : (
-            <EmptyState
-              icon={<ListChecks className="size-7" />}
-              title="Noch kein Lehrplan"
-              description="Lege deinen ersten Plan an, um Aufgaben und Dokumente zu strukturieren."
-              action={{ label: "Lehrplan erstellen", onClick: () => setPlanOpen(true) }}
-              className="py-6"
-            />
-          )}
+          ) : null}
         </div>
       </aside>
 
@@ -376,12 +368,21 @@ function LehrplanPage() {
             />
           </>
         ) : (
-          <EmptyState
-            icon={<ListChecks className="size-7" />}
-            title="Wähle einen Lehrplan"
-            description="Erstelle links einen neuen Plan oder öffne einen bestehenden, um Aufgaben zu verwalten."
-            action={{ label: "Neuer Lehrplan", onClick: () => setPlanOpen(true) }}
-          />
+          plans.data?.length ? (
+            <EmptyState
+              icon={<ListChecks className="size-7" />}
+              title="Wähle einen Lehrplan"
+              description="Öffne links einen Plan, um seine Aufgaben zu sehen."
+            />
+          ) : plans.isLoading ? null : (
+            /* Einziger Hinweis bei leerer Seite – die Liste links bleibt dann leer. */
+            <EmptyState
+              icon={<ListChecks className="size-7" />}
+              title="Noch kein Lehrplan"
+              description="Lege deinen ersten Plan an, um Aufgaben und Dokumente zu strukturieren."
+              action={{ label: "Lehrplan erstellen", onClick: () => setPlanOpen(true) }}
+            />
+          )
         )}
       </section>
       <DocumentPreview doc={preview} onClose={() => setPreview(null)} />
