@@ -1,45 +1,28 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { useNavigate } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
-import { CircleUserRound, Loader2, Mail, KeyRound, LogOut } from "lucide-react";
+import { CircleUserRound, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
-import { isEmailAllowed } from "@/lib/access.functions";
 import { useAuth } from "@/hooks/useAuth";
 
-export function ProfilePanel({ isAdmin = false }: { isAdmin?: boolean }) {
+/** Anzeigename des lokalen Profils (ohne Konto, E-Mail oder Passwort). */
+export function ProfilePanel() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [currentEmail, setCurrentEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [savingName, setSavingName] = useState(false);
 
-  const [newEmail, setNewEmail] = useState("");
-  const [savingEmail, setSavingEmail] = useState(false);
-
-  const [pw1, setPw1] = useState("");
-  const [pw2, setPw2] = useState("");
-  const [savingPw, setSavingPw] = useState(false);
-
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-
   useEffect(() => {
     void (async () => {
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-      setCurrentEmail(user.email ?? "");
+      if (!user) return;
       const { data: profile } = await supabase
         .from("profiles")
         .select("display_name")
         .eq("id", user.id)
         .maybeSingle();
-      setDisplayName(profile?.display_name ?? (user.email ?? "").split("@")[0] ?? "");
+      setDisplayName(profile?.display_name ?? "");
       setLoading(false);
     })();
   }, [user]);
@@ -52,13 +35,11 @@ export function ProfilePanel({ isAdmin = false }: { isAdmin?: boolean }) {
     }
     setSavingName(true);
     try {
-      const uid = user?.id;
-      if (!uid) throw new Error("Nicht angemeldet");
+      if (!user) throw new Error("Profil nicht geladen");
       const { error } = await supabase
         .from("profiles")
-        .upsert({ id: uid, display_name: name }, { onConflict: "id" });
+        .upsert({ id: user.id, display_name: name }, { onConflict: "id" });
       if (error) throw error;
-      await supabase.auth.updateUser({ data: { display_name: name } });
       setDisplayName(name);
       toast.success("Name gespeichert");
     } catch (e) {
@@ -66,67 +47,6 @@ export function ProfilePanel({ isAdmin = false }: { isAdmin?: boolean }) {
     } finally {
       setSavingName(false);
     }
-  };
-
-  const changeEmail = async () => {
-    const email = newEmail.trim().toLowerCase();
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-      toast.error("Bitte eine gültige E-Mail-Adresse eingeben.");
-      return;
-    }
-    if (email === currentEmail.toLowerCase()) {
-      toast.error("Das ist bereits deine aktuelle Adresse.");
-      return;
-    }
-    setSavingEmail(true);
-    try {
-      const res = await isEmailAllowed({ data: { email } });
-      if (!res.allowed) {
-        toast.error("Diese Adresse steht nicht auf der Zugangsliste. Bitte zuerst freischalten.");
-        return;
-      }
-      const { error } = await supabase.auth.updateUser(
-        { email },
-        { emailRedirectTo: window.location.origin },
-      );
-      if (error) throw error;
-      toast.success("Bestätigungsmail an die neue Adresse gesendet.");
-      setNewEmail("");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Änderung fehlgeschlagen");
-    } finally {
-      setSavingEmail(false);
-    }
-  };
-
-  const changePassword = async () => {
-    if (pw1.length < 8) {
-      toast.error("Das Passwort muss mindestens 8 Zeichen haben.");
-      return;
-    }
-    if (pw1 !== pw2) {
-      toast.error("Die Passwörter stimmen nicht überein.");
-      return;
-    }
-    setSavingPw(true);
-    try {
-      const { error } = await supabase.auth.updateUser({ password: pw1 });
-      if (error) throw error;
-      setPw1("");
-      setPw2("");
-      toast.success("Passwort aktualisiert");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Änderung fehlgeschlagen");
-    } finally {
-      setSavingPw(false);
-    }
-  };
-
-  const signOut = async () => {
-    await queryClient.cancelQueries();
-    queryClient.clear();
-    await supabase.auth.signOut();
-    navigate({ to: "/auth", replace: true });
   };
 
   if (loading) {
@@ -145,7 +65,7 @@ export function ProfilePanel({ isAdmin = false }: { isAdmin?: boolean }) {
         </span>
         <div className="min-w-0">
           <p className="truncate font-medium">{displayName || "Ohne Namen"}</p>
-          <p className="truncate text-xs text-muted-foreground">{currentEmail}</p>
+          <p className="truncate text-xs text-muted-foreground">Lokales Profil auf diesem Gerät</p>
         </div>
       </div>
 
@@ -164,81 +84,6 @@ export function ProfilePanel({ isAdmin = false }: { isAdmin?: boolean }) {
           </Button>
         </div>
       </div>
-
-      {isAdmin ? (
-      <div className="space-y-2">
-        <Label className="text-xs text-muted-foreground">E-Mail ändern</Label>
-        <Input value={currentEmail} readOnly disabled className="rounded-2xl" />
-        <div className="flex gap-2">
-          <Input
-            type="email"
-            value={newEmail}
-            onChange={(e) => setNewEmail(e.target.value)}
-            placeholder="neue@adresse.de"
-            className="rounded-2xl"
-          />
-          <Button
-            variant="outline"
-            className="rounded-2xl"
-            onClick={changeEmail}
-            disabled={savingEmail}
-          >
-            {savingEmail ? <Loader2 className="size-4 animate-spin" /> : <Mail className="size-4" />}
-            <span className="hidden sm:inline">Ändern</span>
-          </Button>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Du erhältst eine Bestätigungsmail an die neue Adresse – erst nach dem Klick darin gilt sie.
-          Wichtig: Die neue Adresse muss auf der Zugangsliste stehen, sonst kommst du danach nicht
-          mehr rein.
-        </p>
-      </div>
-      ) : null}
-
-      <div className="space-y-2">
-        <Label className="text-xs text-muted-foreground">Passwort ändern</Label>
-        <Input
-          type="password"
-          value={pw1}
-          onChange={(e) => setPw1(e.target.value)}
-          placeholder="Neues Passwort"
-          autoComplete="new-password"
-          className="rounded-2xl"
-        />
-        <div className="flex gap-2">
-          <Input
-            type="password"
-            value={pw2}
-            onChange={(e) => setPw2(e.target.value)}
-            placeholder="Wiederholen"
-            autoComplete="new-password"
-            className="rounded-2xl"
-          />
-          <Button
-            variant="outline"
-            className="rounded-2xl"
-            onClick={changePassword}
-            disabled={savingPw}
-          >
-            {savingPw ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <KeyRound className="size-4" />
-            )}
-            <span className="hidden sm:inline">Setzen</span>
-          </Button>
-        </div>
-        <p className="text-xs text-muted-foreground">Mindestens 8 Zeichen.</p>
-      </div>
-
-      <Button
-        variant="outline"
-        className="w-full rounded-2xl text-destructive hover:bg-destructive/10 hover:text-destructive"
-        onClick={signOut}
-      >
-        <LogOut className="size-4" />
-        Abmelden
-      </Button>
     </div>
   );
 }

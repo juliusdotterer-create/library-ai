@@ -2,11 +2,9 @@ import {
   Download,
   FileText,
   Folder,
-  HardDrive,
   MoreVertical,
   NotebookPen,
   Pencil,
-  RefreshCw,
   Star,
   Trash2,
 } from "lucide-react";
@@ -56,14 +54,10 @@ export function RowMenu({
   onOpen,
   onRename,
   onDelete,
-  onDriveSync,
-  driveSyncLabel,
 }: {
   onOpen?: () => void;
   onRename: () => void;
   onDelete: () => void;
-  onDriveSync?: () => void;
-  driveSyncLabel?: string;
 }) {
   return (
     <DropdownMenu>
@@ -76,11 +70,6 @@ export function RowMenu({
         {onOpen && (
           <DropdownMenuItem onClick={onOpen}>
             <Download className="size-4" /> Öffnen
-          </DropdownMenuItem>
-        )}
-        {onDriveSync && (
-          <DropdownMenuItem onClick={onDriveSync}>
-            <RefreshCw className="size-4" /> {driveSyncLabel ?? "Aus Drive aktualisieren"}
           </DropdownMenuItem>
         )}
         <DropdownMenuItem onClick={onRename}>
@@ -116,7 +105,6 @@ export function FolderCard({
   onToggleFavorite,
   onRename,
   onDelete,
-  onDriveSync,
   selectMode,
   selected,
   onSelectChange,
@@ -126,15 +114,12 @@ export function FolderCard({
     name: string;
     is_favorite?: boolean | null;
     created_at?: string | null;
-    source?: string | null;
-    external_id?: string | null;
   };
   view: ViewMode;
   onOpen: () => void;
   onToggleFavorite: () => void;
   onRename: () => void;
   onDelete: () => void;
-  onDriveSync?: () => void;
   selectMode?: boolean;
   selected?: boolean;
   onSelectChange?: (v: boolean) => void;
@@ -174,8 +159,6 @@ export function FolderCard({
       <RowMenu
         onRename={onRename}
         onDelete={onDelete}
-        onDriveSync={folder.source === "gdrive" || folder.external_id ? onDriveSync : undefined}
-        driveSyncLabel="Ordner aus Drive aktualisieren"
       />
     </MotionItem>
   );
@@ -187,46 +170,24 @@ export function DocumentCard({
   onOpen,
   onRename,
   onDelete,
-  onDriveSync,
   selectMode,
   selected,
   onSelectChange,
-  isNew,
 }: {
   doc: {
     id: string;
     name: string;
     kind?: string | null;
     created_at?: string | null;
-    source?: string;
-    drive_state?: string | null;
   };
   view: ViewMode;
   onOpen: () => void;
   onRename: () => void;
   onDelete: () => void;
-  onDriveSync?: () => void;
   selectMode?: boolean;
   selected?: boolean;
   onSelectChange?: (v: boolean) => void;
-  isNew?: boolean;
 }) {
-  const driveBadge =
-    doc.source === "gdrive" ? (
-      doc.drive_state === "missing" ? (
-        <span className="ml-2 inline-flex shrink-0 items-center rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
-          In Drive nicht gefunden
-        </span>
-      ) : doc.drive_state === "changed" ? (
-        <span className="ml-2 inline-flex shrink-0 items-center rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
-          In Drive aktualisiert
-        </span>
-      ) : isNew ? (
-        <span className="ml-2 inline-flex shrink-0 items-center rounded-full bg-primary px-2 py-0.5 text-[11px] font-medium text-primary-foreground">
-          Neu
-        </span>
-      ) : null
-    ) : null;
   return (
     <MotionItem className={cn(shell(view), selected && "ring-2 ring-primary")}>
       {selectMode && (
@@ -239,8 +200,6 @@ export function DocumentCard({
         <span className={iconBox(view, "muted")}>
           {doc.kind === "note" ? (
             <NotebookPen className={cn("text-primary", iconSize(view))} />
-          ) : doc.source === "gdrive" ? (
-            <HardDrive className={cn("text-primary", iconSize(view))} />
           ) : (
             <FileText className={cn("text-muted-foreground", iconSize(view))} />
           )}
@@ -249,7 +208,6 @@ export function DocumentCard({
           <span className="block truncate font-medium">
             {doc.name}
             <LockedBadge id={doc.id} name={doc.name} />
-            {driveBadge}
           </span>
         </span>
       </button>
@@ -262,7 +220,6 @@ export function DocumentCard({
         onOpen={onOpen}
         onRename={onRename}
         onDelete={onDelete}
-        onDriveSync={doc.source === "gdrive" ? onDriveSync : undefined}
       />
     </MotionItem>
   );

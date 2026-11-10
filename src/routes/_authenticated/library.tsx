@@ -12,11 +12,9 @@ import {
   Folder,
   FolderPlus,
   FolderUp,
-  HardDrive,
   LayoutGrid,
   List,
   NotebookPen,
-  RefreshCw,
   Star,
   Upload,
 } from "lucide-react";
@@ -45,21 +43,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { DocumentPreview, type PreviewDoc } from "@/components/DocumentPreview";
 import { FreeNotesOverlay } from "@/components/FreeNotesOverlay";
-import { DrivePicker } from "@/components/DrivePicker";
-import {
-  DriveNewItemsDialog,
-  loadSyncSummary,
-  markNewOpened,
-  openedNewIds,
-  saveSyncSummary,
-  type DriveSyncSummary,
-} from "@/components/library/DriveNewItemsDialog";
-import {
-  deltaSyncDrive,
-  getDriveStatus,
-  importDriveItems,
-  syncDriveItems,
-} from "@/lib/drive.functions";
 import {
   Dialog,
   DialogContent,
@@ -72,13 +55,10 @@ export const Route = createFileRoute("/_authenticated/library")({
   validateSearch: (search: Record<string, unknown>): {
     folder?: string;
     create?: "folder";
-    newsDemo?: boolean;
   } => {
-    const raw = search["news-demo"] ?? search.newsDemo;
     return {
       folder: typeof search.folder === "string" ? search.folder : undefined,
       create: search.create === "folder" ? ("folder" as const) : undefined,
-      newsDemo: raw === true || raw === "1" ? true : undefined,
     };
   },
   head: () => ({
@@ -158,22 +138,6 @@ function LibraryPage() {
     }
   }, [createFolderParam]);
 
-  // Beispielansicht „Jetzt auch verfügbar“ – geöffnet über die Einstellungen
-  useEffect(() => {
-    if (!(search as { newsDemo?: boolean } | undefined)?.newsDemo) return;
-    setNewSummary({
-      since: new Date().toISOString(),
-      added: 4,
-      addedFolders: 2,
-      changed: 3,
-      missing: 1,
-    });
-    setNewPreview(true);
-    setNewOpen(true);
-    void navigate({ to: "/library", search: {}, replace: true });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search]);
-
   const folders = useFolders(current.id);
   const docs = useDocuments(current.id);
   const { sort, view, setSort, setView } = useLibraryView();
@@ -189,124 +153,6 @@ function LibraryPage() {
     uid,
     folderId: current.id,
     onDone: invalidate,
-  });
-
-  // ---- Google Drive ----
-  const [drivePickerOpen, setDrivePickerOpen] = useState(false);
-  const driveStatus = useQuery({
-    queryKey: ["drive-status", uid],
-    enabled: !!uid,
-    queryFn: () => getDriveStatus({ data: undefined }),
-    staleTime: 60_000,
-  });
-  const driveConnected = driveStatus.data?.connected === true;
-
-  const driveImport = useMutation({
-    mutationFn: (items: { id: string; name: string; mimeType: string }[]) =>
-      importDriveItems({ data: { targetFolderId: current.id, items } }),
-    onSuccess: (res) => {
-      setDrivePickerOpen(false);
-      invalidate();
-      toast.success(
-        `${res.createdDocs} Datei(en) und ${res.createdFolders} Ordner aus Drive hinzugefügt`,
-      );
-    },
-    onError: (e: Error) =>
-      toast.error(
-        e.message === "RECONNECT_REQUIRED"
-          ? "Google-Zugriff muss in den Einstellungen erneuert werden."
-          : e.message,
-      ),
-  });
-
-  const [newSummary, setNewSummary] = useState<DriveSyncSummary | null>(null);
-  const [newOpen, setNewOpen] = useState(false);
-  const [newPreview, setNewPreview] = useState(false);
-  const [lastSince, setLastSince] = useState<string | null>(null);
-  const [openedIds, setOpenedIds] = useState<Set<string>>(new Set());
-  useEffect(() => {
-    setLastSince(loadSyncSummary()?.since ?? null);
-    setOpenedIds(openedNewIds());
-  }, []);
-
-  const driveSync = useMutation({
-    mutationFn: async (scope?: { documentIds?: string[]; folderIds?: string[] }) => {
-      // kleiner Puffer für Uhrabweichungen zwischen Gerät und Server
-      const since = new Date(Date.now() - 60_000).toISOString();
-      const total = { since, added: 0, addedFolders: 0, changed: 0, missing: 0, failed: 0, checked: 0 };
-      let cursor: Awaited<ReturnType<typeof syncDriveItems>>["cursor"] = null;
-      const toastId = toast.loading("Drive-Abgleich läuft …");
-      try {
-        // „Alles abgleichen": nur Änderungen seit dem letzten Mal abfragen.
-        if (!scope) {
-          let needsFull = false;
-          for (let i = 0; i < 200; i++) {
-            const res = await deltaSyncDrive({ data: {} });
-            total.added += res.added;
-            total.addedFolders += res.addedFolders;
-            total.changed += res.changed;
-            total.missing += res.missing;
-            total.failed += res.failed;
-            total.checked += res.checked;
-            if (res.needsFull) needsFull = true;
-            toast.loading(`Drive-Änderungen: ${total.checked} geprüft …`, { id: toastId });
-            if (res.done) break;
-          }
-          if (!needsFull) return total;
-          toast.loading("Erster vollständiger Abgleich läuft …", { id: toastId });
-        }
-        // In 50er-Paketen weiterlaufen, bis alles geprüft ist.
-        for (let i = 0; i < 2000; i++) {
-          const res = await syncDriveItems({ data: { ...(scope ?? {}), cursor } });
-          total.added += res.added;
-          total.addedFolders += res.addedFolders;
-          total.changed += res.changed;
-          total.missing += res.missing;
-          total.failed += res.failed;
-          total.checked += res.checked;
-          toast.loading(`Drive-Abgleich: ${total.checked} geprüft …`, { id: toastId });
-          if (res.done) break;
-          cursor = res.cursor;
-        }
-        return total;
-      } finally {
-        toast.dismiss(toastId);
-      }
-    },
-    onSuccess: (res) => {
-      invalidate();
-      const parts: string[] = [];
-      if (res.added) parts.push(`${res.added} neu`);
-      if (res.addedFolders) parts.push(`${res.addedFolders} Ordner neu`);
-      if (res.changed) parts.push(`${res.changed} aktualisiert`);
-      if (res.missing) parts.push(`${res.missing} nicht mehr gefunden`);
-      if (res.added || res.addedFolders) {
-        const summary: DriveSyncSummary = {
-          since: res.since,
-          added: res.added,
-          addedFolders: res.addedFolders,
-          changed: res.changed,
-          missing: res.missing,
-        };
-        saveSyncSummary(summary);
-        setLastSince(summary.since);
-        setNewSummary(summary);
-        setNewOpen(true);
-      }
-      if (!parts.length && !res.failed) {
-        toast.success(`Drive-Abgleich abgeschlossen – ${res.checked} geprüft, alles aktuell`);
-      } else if (res.failed) {
-        toast.error(`Abgleich teilweise fehlgeschlagen (${res.failed}). ${parts.join(", ")}`);
-      } else {
-        toast.success(`Drive-Abgleich: ${parts.join(", ")} (${res.checked} geprüft)`);
-      }
-    },
-    onError: (e: Error) =>
-      toast.error(
-        e.message === "RECONNECT_REQUIRED"
-          ? "Google-Zugriff muss in den Einstellungen erneuert werden."
-          : e.message,
-      ),
   });
 
   const createFolder = useMutation({
@@ -679,49 +525,6 @@ function LibraryPage() {
           >
             <CheckSquare className="size-4" />
           </Button>
-          {driveConnected && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="rounded-2xl text-muted-foreground"
-                  title="Google Drive abgleichen"
-                  aria-label="Google Drive abgleichen"
-                  disabled={driveSync.isPending}
-                >
-                  <RefreshCw className={cn("size-4", driveSync.isPending && "animate-spin")} />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="glass rounded-2xl">
-                {current.id && (
-                  <DropdownMenuItem
-                    onClick={() => driveSync.mutate({ folderIds: [current.id!] })}
-                  >
-                    Diesen Ordner abgleichen
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuItem onClick={() => driveSync.mutate(undefined)}>
-                  Alles abgleichen
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    const s = loadSyncSummary();
-                    if (!s) {
-                      toast.info("Noch keine neuen Drive-Dokumente erfasst");
-                      return;
-                    }
-                    setNewSummary(s);
-                    setNewPreview(false);
-                    setNewOpen(true);
-                  }}
-                >
-                  Zuletzt neu aus Drive
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-
           <Button
             variant="secondary"
             className="rounded-2xl"
@@ -754,11 +557,6 @@ function LibraryPage() {
               <DropdownMenuItem onClick={() => folderInput.current?.click()}>
                 <FolderUp className="size-4" /> Ordner
               </DropdownMenuItem>
-              {driveConnected && (
-                <DropdownMenuItem onClick={() => setDrivePickerOpen(true)}>
-                  <HardDrive className="size-4" /> Aus Google Drive
-                </DropdownMenuItem>
-              )}
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -869,7 +667,6 @@ function LibraryPage() {
                   setRename({ table: "folders", id: f.id, name: f.name, prev: f.name })
                 }
                 onDelete={() => setConfirmDel({ table: "folders", id: f.id, name: f.name })}
-                onDriveSync={() => driveSync.mutate({ folderIds: [f.id] })}
                 selectMode={selectMode}
                 selected={selFolders.includes(f.id)}
                 onSelectChange={(v) => setSelFolders((l) => toggleIn(l, f.id, v))}
@@ -880,25 +677,11 @@ function LibraryPage() {
                 key={d.id}
                 doc={d}
                 view={view}
-                isNew={
-                  d.source === "gdrive" &&
-                  !!lastSince &&
-                  !!d.created_at &&
-                  d.created_at >= lastSince &&
-                  !openedIds.has(d.id)
-                }
-                onOpen={() => {
-                  if (d.source === "gdrive") {
-                    markNewOpened(d.id);
-                    setOpenedIds(openedNewIds());
-                  }
-                  open(d);
-                }}
+                onOpen={() => open(d)}
                 onRename={() =>
                   setRename({ table: "documents", id: d.id, name: d.name, prev: d.name })
                 }
                 onDelete={() => setConfirmDel({ table: "documents", id: d.id, name: d.name })}
-                onDriveSync={() => driveSync.mutate({ documentIds: [d.id] })}
                 selectMode={selectMode}
                 selected={selDocs.includes(d.id)}
                 onSelectChange={(v) => setSelDocs((l) => toggleIn(l, d.id, v))}
@@ -924,25 +707,6 @@ function LibraryPage() {
         )}
       </PullToRefresh>
 
-      <DriveNewItemsDialog
-        summary={newSummary}
-        uid={uid}
-        open={newOpen}
-        onOpenChange={(open) => {
-          setNewOpen(open);
-          if (!open) setNewPreview(false);
-        }}
-        preview={newPreview}
-        onOpenDoc={(d) => {
-          markNewOpened(d.id);
-          setOpenedIds(openedNewIds());
-          setPreview({ ...d, folder_id: d.folder_id });
-        }}
-        onOpenFolder={(id) => {
-          setNewOpen(false);
-          void navigate({ to: "/library", search: { folder: id } });
-        }}
-      />
       <Dialog
         open={folderDialog}
         onOpenChange={(o) => {
@@ -1004,8 +768,8 @@ function LibraryPage() {
         title={confirmDel?.table === "folders" ? "Ordner löschen" : "Datei löschen"}
         description={
           confirmDel?.table === "folders"
-            ? `„${confirmDel?.name}“ wird mit allen Unterordnern und Dateien in den Papierkorb verschoben. In Google Drive bleibt alles unverändert.`
-            : `„${confirmDel?.name}“ wird in den Papierkorb verschoben. Bei Google-Drive-Dateien bleibt die Datei in Drive erhalten.`
+            ? `„${confirmDel?.name}“ wird mit allen Unterordnern und Dateien in den Papierkorb verschoben.`
+            : `„${confirmDel?.name}“ wird in den Papierkorb verschoben.`
         }
         confirmLabel="In den Papierkorb"
         onConfirm={async () => {
@@ -1016,12 +780,6 @@ function LibraryPage() {
       />
 
       <DocumentPreview doc={preview} onClose={() => setPreview(null)} />
-      <DrivePicker
-        open={drivePickerOpen}
-        onOpenChange={setDrivePickerOpen}
-        importing={driveImport.isPending}
-        onImport={(items) => driveImport.mutate(items)}
-      />
       <FreeNotesOverlay
         key={current.id ?? "root"}
         open={freeNotes}

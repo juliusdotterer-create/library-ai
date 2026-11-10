@@ -11,9 +11,7 @@ import {
   listOcrCandidates,
   listUnindexedDocuments,
   saveDocumentText,
-} from "@/lib/document-text.functions";
-import { getDriveFileContent } from "@/lib/drive.functions";
-import { base64ToBlob } from "@/lib/drive-client";
+} from "@/lib/document-text";
 
 export type RunMode = "text" | "failed" | "ocr";
 
@@ -95,12 +93,6 @@ async function download(path: string) {
   return data ?? null;
 }
 
-/** Drive-Dateien (ohne lokalen Speicherpfad) über den Server laden. */
-async function downloadDriveDoc(documentId: string) {
-  const res = await getDriveFileContent({ data: { documentId } });
-  return base64ToBlob(res.base64, res.mimeType);
-}
-
 /** Verarbeitet ein Dokument und schreibt das Ergebnis (auch Fehler) in den Index. */
 async function processDoc(
   doc: { id: string; name: string; storage_path: string; source?: string },
@@ -112,8 +104,7 @@ async function processDoc(
   let payload = { content: "", pages: [] as string[], pageCount: 0 };
 
   try {
-    const blob =
-      doc.source === "gdrive" ? await downloadDriveDoc(doc.id) : await download(doc.storage_path);
+    const blob = await download(doc.storage_path);
     if (!blob) throw new Error("Datei konnte nicht geladen werden");
     const res =
       mode === "ocr"

@@ -1,1 +1,0 @@
-ALTER TABLE public.notebook_pages ADD COLUMN IF NOT EXISTS text text NOT NULL DEFAULT '';

@@ -14,8 +14,6 @@ import {
 
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { getDriveFileContent, markDriveDocSeen } from "@/lib/drive.functions";
-import { base64ToBlob } from "@/lib/drive-client";
 import { Button } from "@/components/ui/button";
 import { HeaderTimers } from "@/components/GlobalTimer";
 import { PdfCanvasViewer } from "@/components/PdfCanvasViewer";
@@ -37,7 +35,6 @@ export type PreviewDoc = {
   storage_path: string;
   mime_type?: string | null;
   folder_id?: string | null;
-  /** "gdrive": Datei liegt in Google Drive und wird über den Server geladen. */
   source?: string | null;
   /** Direkt zu dieser Seite springen (Treffer der Volltextsuche). */
   page?: number | null;
@@ -85,25 +82,7 @@ export function DocumentPreview({
     setUrl(null);
     if (!doc) return;
     let cancelled = false;
-    let objectUrl: string | null = null;
     void (async () => {
-      if (doc.source === "gdrive" && doc.id) {
-        try {
-          const res = await getDriveFileContent({ data: { documentId: doc.id } });
-          if (cancelled) return;
-          objectUrl = URL.createObjectURL(base64ToBlob(res.base64, res.mimeType));
-          setUrl(objectUrl);
-        } catch (e) {
-          if (cancelled) return;
-          const msg = (e as Error).message ?? "";
-          toast.error(msg.includes("nicht gefunden") ? msg : "Datei konnte nicht aus Google Drive geladen werden");
-          onClose();
-          return;
-        }
-        // Beim Öffnen gesehen-Status setzen („In Drive aktualisiert" verschwindet).
-        void markDriveDocSeen({ data: { documentId: doc.id } }).catch(() => undefined);
-        return;
-      }
       const { data, error } = await supabase.storage
         .from("documents")
         .createSignedUrl(doc.storage_path, 60 * 30);
@@ -117,7 +96,6 @@ export function DocumentPreview({
     })();
     return () => {
       cancelled = true;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [doc, onClose]);
 

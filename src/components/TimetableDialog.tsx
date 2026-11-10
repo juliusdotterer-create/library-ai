@@ -1,16 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { queryKeys } from "@/hooks/useLibrary";
-import { parseTimetableText, type ParsedTimetableEntry } from "@/lib/timetable.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -18,10 +14,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConfirmDelete } from "@/components/ConfirmDelete";
 import { cn } from "@/lib/utils";
-import { Loader2, Sparkles, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 
 export const WEEKDAYS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"] as const;
 export const WEEKDAY_LONG = [
@@ -93,7 +88,6 @@ export function TimetableDialog({
   const { user } = useAuth();
   const uid = user?.id;
   const qc = useQueryClient();
-  const [tab, setTab] = useState<"manuell" | "ki">("manuell");
   const [days, setDays] = useState<number[]>([1]);
   const [form, setForm] = useState({
     title: "",
@@ -106,7 +100,6 @@ export function TimetableDialog({
 
   useEffect(() => {
     if (!open) return;
-    setTab("manuell");
     if (entry) {
       setDays([entry.weekday]);
       setForm({
@@ -210,19 +203,7 @@ export function TimetableDialog({
           <DialogTitle>{entry ? "Eintrag bearbeiten" : "Stundenplan-Eintrag"}</DialogTitle>
         </DialogHeader>
 
-        <Tabs value={tab} onValueChange={(v) => setTab(v as "manuell" | "ki")}>
-          {!entry && (
-            <TabsList className="mb-3 grid w-full grid-cols-2 rounded-2xl">
-              <TabsTrigger value="manuell" className="rounded-xl">
-                Kalender
-              </TabsTrigger>
-              <TabsTrigger value="ki" className="rounded-xl">
-                <Sparkles className="mr-1.5 size-3.5" /> Mit KI einspielen
-              </TabsTrigger>
-            </TabsList>
-          )}
-
-          <TabsContent value="manuell" className="space-y-4">
+        <div className="space-y-4">
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Titel</Label>
               <Input
@@ -384,12 +365,7 @@ export function TimetableDialog({
                 {entry ? "Speichern" : days.length > 1 ? `${days.length} Einträge speichern` : "Speichern"}
               </Button>
             </DialogFooter>
-          </TabsContent>
-
-          <TabsContent value="ki">
-            <AiImport color={form.color} onDone={() => onOpenChange(false)} />
-          </TabsContent>
-        </Tabs>
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -439,114 +415,3 @@ function WeekPreview({
   );
 }
 
-/** Import per KI: Text einfügen, prüfen, ausgewählte Einträge übernehmen. */
-function AiImport({ color, onDone }: { color: string; onDone: () => void }) {
-  const { user } = useAuth();
-  const qc = useQueryClient();
-  const parse = useServerFn(parseTimetableText);
-  const [text, setText] = useState("");
-  const [rows, setRows] = useState<ParsedTimetableEntry[] | null>(null);
-  const [picked, setPicked] = useState<Set<number>>(new Set());
-
-  const analyze = useMutation({
-    mutationFn: async () => parse({ data: { text } }),
-    onSuccess: (res) => {
-      setRows(res.entries);
-      setPicked(new Set(res.entries.map((_, i) => i)));
-      if (!res.entries.length) toast.error("Keine Einträge erkannt.");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const importRows = useMutation({
-    mutationFn: async () => {
-      if (!user) throw new Error("Nicht angemeldet");
-      const chosen = (rows ?? []).filter((_, i) => picked.has(i));
-      if (!chosen.length) throw new Error("Nichts ausgewählt");
-      const { error } = await supabase
-        .from("timetable_entries")
-        .insert(chosen.map((r) => ({ ...r, color, user_id: user.id })));
-      if (error) throw error;
-      return chosen.length;
-    },
-    onSuccess: (n) => {
-      void qc.invalidateQueries({ queryKey: queryKeys.timetable });
-      toast.success(`${n} Einträge übernommen`);
-      onDone();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const selectedCount = useMemo(() => picked.size, [picked]);
-
-  return (
-    <div className="space-y-3">
-      <p className="text-xs text-muted-foreground">
-        Stundenplan als Text einfügen (kopierte Tabelle, Mail, Notizen) – die KI erkennt Fach,
-        Wochentag, Zeiten, Raum und Dozent.
-      </p>
-      <Textarea
-        className="min-h-32 rounded-2xl"
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder={"Mo 08:00-09:30 Steuerrecht, Raum A1, Prof. Meier\nDi 10:00-11:30 Bilanzen ..."}
-      />
-      <Button
-        variant="secondary"
-        className="w-full rounded-2xl"
-        disabled={text.trim().length < 5 || analyze.isPending}
-        onClick={() => analyze.mutate()}
-      >
-        {analyze.isPending ? (
-          <Loader2 className="mr-2 size-4 animate-spin" />
-        ) : (
-          <Sparkles className="mr-2 size-4" />
-        )}
-        Analysieren
-      </Button>
-
-      {rows && rows.length > 0 && (
-        <div className="max-h-56 space-y-1.5 overflow-y-auto rounded-2xl bg-card/40 p-2">
-          {rows.map((r, i) => (
-            <label
-              key={`${r.title}-${i}`}
-              className="flex cursor-pointer items-center gap-2 rounded-xl px-2 py-1.5 hover:bg-background/40"
-            >
-              <Checkbox
-                checked={picked.has(i)}
-                onCheckedChange={(v) =>
-                  setPicked((prev) => {
-                    const next = new Set(prev);
-                    if (v) next.add(i);
-                    else next.delete(i);
-                    return next;
-                  })
-                }
-              />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium">{r.title}</span>
-                <span className="block text-[11px] text-muted-foreground">
-                  {WEEKDAY_LONG[r.weekday - 1]} · {r.start_time}–{r.end_time}
-                  {r.room ? ` · ${r.room}` : ""}
-                  {r.teacher ? ` · ${r.teacher}` : ""}
-                </span>
-              </span>
-            </label>
-          ))}
-        </div>
-      )}
-
-      {rows && rows.length > 0 && (
-        <DialogFooter>
-          <Button
-            className="rounded-2xl"
-            disabled={!selectedCount || importRows.isPending}
-            onClick={() => importRows.mutate()}
-          >
-            {selectedCount} Einträge übernehmen
-          </Button>
-        </DialogFooter>
-      )}
-    </div>
-  );
-}

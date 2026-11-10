@@ -1,10 +1,9 @@
 import { useSyncExternalStore } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, Loader2, Pause, Play, ScanText, Square } from "lucide-react";
-import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { getIndexStats } from "@/lib/document-text.functions";
+import { getIndexStats } from "@/lib/document-text";
 import {
   getIndexRunnerState,
   pauseIndexRun,
@@ -25,12 +24,11 @@ const LABEL: Record<RunMode, string> = {
 
 /** Volltext-Index und Texterkennung für gescannte PDFs. */
 export function TextIndexPanel() {
-  const stats = useServerFn(getIndexStats);
   const run = useSyncExternalStore(subscribeIndexRunner, getIndexRunnerState, () => IDLE_SNAPSHOT);
 
   const info = useQuery({
     queryKey: ["index-stats", run.running],
-    queryFn: () => stats({}),
+    queryFn: () => getIndexStats(),
     refetchInterval: run.running ? 15_000 : false,
   });
 

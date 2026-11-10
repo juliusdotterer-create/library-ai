@@ -11,20 +11,11 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as McpRouteImport } from './routes/mcp'
-import { Route as PasswortNeuRouteImport } from './routes/passwort-neu'
-import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
-import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
-import { Route as AuthenticatedConnectRouteImport } from './routes/_authenticated/connect'
 import { Route as AuthenticatedEinstellungenRouteImport } from './routes/_authenticated/einstellungen'
 import { Route as AuthenticatedKalenderRouteImport } from './routes/_authenticated/kalender'
 import { Route as AuthenticatedLehrplaeneRouteImport } from './routes/_authenticated/lehrplaene'
 import { Route as AuthenticatedLibraryRouteImport } from './routes/_authenticated/library'
 import { Route as AuthenticatedLinksRouteImport } from './routes/_authenticated/links'
-import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
-import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
-import { Route as OauthGoogle_driveReturnRouteImport } from './routes/oauth/google_drive/return'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -34,38 +25,6 @@ const IndexRoute = IndexRouteImport.update({
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const McpRoute = McpRouteImport.update({
-  id: '/mcp',
-  path: '/mcp',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PasswortNeuRoute = PasswortNeuRouteImport.update({
-  id: '/passwort-neu',
-  path: '/passwort-neu',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const Char91DotmcpChar93ListToolsRoute =
-  Char91DotmcpChar93ListToolsRouteImport.update({
-    id: '/.mcp/list-tools',
-    path: '/.mcp/list-tools',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const Char91DotwellKnownChar93OauthProtectedResourceRoute =
-  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
-    id: '/.well-known/oauth-protected-resource',
-    path: '/.well-known/oauth-protected-resource',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const AuthenticatedConnectRoute = AuthenticatedConnectRouteImport.update({
-  id: '/connect',
-  path: '/connect',
-  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedEinstellungenRoute =
   AuthenticatedEinstellungenRouteImport.update({
@@ -93,142 +52,54 @@ const AuthenticatedLinksRoute = AuthenticatedLinksRouteImport.update({
   path: '/links',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
-  id: '/.lovable/oauth/consent',
-  path: '/.lovable/oauth/consent',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const Char91DotmcpChar93InvokeToolToolRoute =
-  Char91DotmcpChar93InvokeToolToolRouteImport.update({
-    id: '/.mcp/invoke-tool/$tool',
-    path: '/.mcp/invoke-tool/$tool',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const OauthGoogle_driveReturnRoute = OauthGoogle_driveReturnRouteImport.update({
-  id: '/oauth/google_drive/return',
-  path: '/oauth/google_drive/return',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/auth': typeof AuthRoute
-  '/mcp': typeof McpRoute
-  '/passwort-neu': typeof PasswortNeuRoute
-  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
-  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
-  '/connect': typeof AuthenticatedConnectRoute
   '/einstellungen': typeof AuthenticatedEinstellungenRoute
   '/kalender': typeof AuthenticatedKalenderRoute
   '/lehrplaene': typeof AuthenticatedLehrplaeneRoute
   '/library': typeof AuthenticatedLibraryRoute
   '/links': typeof AuthenticatedLinksRoute
-  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
-  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
-  '/oauth/google_drive/return': typeof OauthGoogle_driveReturnRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/auth': typeof AuthRoute
-  '/mcp': typeof McpRoute
-  '/passwort-neu': typeof PasswortNeuRoute
-  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
-  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
-  '/connect': typeof AuthenticatedConnectRoute
   '/einstellungen': typeof AuthenticatedEinstellungenRoute
   '/kalender': typeof AuthenticatedKalenderRoute
   '/lehrplaene': typeof AuthenticatedLehrplaeneRoute
   '/library': typeof AuthenticatedLibraryRoute
   '/links': typeof AuthenticatedLinksRoute
-  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
-  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
-  '/oauth/google_drive/return': typeof OauthGoogle_driveReturnRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
-  '/auth': typeof AuthRoute
-  '/mcp': typeof McpRoute
-  '/passwort-neu': typeof PasswortNeuRoute
-  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
-  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
-  '/_authenticated/connect': typeof AuthenticatedConnectRoute
   '/_authenticated/einstellungen': typeof AuthenticatedEinstellungenRoute
   '/_authenticated/kalender': typeof AuthenticatedKalenderRoute
   '/_authenticated/lehrplaene': typeof AuthenticatedLehrplaeneRoute
   '/_authenticated/library': typeof AuthenticatedLibraryRoute
   '/_authenticated/links': typeof AuthenticatedLinksRoute
-  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
-  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
-  '/oauth/google_drive/return': typeof OauthGoogle_driveReturnRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
-    | '/auth'
-    | '/mcp'
-    | '/passwort-neu'
-    | '/.mcp/list-tools'
-    | '/.well-known/oauth-protected-resource'
-    | '/connect'
-    | '/einstellungen'
-    | '/kalender'
-    | '/lehrplaene'
-    | '/library'
-    | '/links'
-    | '/.lovable/oauth/consent'
-    | '/.mcp/invoke-tool/$tool'
-    | '/oauth/google_drive/return'
+    '/' | '/einstellungen' | '/kalender' | '/lehrplaene' | '/library' | '/links'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
-    | '/auth'
-    | '/mcp'
-    | '/passwort-neu'
-    | '/.mcp/list-tools'
-    | '/.well-known/oauth-protected-resource'
-    | '/connect'
-    | '/einstellungen'
-    | '/kalender'
-    | '/lehrplaene'
-    | '/library'
-    | '/links'
-    | '/.lovable/oauth/consent'
-    | '/.mcp/invoke-tool/$tool'
-    | '/oauth/google_drive/return'
+    '/' | '/einstellungen' | '/kalender' | '/lehrplaene' | '/library' | '/links'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
-    | '/auth'
-    | '/mcp'
-    | '/passwort-neu'
-    | '/.mcp/list-tools'
-    | '/.well-known/oauth-protected-resource'
-    | '/_authenticated/connect'
     | '/_authenticated/einstellungen'
     | '/_authenticated/kalender'
     | '/_authenticated/lehrplaene'
     | '/_authenticated/library'
     | '/_authenticated/links'
-    | '/.lovable/oauth/consent'
-    | '/.mcp/invoke-tool/$tool'
-    | '/oauth/google_drive/return'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
-  AuthRoute: typeof AuthRoute
-  McpRoute: typeof McpRoute
-  PasswortNeuRoute: typeof PasswortNeuRoute
-  Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
-  Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
-  DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
-  Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
-  OauthGoogle_driveReturnRoute: typeof OauthGoogle_driveReturnRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -246,48 +117,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/mcp': {
-      id: '/mcp'
-      path: '/mcp'
-      fullPath: '/mcp'
-      preLoaderRoute: typeof McpRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/passwort-neu': {
-      id: '/passwort-neu'
-      path: '/passwort-neu'
-      fullPath: '/passwort-neu'
-      preLoaderRoute: typeof PasswortNeuRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/.mcp/list-tools': {
-      id: '/.mcp/list-tools'
-      path: '/.mcp/list-tools'
-      fullPath: '/.mcp/list-tools'
-      preLoaderRoute: typeof Char91DotmcpChar93ListToolsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/.well-known/oauth-protected-resource': {
-      id: '/.well-known/oauth-protected-resource'
-      path: '/.well-known/oauth-protected-resource'
-      fullPath: '/.well-known/oauth-protected-resource'
-      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/connect': {
-      id: '/_authenticated/connect'
-      path: '/connect'
-      fullPath: '/connect'
-      preLoaderRoute: typeof AuthenticatedConnectRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/einstellungen': {
       id: '/_authenticated/einstellungen'
@@ -324,32 +153,10 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLinksRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/.lovable/oauth/consent': {
-      id: '/.lovable/oauth/consent'
-      path: '/.lovable/oauth/consent'
-      fullPath: '/.lovable/oauth/consent'
-      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/.mcp/invoke-tool/$tool': {
-      id: '/.mcp/invoke-tool/$tool'
-      path: '/.mcp/invoke-tool/$tool'
-      fullPath: '/.mcp/invoke-tool/$tool'
-      preLoaderRoute: typeof Char91DotmcpChar93InvokeToolToolRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/oauth/google_drive/return': {
-      id: '/oauth/google_drive/return'
-      path: '/oauth/google_drive/return'
-      fullPath: '/oauth/google_drive/return'
-      preLoaderRoute: typeof OauthGoogle_driveReturnRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedConnectRoute: typeof AuthenticatedConnectRoute
   AuthenticatedEinstellungenRoute: typeof AuthenticatedEinstellungenRoute
   AuthenticatedKalenderRoute: typeof AuthenticatedKalenderRoute
   AuthenticatedLehrplaeneRoute: typeof AuthenticatedLehrplaeneRoute
@@ -358,7 +165,6 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedConnectRoute: AuthenticatedConnectRoute,
   AuthenticatedEinstellungenRoute: AuthenticatedEinstellungenRoute,
   AuthenticatedKalenderRoute: AuthenticatedKalenderRoute,
   AuthenticatedLehrplaeneRoute: AuthenticatedLehrplaeneRoute,
@@ -372,15 +178,6 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
-  AuthRoute: AuthRoute,
-  McpRoute: McpRoute,
-  PasswortNeuRoute: PasswortNeuRoute,
-  Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
-  Char91DotwellKnownChar93OauthProtectedResourceRoute:
-    Char91DotwellKnownChar93OauthProtectedResourceRoute,
-  DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
-  Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
-  OauthGoogle_driveReturnRoute: OauthGoogle_driveReturnRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

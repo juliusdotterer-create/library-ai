@@ -1,10 +1,9 @@
 import { useMutation } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
-import { useServerFn } from "@tanstack/react-start";
 
 import { supabase } from "@/integrations/supabase/client";
-import { saveDocumentText } from "@/lib/document-text.functions";
+import { saveDocumentText } from "@/lib/document-text";
 import { extractPdfText, isPdfFile, runQueue } from "@/lib/pdf-text";
 
 export type UploadEntry = { file: File; segments: string[] };
@@ -68,7 +67,7 @@ export function useLibraryUpload({
   const [progress, setProgress] = useState<UploadProgressState | null>(null);
   const [indexing, setIndexing] = useState<{ done: number; total: number } | null>(null);
   const [dragging, setDragging] = useState(false);
-  const saveText = useServerFn(saveDocumentText);
+  const saveText = saveDocumentText;
   const folderRef = useRef(folderId);
   folderRef.current = folderId;
 
