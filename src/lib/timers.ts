@@ -144,3 +144,17 @@ export function acknowledgeTimer(id: string) {
     timers.map((x) => (x.id === id ? { ...x, running: false, remaining: 0, done: true } : x)),
   );
 }
+
+/** Startet einen Lern-Timer und fragt beim ersten Mal nach der Erlaubnis für Hinweise. */
+export function startStudyTimer(label: string, minutes: number) {
+  void (async () => {
+    try {
+      if (typeof Notification !== "undefined" && Notification.permission === "default") {
+        await Notification.requestPermission();
+      }
+    } catch {
+      /* ignore */
+    }
+  })();
+  addTimer(label, Math.max(1, Math.round(minutes || 25)));
+}

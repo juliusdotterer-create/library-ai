@@ -1,11 +1,10 @@
-import { useState } from "react";
 import { Bell, Pause, Play, Plus, Timer as TimerIcon, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import {
-  addTimer,
+  startStudyTimer,
   extendTimer,
   fmt,
   remainingOf,
@@ -15,52 +14,44 @@ import {
   useTimers,
 } from "@/lib/timers";
 
-export function StudyTimers({ defaultLabel = "" }: { defaultLabel?: string }) {
+/**
+ * Laufende Lern-Timer plus Dauer-Einstellung. Timer werden an den Aufgaben gestartet
+ * (Uhr-Symbol in der Aufgabenliste), damit es nur ein Feld für „was lerne ich“ gibt.
+ */
+export function StudyTimers({
+  minutes,
+  onMinutesChange,
+}: {
+  minutes: number;
+  onMinutesChange: (minutes: number) => void;
+}) {
   const timers = useTimers();
-  const [label, setLabel] = useState(defaultLabel);
-  const [minutes, setMinutes] = useState(25);
   useTick();
-
-  const add = () => {
-    void (async () => {
-      try {
-        if (typeof Notification !== "undefined" && Notification.permission === "default") {
-          await Notification.requestPermission();
-        }
-      } catch {
-        /* ignore */
-      }
-    })();
-    addTimer(label, minutes);
-    setLabel(defaultLabel);
-  };
 
   const sorted = [...timers].sort((a, b) => remainingOf(a) - remainingOf(b));
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-end gap-2">
-        <div className="min-w-40 flex-1 space-y-1.5">
-          <Label className="text-xs text-muted-foreground">Was lernst du?</Label>
-          <Input
-            className="h-9 rounded-2xl"
-            placeholder="z. B. Dokument 1 durcharbeiten"
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-          />
-        </div>
-        <div className="w-24 space-y-1.5">
-          <Label className="text-xs text-muted-foreground">Minuten</Label>
-          <Input
-            type="number"
-            min={1}
-            className="h-9 rounded-2xl"
-            value={minutes}
-            onChange={(e) => setMinutes(Number(e.target.value))}
-          />
-        </div>
-        <Button className="h-9 rounded-2xl" onClick={add}>
-          <Plus className="size-4" /> Timer
+      <div className="flex flex-wrap items-center gap-2">
+        <Label htmlFor="timer-minutes" className="text-xs text-muted-foreground">
+          Timer-Dauer
+        </Label>
+        <Input
+          id="timer-minutes"
+          type="number"
+          min={1}
+          className="h-8 w-20 rounded-2xl"
+          value={minutes}
+          onChange={(e) => onMinutesChange(Number(e.target.value))}
+        />
+        <span className="text-xs text-muted-foreground">Minuten</span>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="ml-auto rounded-2xl"
+          onClick={() => startStudyTimer("Lernzeit", minutes)}
+        >
+          <Plus className="size-4" /> Timer ohne Aufgabe
         </Button>
       </div>
 
@@ -137,7 +128,7 @@ export function StudyTimers({ defaultLabel = "" }: { defaultLabel?: string }) {
         })}
         {!timers.length && (
           <p className="flex items-center justify-center gap-2 py-6 text-center text-sm text-muted-foreground">
-            <Bell className="size-4" /> Noch kein Timer aktiv.
+            <Bell className="size-4" /> Noch kein Timer aktiv. Starte ihn mit der Uhr an einer Aufgabe.
           </p>
         )}
       </div>

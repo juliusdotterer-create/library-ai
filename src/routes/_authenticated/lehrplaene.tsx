@@ -20,6 +20,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { StudyTimers } from "@/components/StudyTimer";
+import { startStudyTimer } from "@/lib/timers";
 import { DocumentPreview, type PreviewDoc } from "@/components/DocumentPreview";
 import {
   buildFolderPath,
@@ -66,6 +67,7 @@ function LehrplanPage() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [planForm, setPlanForm] = useState({ title: "", description: "" });
   const [planOpen, setPlanOpen] = useState(false);
+  const [timerMinutes, setTimerMinutes] = useState(25);
   const [task, setTask] = useState({ title: "", due: "" });
   const [doc, setDoc] = useState<PickedDocument | null>(null);
 
@@ -359,7 +361,7 @@ function LehrplanPage() {
             </div>
 
             <div className="glass-soft mb-4 rounded-2xl p-3">
-              <StudyTimers />
+              <StudyTimers minutes={timerMinutes} onMinutesChange={setTimerMinutes} />
             </div>
 
             <TaskList
@@ -370,6 +372,7 @@ function LehrplanPage() {
               onToggle={(t) => toggleTask.mutate(t)}
               onRemove={(id) => removeTask.mutate(id)}
               onOpenDoc={openDoc}
+              onStartTimer={(title) => startStudyTimer(title, timerMinutes)}
             />
           </>
         ) : (

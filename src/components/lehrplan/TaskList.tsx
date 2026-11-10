@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CheckCircle2, ChevronDown, ChevronRight, Circle, FileText, Folder, Trash2 } from "lucide-react";
+import { CheckCircle2, ChevronDown, ChevronRight, Circle, FileText, Folder, Timer, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ export function TaskList({
   onToggle,
   onRemove,
   onOpenDoc,
+  onStartTimer,
 }: {
   tasks: StudyTask[];
   folders: PickerFolder[];
@@ -31,6 +32,8 @@ export function TaskList({
   onToggle: (task: { id: string; done: boolean }) => void;
   onRemove: (id: string) => void;
   onOpenDoc: (id: string) => void;
+  /** Startet einen Lern-Timer für diese Aufgabe. */
+  onStartTimer?: (title: string) => void;
 }) {
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
@@ -68,6 +71,18 @@ export function TaskList({
           <span className="text-xs text-muted-foreground">
             {format(new Date(t.due_date), "d. MMM", { locale: de })}
           </span>
+        )}
+        {onStartTimer && !done && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-2xl text-primary"
+            title="Timer für diese Aufgabe starten"
+            aria-label={`Timer für „${t.title}“ starten`}
+            onClick={() => onStartTimer(t.title)}
+          >
+            <Timer className="size-4" />
+          </Button>
         )}
         <Button
           variant="ghost"
