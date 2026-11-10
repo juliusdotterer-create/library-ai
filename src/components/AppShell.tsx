@@ -78,16 +78,36 @@ export function AppShell({ children }: { children: ReactNode }) {
         >
           <div className="mx-auto flex w-full max-w-7xl items-center gap-2 px-3 py-2 sm:px-5">
           <div className="flex min-w-0 items-center gap-2 pr-2">
+            {/* Logo verwandelt sich beim Darüberfahren in eine Lupe (öffnet die Suche, auch per ⌘K). */}
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
-              title="Library durchsuchen"
+              title="Library durchsuchen (⌘K)"
               aria-label="Library durchsuchen"
-              className="relative rounded-2xl transition-transform hover:scale-105"
+              className="group relative grid size-9 shrink-0 place-items-center rounded-[28%] outline-none"
             >
-              <Logo className="size-9 shrink-0 drop-shadow-sm" />
-              <span className="hidden absolute -bottom-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-background shadow-sm">
-                <Search className="size-3 text-primary" />
+              <span
+                className={cn(
+                  "absolute inset-0 grid place-items-center",
+                  "transition-[transform,opacity,filter] duration-300 ease-[cubic-bezier(0.34,1.4,0.64,1)]",
+                  "group-hover:scale-50 group-hover:-rotate-12 group-hover:opacity-0 group-hover:blur-[2px]",
+                  "group-focus-visible:scale-50 group-focus-visible:-rotate-12 group-focus-visible:opacity-0",
+                  "motion-reduce:transition-opacity motion-reduce:group-hover:scale-100 motion-reduce:group-hover:rotate-0",
+                )}
+              >
+                <Logo className="size-9 drop-shadow-sm" />
+              </span>
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "glass-tinted absolute inset-0 grid scale-50 rotate-45 place-items-center rounded-[28%] opacity-0",
+                  "transition-[transform,opacity,border-radius] duration-300 ease-[cubic-bezier(0.34,1.4,0.64,1)]",
+                  "group-hover:scale-100 group-hover:rotate-0 group-hover:rounded-full group-hover:opacity-100",
+                  "group-focus-visible:scale-100 group-focus-visible:rotate-0 group-focus-visible:rounded-full group-focus-visible:opacity-100",
+                  "motion-reduce:transition-opacity motion-reduce:scale-100 motion-reduce:rotate-0",
+                )}
+              >
+                <Search className="size-[1.05rem]" strokeWidth={2.4} />
               </span>
             </button>
             <kbd className="sr-only rounded-xl bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground sm:inline-block">
@@ -120,15 +140,6 @@ export function AppShell({ children }: { children: ReactNode }) {
           </nav>
 
           <div className="flex flex-1 items-center justify-end gap-2 md:flex-none">
-            <button
-              type="button"
-              onClick={() => setSearchOpen(true)}
-              className="glass-soft hidden items-center gap-2 rounded-full px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground md:flex"
-            >
-              <Search className="size-4" />
-              <span className="hidden lg:inline">Suchen</span>
-              <kbd className="hidden rounded-md bg-muted px-1.5 text-[10px] font-medium lg:inline">⌘K</kbd>
-            </button>
             {!online && (
               <span
                 title="Keine Verbindung – gespeicherte Inhalte bleiben nutzbar"
