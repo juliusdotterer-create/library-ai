@@ -105,12 +105,6 @@ export function ThemePanel() {
                 />
               ))}
             </div>
-            <div
-              className="mt-1 rounded-2xl p-4 text-sm"
-              style={{ background: accent, color: "var(--primary-foreground)" }}
-            >
-              Vorschau der Akzentfarbe
-            </div>
           </SettingsField>
 
         </div>
