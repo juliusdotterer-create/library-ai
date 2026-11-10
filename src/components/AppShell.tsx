@@ -72,7 +72,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               "transition-[top,left,right,border-radius,background-color,box-shadow,border-color] duration-300 ease-out",
             docked
               ? "glass-docked inset-x-0 rounded-b-[1.75rem] rounded-t-none"
-              : "glass inset-x-3 rounded-3xl sm:inset-x-5",
+              : "glass inset-x-3 rounded-full sm:inset-x-5",
           )}
           style={{ top: docked ? 0 : TOP_GAP }}
         >
@@ -85,7 +85,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               aria-label="Library durchsuchen"
               className="relative rounded-2xl transition-transform hover:scale-105"
             >
-              <Logo className="size-8 shrink-0" />
+              <Logo className="size-9 shrink-0 drop-shadow-sm" />
               <span className="hidden absolute -bottom-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-background shadow-sm">
                 <Search className="size-3 text-primary" />
               </span>
@@ -96,7 +96,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
 
 
-          <nav className="hidden flex-1 items-center gap-1 overflow-x-auto md:flex">
+          <span className="font-serif text-lg font-medium tracking-tight">Library</span>
+
+          <nav className="glass-soft mx-auto hidden items-center gap-0.5 overflow-x-auto rounded-full p-1 md:flex">
             {NAV.map((item) => {
               const active = path.startsWith(item.to);
               return (
@@ -104,10 +106,10 @@ export function AppShell({ children }: { children: ReactNode }) {
                   key={item.to}
                   to={item.to}
                   className={cn(
-                    "flex shrink-0 items-center gap-2 rounded-2xl px-3 py-2 text-sm font-medium transition-all",
+                    "flex shrink-0 items-center gap-2 rounded-full px-3.5 py-1.5 text-sm font-medium transition-all duration-200",
                     active
-                      ? "bg-primary text-primary-foreground glow-primary"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                      ? "glass-tinted"
+                      : "text-muted-foreground hover:bg-accent/70 hover:text-foreground",
                   )}
                 >
                   <item.icon className="size-4" />
@@ -118,6 +120,15 @@ export function AppShell({ children }: { children: ReactNode }) {
           </nav>
 
           <div className="flex flex-1 items-center justify-end gap-2 md:flex-none">
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              className="glass-soft hidden items-center gap-2 rounded-full px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground md:flex"
+            >
+              <Search className="size-4" />
+              <span className="hidden lg:inline">Suchen</span>
+              <kbd className="hidden rounded-md bg-muted px-1.5 text-[10px] font-medium lg:inline">⌘K</kbd>
+            </button>
             {!online && (
               <span
                 title="Keine Verbindung – gespeicherte Inhalte bleiben nutzbar"
@@ -135,14 +146,14 @@ export function AppShell({ children }: { children: ReactNode }) {
             to="/einstellungen"
             title="Profil & Einstellungen"
             aria-label="Profil & Einstellungen"
-            className="rounded-2xl p-2 text-muted-foreground/40 transition-colors hover:text-foreground"
+            className="rounded-full p-2 text-muted-foreground/70 transition-colors hover:bg-accent/70 hover:text-foreground"
           >
             <CircleUserRound className="size-4" />
           </Link>
           <Button
             variant="ghost"
             size="icon"
-            className="hidden rounded-2xl text-muted-foreground/40 hover:text-foreground md:inline-flex"
+            className="hidden rounded-full text-muted-foreground/70 hover:text-foreground md:inline-flex"
             onClick={toggleMode}
           >
             {mode === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
@@ -154,12 +165,12 @@ export function AppShell({ children }: { children: ReactNode }) {
       <main className="mx-auto w-full max-w-7xl px-3 py-6 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:px-5 md:pb-6">{children}</main>
 
       {/* Mobile: kompakte Icon-Leiste am unteren Bildschirmrand */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:hidden">
-        <div className="liquid-nav-shell mx-auto grid h-16 max-w-md grid-cols-4 place-items-stretch overflow-hidden rounded-[2rem] p-1">
+      <nav className="fixed inset-x-0 bottom-0 z-40 flex items-end gap-2.5 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:hidden">
+        <div className="liquid-nav-shell grid h-[3.75rem] min-w-0 flex-1 grid-cols-4 place-items-stretch overflow-hidden rounded-full p-1">
           {activeMobileIndex >= 0 && (
             <motion.div
               aria-hidden="true"
-              className="liquid-nav-lens pointer-events-none absolute inset-y-1 left-1 w-[calc((100%-0.5rem)/4)] origin-center transform-gpu will-change-transform rounded-[1.4rem]"
+              className="liquid-nav-lens pointer-events-none absolute inset-y-1 left-1 w-[calc((100%-0.5rem)/4)] origin-center transform-gpu will-change-transform rounded-full"
               initial={false}
               animate={{
                 x: `${activeMobileIndex * 100}%`,
@@ -190,17 +201,26 @@ export function AppShell({ children }: { children: ReactNode }) {
                 title={item.label}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "relative z-10 grid h-full w-full min-w-0 place-items-center rounded-[1.4rem] p-0 transition-colors duration-200 active:scale-95",
+                  "relative z-10 flex h-full w-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-full p-0 transition-colors duration-200 active:scale-95",
                   active
                     ? "text-primary"
-                    : "text-muted-foreground",
+                    : "text-foreground/70",
                 )}
               >
-                <item.icon className={cn("block size-5 shrink-0 transition-transform duration-200", active && "scale-105")} />
+                <item.icon className={cn("block size-[1.3rem] shrink-0 transition-transform duration-200", active && "scale-105")} />
+                <span className="max-w-full truncate px-1 text-[10px] font-medium leading-none">{item.label}</span>
               </Link>
             );
           })}
         </div>
+        <button
+          type="button"
+          onClick={() => setSearchOpen(true)}
+          aria-label="Library durchsuchen"
+          className="liquid-nav-shell grid size-[3.75rem] shrink-0 place-items-center rounded-full text-foreground/80 active:scale-95"
+        >
+          <Search className="size-[1.3rem]" />
+        </button>
       </nav>
     </div>
   );

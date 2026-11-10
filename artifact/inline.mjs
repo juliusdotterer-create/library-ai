@@ -13,6 +13,7 @@ const style = css.map((f) => readFileSync(join(assets, f), "utf8")).join("\n").r
 const script = readFileSync(join(assets, js[0]), "utf8").replace(/<\/script/gi, "<\\/script").replace(/<!--/g, "<\\!--");
 
 const html = `<title>Library</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&display=swap">
 <style>${style}</style>
 <div id="app"></div>
 <script type="module">${script}</script>

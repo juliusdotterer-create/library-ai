@@ -88,7 +88,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "Library – Dokumente, Kalender & Lehrpläne" },
       { name: "description", content: "Persönliches Studienarchiv: PDFs und Dateien in verschachtelten Ordnern, integrierter Kalender, eigene Lehrpläne und ein Linktree – in Off-White, Orange und Darkmode." },
       { name: "author", content: "Library" },
-      { name: "theme-color", content: "#FF8C42" },
+      { name: "theme-color", content: "#F5F3EC" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "default" },
       { name: "apple-mobile-web-app-title", content: "Library" },
@@ -102,6 +102,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/b170a584-a5ba-4930-a449-7f99521505b2/id-preview-2689fa60--afdc2cd9-f5d3-4c9e-a37c-a5406b761538.lovable.app-1785433603822.png" },
     ],
     links: [
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&display=swap",
+      },
       {
         rel: "stylesheet",
         href: appCss,

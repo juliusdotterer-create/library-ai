@@ -5,9 +5,11 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Design system: "Liquid Glass" × warm minimal.
- * Base = off-white paper, accent = adjustable warm hue (default orange).
- * Alle Farben in oklch. --accent-h wird zur Laufzeit vom ThemeProvider gesetzt.
+ * Design system: Apple "Liquid Glass" × Claude.
+ * Grund = warmes Elfenbein (Claude), Akzent = Ton „Claude“ (Ton-Orange, einstellbar),
+ * Überschriften in Serifenschrift, Bedienelemente als schwebende Glas-Kapseln
+ * mit Lichtkante oben, innerem Rand und weichem Schatten.
+ * Alle Farben in oklch. --accent-h/--accent-c setzt der ThemeProvider zur Laufzeit.
  */
 
 @theme inline {
@@ -54,7 +56,8 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  --font-sans: "Inter Tight", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Source Serif 4", "Tiempos Headline", ui-serif, Georgia, "Times New Roman", serif;
 }
 
 :root {
@@ -64,49 +67,56 @@
   --event-green: oklch(0.62 0.13 155);
   --event-violet: oklch(0.6 0.15 300);
   --event-rose: oklch(0.63 0.17 10);
-  --accent-h: 55;
-  --accent-c: 0.16;
-  --radius: 1rem;
+  --accent-h: 39;
+  --accent-c: 0.13;
+  --radius: 1.125rem;
 
-  --background: oklch(0.978 0.008 85);
-  --foreground: oklch(0.24 0.014 60);
-  --card: oklch(0.995 0.005 85);
+  /* Claude: Elfenbein-Grund, warmes Fast-Schwarz */
+  --background: oklch(0.972 0.009 92);
+  --foreground: oklch(0.2 0.006 90);
+  --card: oklch(0.99 0.005 95);
   --card-foreground: var(--foreground);
   --popover: oklch(0.995 0.004 85);
   --popover-foreground: var(--foreground);
 
-  --primary: oklch(0.64 var(--accent-c) var(--accent-h));
-  --primary-foreground: oklch(0.99 0.005 85);
-  --primary-soft: oklch(0.93 calc(var(--accent-c) * 0.35) var(--accent-h));
+  --primary: oklch(0.645 var(--accent-c) var(--accent-h));
+  --primary-foreground: oklch(0.99 0.005 95);
+  --primary-soft: oklch(0.925 calc(var(--accent-c) * 0.38) var(--accent-h));
 
-  --secondary: oklch(0.95 0.01 80);
-  --secondary-foreground: oklch(0.3 0.015 60);
-  --muted: oklch(0.955 0.008 80);
-  --muted-foreground: oklch(0.53 0.015 65);
+  --secondary: oklch(0.94 0.01 90);
+  --secondary-foreground: oklch(0.27 0.008 90);
+  --muted: oklch(0.945 0.009 90);
+  --muted-foreground: oklch(0.5 0.012 80);
   --accent: oklch(0.94 calc(var(--accent-c) * 0.3) var(--accent-h));
   --accent-foreground: oklch(0.35 calc(var(--accent-c) * 0.6) var(--accent-h));
   --destructive: oklch(0.58 0.2 25);
   --destructive-foreground: oklch(0.99 0.005 85);
 
-  --border: oklch(0.9 0.01 80);
-  --input: oklch(0.92 0.01 80);
+  --border: oklch(0.89 0.01 90);
+  --input: oklch(0.91 0.01 90);
   /* Solide Eingabefelder (Termin-Formular) – kein Durchscheinen des Glasgrunds */
   --field: oklch(0.996 0.004 85);
   --field-border: oklch(0.86 0.014 80);
   --ring: oklch(0.64 var(--accent-c) var(--accent-h));
 
-  --glass: oklch(1 0 0 / 55%);
+  /* Liquid Glass: helle Füllung, Lichtkante oben, Innenrand, weicher Schatten */
+  --glass: oklch(0.995 0.004 95 / 52%);
+  --glass-strong: oklch(0.995 0.004 95 / 70%);
+  --glass-tint: linear-gradient(180deg, oklch(1 0 0 / 38%), oklch(1 0 0 / 6%) 55%, oklch(1 0 0 / 14%));
   /* Angeheftete obere Leiste: milchig, aber leicht blickdichter als schwebend */
-  --glass-docked: oklch(1 0 0 / 68%);
-  --glass-border: oklch(1 0 0 / 70%);
-  --glass-blur: 22px;
-  --glass-shadow: 0 10px 40px -12px oklch(0.4 0.03 60 / 22%);
+  --glass-docked: oklch(0.99 0.005 95 / 64%);
+  --glass-border: oklch(1 0 0 / 62%);
+  --glass-blur: 26px;
+  --glass-highlight: inset 0 1px 0.5px oklch(1 0 0 / 90%), inset 0 -1px 0.5px oklch(0.3 0.01 80 / 7%),
+    inset 0 0 0 0.5px oklch(1 0 0 / 35%);
+  --glass-shadow: var(--glass-highlight), 0 1px 2px oklch(0.3 0.02 60 / 6%),
+    0 14px 36px -14px oklch(0.35 0.03 50 / 24%);
   --glow: 0 0 0 1px oklch(0.64 var(--accent-c) var(--accent-h) / 18%),
     0 18px 50px -18px oklch(0.64 var(--accent-c) var(--accent-h) / 45%);
-  --nav-glass: oklch(1 0 0 / 48%);
-  --nav-glass-border: oklch(1 0 0 / 78%);
-  --nav-glass-shadow: 0 12px 36px -16px oklch(0.35 0.025 60 / 32%);
-  --nav-lens: oklch(1 0 0 / 24%);
+  --nav-glass: oklch(0.995 0.004 95 / 46%);
+  --nav-glass-border: oklch(1 0 0 / 72%);
+  --nav-glass-shadow: var(--glass-highlight), 0 16px 40px -16px oklch(0.3 0.03 50 / 34%);
+  --nav-lens: oklch(1 0 0 / 30%);
   --nav-lens-border: oklch(1 0 0 / 76%);
   --nav-lens-shadow: inset 0 1px 1px oklch(1 0 0 / 88%),
     inset 0 -1px 1px oklch(0.42 0.02 60 / 12%),
@@ -124,15 +134,16 @@
 
 .dark {
   color-scheme: dark;
-  --background: oklch(0.19 0.012 60);
-  --foreground: oklch(0.95 0.008 85);
-  --card: oklch(0.235 0.014 60);
+  /* Claude dunkel: warmes Anthrazit */
+  --background: oklch(0.205 0.004 80);
+  --foreground: oklch(0.955 0.007 95);
+  --card: oklch(0.25 0.005 80);
   --card-foreground: var(--foreground);
-  --popover: oklch(0.235 0.014 60);
+  --popover: oklch(0.25 0.005 80);
   --popover-foreground: var(--foreground);
 
-  --primary: oklch(0.72 var(--accent-c) var(--accent-h));
-  --primary-foreground: oklch(0.19 0.012 60);
+  --primary: oklch(0.71 var(--accent-c) var(--accent-h));
+  --primary-foreground: oklch(0.18 0.006 60);
   --primary-soft: oklch(0.34 calc(var(--accent-c) * 0.45) var(--accent-h));
 
   --secondary: oklch(0.28 0.014 60);
@@ -150,13 +161,17 @@
   --field-border: oklch(1 0 0 / 16%);
   --ring: oklch(0.72 var(--accent-c) var(--accent-h));
 
-  --glass: oklch(0.3 0.014 60 / 55%);
-  --glass-docked: oklch(0.26 0.014 60 / 72%);
-  --glass-border: oklch(1 0 0 / 12%);
-  --glass-shadow: 0 12px 44px -14px oklch(0 0 0 / 55%);
-  --nav-glass: oklch(0.29 0.012 60 / 64%);
+  --glass: oklch(0.3 0.006 80 / 50%);
+  --glass-strong: oklch(0.3 0.006 80 / 72%);
+  --glass-tint: linear-gradient(180deg, oklch(1 0 0 / 9%), oklch(1 0 0 / 1%) 55%, oklch(1 0 0 / 4%));
+  --glass-docked: oklch(0.25 0.006 80 / 70%);
+  --glass-border: oklch(1 0 0 / 13%);
+  --glass-highlight: inset 0 1px 0.5px oklch(1 0 0 / 22%), inset 0 -1px 0.5px oklch(0 0 0 / 30%),
+    inset 0 0 0 0.5px oklch(1 0 0 / 8%);
+  --glass-shadow: var(--glass-highlight), 0 16px 44px -14px oklch(0 0 0 / 60%);
+  --nav-glass: oklch(0.29 0.006 80 / 58%);
   --nav-glass-border: oklch(1 0 0 / 16%);
-  --nav-glass-shadow: 0 14px 38px -14px oklch(0 0 0 / 65%);
+  --nav-glass-shadow: var(--glass-highlight), 0 16px 40px -14px oklch(0 0 0 / 65%);
   --nav-lens: oklch(1 0 0 / 10%);
   --nav-lens-border: oklch(1 0 0 / 25%);
   --nav-lens-shadow: inset 0 1px 1px oklch(1 0 0 / 42%),
@@ -178,9 +193,19 @@
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    font-feature-settings: "ss01", "cv11";
   }
 
-  /* Ambient liquid backdrop */
+  /* Claude: Überschriften in Serifenschrift, ruhig und leicht */
+  h1,
+  h2 {
+    font-family: var(--font-serif);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+
+  /* Hintergrund: weiche Licht-Flecken in Ton-Orange, Sand und Salbei, damit das Glas etwas zum Brechen hat */
   body::before {
     content: "";
     position: fixed;
@@ -188,40 +213,50 @@
     z-index: -1;
     pointer-events: none;
     background:
-      radial-gradient(
-        60rem 40rem at 12% -10%,
-        oklch(0.64 var(--accent-c) var(--accent-h) / 22%),
-        transparent 60%
-      ),
-      radial-gradient(
-        50rem 36rem at 92% 8%,
-        oklch(0.64 var(--accent-c) calc(var(--accent-h) + 40) / 14%),
-        transparent 62%
-      ),
-      radial-gradient(
-        46rem 34rem at 60% 108%,
-        oklch(0.64 var(--accent-c) calc(var(--accent-h) - 30) / 12%),
-        transparent 60%
-      );
+      radial-gradient(52rem 36rem at 8% -6%, oklch(0.7 var(--accent-c) var(--accent-h) / 26%), transparent 62%),
+      radial-gradient(44rem 32rem at 96% 4%, oklch(0.84 0.06 95 / 38%), transparent 64%),
+      radial-gradient(40rem 30rem at 78% 96%, oklch(0.78 0.05 150 / 20%), transparent 62%),
+      radial-gradient(38rem 28rem at 18% 92%, oklch(0.72 var(--accent-c) calc(var(--accent-h) - 20) / 14%), transparent 60%);
+  }
+  .dark body::before {
+    opacity: 0.55;
   }
 }
 
 @utility glass {
-  background: var(--glass);
-  backdrop-filter: blur(var(--glass-blur)) saturate(170%);
+  background: var(--glass-tint), var(--glass);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%) brightness(1.02);
+  backdrop-filter: blur(var(--glass-blur)) saturate(180%) brightness(1.02);
   border: 1px solid var(--glass-border);
   box-shadow: var(--glass-shadow);
 }
 
 @utility glass-soft {
-  background: color-mix(in oklab, var(--glass) 70%, transparent);
-  backdrop-filter: blur(calc(var(--glass-blur) * 0.6)) saturate(150%);
+  background: var(--glass-tint), color-mix(in oklab, var(--glass) 72%, transparent);
+  -webkit-backdrop-filter: blur(calc(var(--glass-blur) * 0.6)) saturate(160%);
+  backdrop-filter: blur(calc(var(--glass-blur) * 0.6)) saturate(160%);
   border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-highlight);
+}
+
+/* Gefüllte Akzent-Kapsel mit Glas-Glanz (aktive Navigation, Hauptaktionen) */
+@utility glass-tinted {
+  background:
+    linear-gradient(180deg, oklch(1 0 0 / 26%), oklch(1 0 0 / 0%) 60%),
+    color-mix(in oklab, var(--primary) 88%, transparent);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  backdrop-filter: blur(16px) saturate(180%);
+  color: var(--primary-foreground);
+  box-shadow:
+    inset 0 1px 0.5px oklch(1 0 0 / 45%),
+    inset 0 -1px 0.5px oklch(0 0 0 / 12%),
+    0 8px 20px -10px color-mix(in oklab, var(--primary) 70%, transparent);
 }
 
 /* Obere Leiste im angehefteten Zustand: milchig-transparent (kein Vollton), Fassung nur unten. */
 @utility glass-docked {
-  background: var(--glass-docked);
+  background: var(--glass-tint), var(--glass-docked);
+  -webkit-backdrop-filter: blur(calc(var(--glass-blur) * 1.4)) saturate(180%);
   backdrop-filter: blur(calc(var(--glass-blur) * 1.4)) saturate(180%);
   border: 1px solid var(--glass-border);
   border-top-width: 0;
@@ -240,8 +275,9 @@
 
 @utility liquid-nav-shell {
   position: relative;
-  background: var(--nav-glass);
-  backdrop-filter: blur(28px) saturate(185%);
+  background: var(--glass-tint), var(--nav-glass);
+  -webkit-backdrop-filter: blur(30px) saturate(190%);
+  backdrop-filter: blur(30px) saturate(190%);
   border: 1px solid var(--nav-glass-border);
   box-shadow: var(--nav-glass-shadow);
 }

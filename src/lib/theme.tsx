@@ -10,8 +10,8 @@ export type ThemeSettings = {
 };
 
 export const ACCENT_PRESETS: { id: string; label: string; hue: number; chroma: number }[] = [
+  { id: "claude", label: "Claude", hue: 39, chroma: 0.13 },
   { id: "orange", label: "Orange", hue: 55, chroma: 0.16 },
-  { id: "terracotta", label: "Terrakotta", hue: 38, chroma: 0.15 },
   { id: "amber", label: "Bernstein", hue: 78, chroma: 0.15 },
   { id: "olive", label: "Olive", hue: 128, chroma: 0.1 },
   { id: "teal", label: "Petrol", hue: 195, chroma: 0.11 },
@@ -19,7 +19,7 @@ export const ACCENT_PRESETS: { id: string; label: string; hue: number; chroma: n
   { id: "rose", label: "Rosé", hue: 12, chroma: 0.14 },
 ];
 
-const DEFAULTS: ThemeSettings = { mode: "light", hue: 55, chroma: 0.16 };
+const DEFAULTS: ThemeSettings = { mode: "light", hue: 39, chroma: 0.13 };
 const STORAGE_KEY = "archiv.theme";
 
 type ThemeContextValue = ThemeSettings & {
