@@ -20,7 +20,7 @@ export function FreeNotesOverlay({
 }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col bg-foreground/20 p-2 backdrop-blur-[2px] lg:p-4">
+    <div className="fixed inset-0 z-[60] flex flex-col bg-overlay p-2 backdrop-blur-[2px] lg:p-4">
       <div className="glass flex shrink-0 items-center gap-2 rounded-3xl px-3 py-2">
         <span className="min-w-0 flex-1 truncate text-sm font-semibold">
           {title ?? "Freie Notizen"}

@@ -47,6 +47,7 @@
   --color-ring: var(--ring);
   --color-ring-offset-background: var(--background);
   --color-glass: var(--glass);
+  --color-overlay: var(--overlay);
   --color-glass-border: var(--glass-border);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
@@ -109,6 +110,10 @@
   /* Angeheftete obere Leiste: milchig, aber leicht blickdichter als schwebend */
   --glass-docked: oklch(0.99 0.005 95 / 64%);
   --glass-border: oklch(1 0 0 / 62%);
+  --tinted-sheen: oklch(1 0 0 / 26%);
+  --tinted-edge: oklch(1 0 0 / 45%);
+  --nav-lens-glare: oklch(1 0 0 / 48%);
+  --overlay: oklch(0.2 0.01 60 / 20%);
   --glass-blur: 26px;
   --glass-highlight: inset 0 1px 0.5px oklch(1 0 0 / 90%), inset 0 -1px 0.5px oklch(0.3 0.01 80 / 7%),
     inset 0 0 0 0.5px oklch(1 0 0 / 35%);
@@ -137,51 +142,55 @@
 
 .dark {
   color-scheme: dark;
-  /* Claude dunkel: warmes Anthrazit */
-  --background: oklch(0.205 0.004 80);
-  --foreground: oklch(0.955 0.007 95);
-  --card: oklch(0.25 0.005 80);
+  /*
+   * Dunkelmodus wie Claude: neutrales Anthrazit (#262624), Flächen #30302e,
+   * fast deckend, ohne weiße Glanzkanten und ohne Licht-Flecken im Hintergrund.
+   */
+  --background: oklch(0.262 0.002 100);
+  --foreground: oklch(0.975 0.004 95);
+  --card: oklch(0.3 0.002 100);
   --card-foreground: var(--foreground);
-  --popover: oklch(0.25 0.005 80);
+  --popover: oklch(0.3 0.002 100);
   --popover-foreground: var(--foreground);
 
   --primary: oklch(var(--accent-l-dark) var(--accent-c) var(--accent-h));
-  --primary-foreground: oklch(0.18 0.006 60);
-  --primary-soft: oklch(0.34 calc(var(--accent-c) * 0.45) var(--accent-h));
+  --primary-foreground: oklch(0.2 0.004 90);
+  --primary-soft: oklch(0.34 calc(var(--accent-c) * 0.4) var(--accent-h));
 
-  --secondary: oklch(0.28 0.014 60);
-  --secondary-foreground: oklch(0.93 0.008 85);
-  --muted: oklch(0.28 0.012 60);
-  --muted-foreground: oklch(0.7 0.012 70);
-  --accent: oklch(0.32 calc(var(--accent-c) * 0.4) var(--accent-h));
-  --accent-foreground: oklch(0.88 calc(var(--accent-c) * 0.4) var(--accent-h));
-  --destructive: oklch(0.65 0.19 25);
-  --destructive-foreground: oklch(0.16 0.01 60);
+  --secondary: oklch(0.33 0.002 100);
+  --secondary-foreground: oklch(0.94 0.004 95);
+  --muted: oklch(0.33 0.002 100);
+  --muted-foreground: oklch(0.72 0.006 90);
+  --accent: oklch(0.35 0.003 100);
+  --accent-foreground: oklch(0.96 0.004 95);
+  --destructive: oklch(0.66 0.17 25);
+  --destructive-foreground: oklch(0.18 0.004 90);
 
-  --border: oklch(1 0 0 / 12%);
-  --input: oklch(1 0 0 / 16%);
-  --field: oklch(0.275 0.016 60);
-  --field-border: oklch(1 0 0 / 16%);
+  --border: oklch(1 0 0 / 9%);
+  --input: oklch(1 0 0 / 12%);
+  --field: oklch(0.225 0.002 100);
+  --field-border: oklch(1 0 0 / 12%);
   --ring: var(--primary);
+  --overlay: oklch(0 0 0 / 55%);
 
-  --glass: oklch(0.3 0.006 80 / 50%);
-  --glass-strong: oklch(0.3 0.006 80 / 72%);
-  --glass-tint: linear-gradient(180deg, oklch(1 0 0 / 9%), oklch(1 0 0 / 1%) 55%, oklch(1 0 0 / 4%));
-  --glass-docked: oklch(0.25 0.006 80 / 70%);
-  --glass-border: oklch(1 0 0 / 13%);
-  --glass-highlight: inset 0 1px 0.5px oklch(1 0 0 / 22%), inset 0 -1px 0.5px oklch(0 0 0 / 30%),
-    inset 0 0 0 0.5px oklch(1 0 0 / 8%);
-  --glass-shadow: var(--glass-highlight), 0 16px 44px -14px oklch(0 0 0 / 60%);
-  --nav-glass: oklch(0.29 0.006 80 / 58%);
-  --nav-glass-border: oklch(1 0 0 / 16%);
-  --nav-glass-shadow: var(--glass-highlight), 0 16px 40px -14px oklch(0 0 0 / 65%);
-  --nav-lens: oklch(1 0 0 / 10%);
-  --nav-lens-border: oklch(1 0 0 / 25%);
-  --nav-lens-shadow: inset 0 1px 1px oklch(1 0 0 / 42%),
-    inset 0 -1px 1px oklch(0 0 0 / 25%),
-    0 9px 20px -8px oklch(0 0 0 / 55%);
+  --glass: oklch(0.3 0.002 100 / 92%);
+  --glass-strong: oklch(0.3 0.002 100 / 96%);
+  --glass-tint: linear-gradient(transparent, transparent);
+  --glass-docked: oklch(0.262 0.002 100 / 92%);
+  --glass-border: oklch(1 0 0 / 8%);
+  --glass-highlight: inset 0 1px 0 oklch(1 0 0 / 4%);
+  --glass-shadow: var(--glass-highlight), 0 1px 2px oklch(0 0 0 / 25%), 0 12px 32px -16px oklch(0 0 0 / 55%);
+  --tinted-sheen: oklch(1 0 0 / 0%);
+  --tinted-edge: oklch(1 0 0 / 10%);
+  --nav-glass: oklch(0.3 0.002 100 / 94%);
+  --nav-glass-border: oklch(1 0 0 / 9%);
+  --nav-glass-shadow: var(--glass-highlight), 0 14px 36px -14px oklch(0 0 0 / 60%);
+  --nav-lens: oklch(1 0 0 / 7%);
+  --nav-lens-border: oklch(1 0 0 / 10%);
+  --nav-lens-shadow: none;
+  --nav-lens-glare: transparent;
 
-  --sidebar: oklch(0.22 0.014 60 / 70%);
+  --sidebar: oklch(0.23 0.002 100);
   --sidebar-foreground: var(--foreground);
   --sidebar-border: var(--border);
 }
@@ -222,7 +231,7 @@
       radial-gradient(38rem 28rem at 18% 92%, oklch(0.72 var(--accent-c) calc(var(--accent-h) - 20) / 14%), transparent 60%);
   }
   .dark body::before {
-    opacity: 0.55;
+    display: none;
   }
 }
 
@@ -245,13 +254,13 @@
 /* Gefüllte Akzent-Kapsel mit Glas-Glanz (aktive Navigation, Hauptaktionen) */
 @utility glass-tinted {
   background:
-    linear-gradient(180deg, oklch(1 0 0 / 26%), oklch(1 0 0 / 0%) 60%),
+    linear-gradient(180deg, var(--tinted-sheen), oklch(1 0 0 / 0%) 60%),
     color-mix(in oklab, var(--primary) 88%, transparent);
   -webkit-backdrop-filter: blur(16px) saturate(180%);
   backdrop-filter: blur(16px) saturate(180%);
   color: var(--primary-foreground);
   box-shadow:
-    inset 0 1px 0.5px oklch(1 0 0 / 45%),
+    inset 0 1px 0.5px var(--tinted-edge),
     inset 0 -1px 0.5px oklch(0 0 0 / 12%),
     0 8px 20px -10px color-mix(in oklab, var(--primary) 70%, transparent);
 }
@@ -275,7 +284,12 @@
   filter: invert(0.88) hue-rotate(180deg) saturate(0.9);
 }
 .dark.dark-pages .doc-page-bg {
-  background-color: oklch(0.24 0.004 80);
+  background-color: oklch(0.24 0.002 100);
+}
+
+.dark .liquid-nav-lens-refraction {
+  background: none;
+  box-shadow: none;
 }
 
 /* Native Datums-/Uhrzeit-Symbole in dunklem Modus aufhellen */
@@ -308,8 +322,8 @@
 @utility liquid-nav-lens-glare {
   background: linear-gradient(
     155deg,
-    oklch(1 0 0 / 48%) 0%,
-    oklch(1 0 0 / 10%) 32%,
+    var(--nav-lens-glare) 0%,
+    color-mix(in oklab, var(--nav-lens-glare) 20%, transparent) 32%,
     transparent 56%
   );
 }

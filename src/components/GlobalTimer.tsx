@@ -43,7 +43,7 @@ export function GlobalTimerWatcher() {
   if (!expired.length) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-foreground/70 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
       <div className="glass animate-scale-in w-full max-w-md space-y-5 rounded-3xl border-2 border-primary p-6 text-center">
         <TimerIcon className="mx-auto size-12 text-primary" />
         <div className="space-y-1">
