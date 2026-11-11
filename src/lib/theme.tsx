@@ -1,5 +1,4 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { supabase } from "@/integrations/supabase/client";
 
 export type ThemeMode = "light" | "dark";
 
@@ -108,19 +107,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         } catch {
           /* ignore */
         }
-        void supabase.auth.getSession().then(({ data }) => {
-          const uid = data.session?.user.id;
-          if (!uid) return;
-          void supabase.from("user_settings").upsert(
-            {
-              user_id: uid,
-              theme_mode: next.mode,
-              accent_hue: next.hue,
-              accent: String(next.chroma),
-            },
-            { onConflict: "user_id" },
-          );
-        });
         return next;
       });
     },

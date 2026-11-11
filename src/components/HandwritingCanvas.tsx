@@ -53,31 +53,6 @@ export function paintStrokes(
   }
 }
 
-/** Kleine, nicht interaktive Vorschau einer Seite. */
-export function StrokePreview({ strokes, className }: { strokes: Stroke[]; className?: string }) {
-  const ref = useRef<HTMLCanvasElement>(null);
-  useEffect(() => {
-    const c = ref.current;
-    if (!c) return;
-    const w = c.clientWidth;
-    const h = w * PAGE_RATIO;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    c.width = Math.round(w * dpr);
-    c.height = Math.round(h * dpr);
-    const ctx = c.getContext("2d");
-    if (!ctx) return;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    paintStrokes(ctx, strokes, w, h);
-  }, [strokes]);
-  return (
-    <canvas
-      ref={ref}
-      className={cn("w-full rounded-lg bg-white", className)}
-      style={{ aspectRatio: `1 / ${PAGE_RATIO}`, display: "block" }}
-    />
-  );
-}
-
 /**
  * Handschrift-Fläche mit Apple-Pencil-Optimierung:
  * Pointer Events, Druckstärke, coalesced events, Palm Rejection.

@@ -698,25 +698,6 @@ function rtfToHtml(buffer: ArrayBuffer): string {
 
 /* ---------------------------------------------------------------- Public */
 
-/** Extrahiert den reinen Text aus einem .doc-ArrayBuffer (z. B. für die Suche). */
-export function extractLegacyDocText(buffer: ArrayBuffer): string {
-  const kind = sniffLegacyDoc(buffer);
-  if (kind === "rtf") {
-    return rtfToHtml(buffer)
-      .replace(/<[^>]+>/g, "\n")
-      .replace(/&amp;/g, "&")
-      .replace(/\n{3,}/g, "\n\n")
-      .trim();
-  }
-  const doc = readDoc97(buffer);
-  return buildParagraphs(doc)
-    .map((p) => paraText(p))
-    .join("\n")
-    .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, "")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-}
-
 /** Erzeugt formatiertes HTML aus einem .doc-ArrayBuffer. */
 export function extractLegacyDocHtml(buffer: ArrayBuffer): string {
   const kind = sniffLegacyDoc(buffer);

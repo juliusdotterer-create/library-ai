@@ -83,10 +83,6 @@ export function remainingOf(t: StudyTimer) {
   return t.running ? t.endsAt - Date.now() : t.remaining;
 }
 
-export function isExpired(t: StudyTimer) {
-  return remainingOf(t) <= 0;
-}
-
 export function fmt(ms: number) {
   const total = Math.max(0, Math.round(ms / 1000));
   const h = Math.floor(total / 3600);

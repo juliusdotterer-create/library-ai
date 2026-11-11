@@ -173,26 +173,6 @@ export function useTrash() {
   });
 }
 
-/** Lädt favorisierte Ordner des Nutzers. */
-export function useFavoriteFolders() {
-  const { user } = useAuth();
-  return useQuery({
-    queryKey: queryKeys.favoriteFolders,
-    enabled: !!user,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("folders")
-        .select("id,name")
-        .eq("user_id", user!.id)
-        .is("deleted_at", null)
-        .eq("is_favorite", true)
-        .order("name");
-      if (error) throw error;
-      return data;
-    },
-  });
-}
-
 /** Lädt Lehrpläne des Nutzers. */
 export function useStudyPlans() {
   const { user } = useAuth();
@@ -268,21 +248,3 @@ export function useLinks() {
   });
 }
 
-/** Lädt einen einzelnen Ordner (user-scoped). */
-export function useFolder(folderId: string | null) {
-  const { user } = useAuth();
-  return useQuery({
-    queryKey: queryKeys.folderPath(folderId ?? ""),
-    enabled: !!user && !!folderId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("folders")
-        .select("id,name,parent_id")
-        .eq("user_id", user!.id)
-        .eq("id", folderId!)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-  });
-}

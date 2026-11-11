@@ -90,10 +90,6 @@ export function parseQuery(input: string, now = new Date()): ParsedQuery {
   return { term, filters, chips };
 }
 
-export function hasFilters(f: SearchFilters): boolean {
-  return !!(f.folderName || f.mime || f.from || f.to);
-}
-
 export function matchesMime(mime: string | null | undefined, name: string, want?: SearchMime): boolean {
   if (!want) return true;
   const m = (mime ?? "").toLowerCase();
