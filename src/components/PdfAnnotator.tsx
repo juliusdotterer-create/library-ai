@@ -567,7 +567,7 @@ export function PdfAnnotator({
             }
           >
           <div
-            className="absolute left-1/2 top-1/2 overflow-hidden bg-white"
+            className="doc-page-bg absolute left-1/2 top-1/2 overflow-hidden bg-white"
             style={{
               width: dim.w,
               height: dim.h,
@@ -578,6 +578,7 @@ export function PdfAnnotator({
               ref={(el) => {
                 canvasRefs.current[i] = el;
               }}
+              className="doc-page"
               style={{ width: "100%", height: "100%", display: "block" }}
             />
             <canvas

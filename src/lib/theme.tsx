@@ -8,6 +8,8 @@ export type ThemeSettings = {
   chroma: number;
   /** Gewählte Akzentfarbe (id aus ACCENT_PRESETS). */
   accent?: string;
+  /** PDF-Seiten und Notizpapier im Dunkelmodus abdunkeln (Standard: an). */
+  darkPages?: boolean;
 };
 
 export type AccentPreset = {
@@ -71,6 +73,7 @@ function apply(settings: ThemeSettings) {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
   root.classList.toggle("dark", settings.mode === "dark");
+  root.classList.toggle("dark-pages", settings.darkPages !== false);
   root.style.setProperty("--accent-h", String(settings.hue));
   root.style.setProperty("--accent-c", String(settings.chroma));
   const preset = presetOf(settings);

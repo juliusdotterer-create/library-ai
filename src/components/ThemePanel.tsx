@@ -1,5 +1,7 @@
 import { ChevronDown, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   Collapsible,
   CollapsibleContent,
@@ -15,7 +17,7 @@ import { cn } from "@/lib/utils";
  * Die einzelnen Felder (Modus, Akzentfarbe) sind zusätzlich für sich einklappbar.
  */
 export function ThemePanel() {
-  const { mode, hue, chroma, accent: accentId, setTheme } = useTheme();
+  const { mode, hue, chroma, accent: accentId, darkPages, setTheme } = useTheme();
   const [open, setOpen] = usePersistentOpen("theme", false);
 
   const preset = presetOf({ accent: accentId, hue, chroma });
@@ -104,6 +106,24 @@ export function ThemePanel() {
                   aria-label={p.label}
                 />
               ))}
+            </div>
+          </SettingsField>
+
+          <SettingsField
+            id="theme-dark-pages"
+            title="Dokumente im Dunkelmodus"
+            value={darkPages === false ? "Hell lassen" : "Abdunkeln"}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <Label htmlFor="dark-pages" className="text-sm font-normal text-muted-foreground">
+                PDF-Seiten und Notizpapier im Dunkelmodus dunkel anzeigen (helle Schrift auf dunklem
+                Grund). Gespeicherte Dateien bleiben unverändert.
+              </Label>
+              <Switch
+                id="dark-pages"
+                checked={darkPages !== false}
+                onCheckedChange={(v) => setTheme({ darkPages: v })}
+              />
             </div>
           </SettingsField>
 

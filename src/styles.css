@@ -266,6 +266,18 @@
   box-shadow: 0 16px 34px -20px oklch(0.25 0.02 60 / 42%);
 }
 
+/*
+ * Dunkelmodus für Dokumentseiten (PDF, Notizpapier): Seite wird invertiert und farblich
+ * zurückgedreht – weißes Papier wird dunkel, schwarze Schrift hell, Farben bleiben ähnlich.
+ * Nur die Darstellung ändert sich; Markierungen/Stift liegen auf eigenen Ebenen darüber.
+ */
+.dark.dark-pages .doc-page {
+  filter: invert(0.88) hue-rotate(180deg) saturate(0.9);
+}
+.dark.dark-pages .doc-page-bg {
+  background-color: oklch(0.24 0.004 80);
+}
+
 /* Native Datums-/Uhrzeit-Symbole in dunklem Modus aufhellen */
 .dark input[type="date"]::-webkit-calendar-picker-indicator,
 .dark input[type="time"]::-webkit-calendar-picker-indicator {

@@ -306,7 +306,7 @@ export function HandwritingCanvas({
         <div ref={boxRef} className="relative mx-auto w-full max-w-3xl">
           <canvas
             ref={canvasRef}
-            className="w-full rounded-xl bg-white shadow-sm"
+            className="doc-page w-full rounded-xl bg-white shadow-sm"
             style={{ aspectRatio: `1 / ${PAGE_RATIO}`, touchAction: "none", display: "block" }}
             onPointerDown={onDown}
             onPointerMove={onMove}

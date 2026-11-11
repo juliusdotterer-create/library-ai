@@ -177,6 +177,7 @@ export function PdfCanvasViewer({
 
           const canvas = document.createElement("canvas");
           canvas.dataset.page = String(i);
+          canvas.classList.add("doc-page");
           canvas.width = Math.floor(viewport.width);
           canvas.height = Math.floor(viewport.height);
           canvas.style.width = `${width}px`;
